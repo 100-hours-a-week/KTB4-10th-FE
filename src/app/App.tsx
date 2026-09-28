@@ -1,20 +1,20 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
+import { AuthCompletePage } from '../features/auth/ui/AuthCompletePage.tsx'
+import { LoginPage } from '../features/auth/ui/LoginPage.tsx'
 import { RoutePlaceholderPage } from '../pages/RoutePlaceholderPage.tsx'
-import { SetupPage } from '../pages/SetupPage.tsx'
 import { routes } from '../shared/config/routes.ts'
 
 function App() {
   return (
     <Routes>
-      <Route path={routes.home} element={<SetupPage />} />
-      <Route
-        path={routes.authComplete}
-        element={<RoutePlaceholderPage title="로그인 완료" />}
-      />
+      <Route path={routes.home} element={<LoginPage />} />
+      <Route path={routes.authComplete} element={<AuthCompletePage />} />
+      <Route path={routes.authError} element={<LoginPage />} />
       <Route
         path={routes.preferences}
         element={<RoutePlaceholderPage title="취향 선택" />}
       />
+      <Route path={routes.map} element={<RoutePlaceholderPage title="지도" />} />
       <Route
         path={routes.guidebookDetail}
         element={<RoutePlaceholderPage title="가이드북 상세" />}

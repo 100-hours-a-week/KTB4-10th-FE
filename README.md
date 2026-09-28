@@ -50,6 +50,15 @@ npm run dev
 - 로그인 시작은 백엔드의 `GET /api/v1/auth/oauth/authorize/kakao`로 브라우저를 이동시킵니다.
 - 로그인 완료 후 `GET /api/v1/members/me`를 호출하고 `ONBOARDING`이면 취향 선택, `ACTIVE`이면 서비스 화면으로 이동합니다.
 
+BE OAuth 리다이렉트는 실행 환경에 맞춰 다음처럼 설정합니다.
+
+```text
+OAUTH_SUCCESS_REDIRECT_URI=http://localhost:5173/auth/complete
+OAUTH_FAILURE_REDIRECT_URI=http://localhost:5173/auth/error
+```
+
+배포 환경에서는 위 host를 실제 FE 주소로 교체합니다. 카카오 인가·콜백은 BE가 처리하므로 REST API 키나 Client Secret을 FE 환경변수에 넣지 않습니다.
+
 ## 명령어
 
 ```bash
