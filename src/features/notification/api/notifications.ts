@@ -20,3 +20,8 @@ export async function deleteNotification(id: string): Promise<void> {
   await ensureCsrfToken()
   await http.delete(`/api/v1/notifications/${encodeURIComponent(id)}`)
 }
+
+export async function deleteAllNotifications(): Promise<void> {
+  await ensureCsrfToken()
+  await http.delete('/api/v1/notifications')
+}

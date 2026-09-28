@@ -39,6 +39,7 @@ function renderPage() {
       <Routes>
         <Route path="/preferences" element={<PreferenceSelectionPage />} />
         <Route path="/map" element={<h1>지도</h1>} />
+        <Route path="/mypage" element={<h1>마이페이지</h1>} />
       </Routes>
     </MemoryRouter>,
   )
@@ -102,6 +103,42 @@ describe('PreferenceSelectionPage', () => {
     expect(await screen.findByRole('button', { name: '취소' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '저장' })).toBeEnabled()
     expect(screen.queryByRole('button', { name: '다음' })).not.toBeInTheDocument()
+  })
+
+  it('변경사항이 있는 수정 모드에서 취소하면 확인 후 마이페이지로 이동한다', async () => {
+    const user = userEvent.setup()
+    getMemberPreferencesMock.mockResolvedValue([
+      { preference_type: 'THEME', preference_code: 'NATURE' },
+      { preference_type: 'DETAIL', preference_code: 'NATURE_MOUNTAIN' },
+    ])
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: '여유롭게' }))
+    await user.click(screen.getByRole('button', { name: '취소' }))
+
+    const dialog = screen.getByRole('dialog', { name: '취향 수정을 취소할까요?' })
+    expect(dialog).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '아니요' }))
+    expect(dialog).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '여유롭게' })).toHaveAttribute('aria-pressed', 'true')
+
+    await user.click(screen.getByRole('button', { name: '취소' }))
+    await user.click(screen.getByRole('button', { name: '네' }))
+    expect(await screen.findByRole('heading', { name: '마이페이지' })).toBeInTheDocument()
+  })
+
+  it('수정사항이 없으면 확인 모달 없이 마이페이지로 이동한다', async () => {
+    const user = userEvent.setup()
+    getMemberPreferencesMock.mockResolvedValue([
+      { preference_type: 'THEME', preference_code: 'NATURE' },
+      { preference_type: 'DETAIL', preference_code: 'NATURE_MOUNTAIN' },
+    ])
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: '취소' }))
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: '마이페이지' })).toBeInTheDocument()
   })
 
   it('취향 조회 실패 후 다시 불러올 수 있다', async () => {

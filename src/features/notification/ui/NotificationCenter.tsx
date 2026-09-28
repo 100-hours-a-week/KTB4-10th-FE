@@ -7,7 +7,11 @@ import { deleteNotification, getNotifications, type Notifications } from '../api
 export function NotificationCenter() {
   const { member } = useGeneration()
   const { pathname } = useLocation()
-  const enabled = member?.status === 'ACTIVE' && pathname !== '/' && !pathname.startsWith('/auth') && pathname !== '/preferences'
+  const enabled = member?.status === 'ACTIVE'
+    && pathname !== '/'
+    && !pathname.startsWith('/auth')
+    && pathname !== '/preferences'
+    && !pathname.startsWith('/mypage')
   return enabled ? <MemberNotifications key={member.member_id} /> : null
 }
 
