@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { routes } from '../../../shared/config/routes.ts'
 import { getCurrentMember } from '../api/auth.ts'
+import { AuthLoadingView } from './AuthLoadingView.tsx'
 
 export function AuthCompletePage() {
   const navigate = useNavigate()
@@ -30,14 +31,5 @@ export function AuthCompletePage() {
     )
   }
 
-  return (
-    <main className="app-shell auth-result-page" aria-busy="true">
-      <div className="auth-result-page__content">
-        <div className="brand-mark">KGB</div>
-        <img className="loading-indicator" src="/assets/loading-indicator.svg" alt="" />
-        <h1>로그인 정보를 확인하고 있어요</h1>
-        <p>회원 정보를 확인한 뒤<br />알맞은 화면으로 이동할게요.</p>
-      </div>
-    </main>
-  )
+  return <AuthLoadingView />
 }

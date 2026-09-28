@@ -4,11 +4,22 @@ import type { PolicyType } from '../../policy/api/policy.ts'
 import { PolicyModal } from '../../policy/ui/PolicyModal.tsx'
 import { startKakaoLogin } from '../api/auth.ts'
 import { getOauthErrorMessage } from '../model/oauthError.ts'
+import { AuthLoadingView } from './AuthLoadingView.tsx'
 
 export function LoginPage() {
   const [searchParams] = useSearchParams()
   const [policyType, setPolicyType] = useState<PolicyType | null>(null)
+  const [isStartingLogin, setIsStartingLogin] = useState(false)
   const errorMessage = getOauthErrorMessage(searchParams.get('code'))
+
+  const handleKakaoLogin = () => {
+    setIsStartingLogin(true)
+    window.requestAnimationFrame(startKakaoLogin)
+  }
+
+  if (isStartingLogin) {
+    return <AuthLoadingView />
+  }
 
   return (
     <main className="app-shell login-page">
@@ -21,7 +32,7 @@ export function LoginPage() {
       </section>
       <section className="login-actions">
         {errorMessage && <p className="login-message" role="status" aria-label={errorMessage}>{errorMessage}</p>}
-        <button className="primary-button" type="button" onClick={startKakaoLogin}>카카오로 로그인</button>
+        <button className="primary-button" type="button" onClick={handleKakaoLogin}>카카오로 로그인</button>
         <p className="policy-consent">
           로그인하면 <button type="button" onClick={() => setPolicyType('terms')}>이용약관</button>과{' '}
           <button type="button" onClick={() => setPolicyType('privacy')}>개인정보 처리방침</button>에 동의합니다.

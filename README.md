@@ -39,9 +39,11 @@ npm run dev
 
 | 이름 | 설명 | 로컬 예시 |
 |---|---|---|
-| `VITE_API_BASE_URL` | 백엔드 API 기준 URL. 배포에서 동일 Origin 프록시를 사용하면 빈 값 가능 | `http://localhost:8080` |
+| `VITE_API_BASE_URL` | 백엔드 API 기준 URL. 로컬은 Vite 프록시, 배포는 동일 Origin 프록시를 사용하므로 기본값은 빈 문자열 | 빈 문자열 |
 
 실제 키·토큰·비밀값은 `.env*`에 커밋하지 않습니다. Vite의 `VITE_` 변수는 브라우저 번들에 노출되므로 공개 가능한 설정만 넣습니다.
+
+로컬 개발 서버는 `/api/**` 요청을 `http://localhost:8080`으로 프록시합니다. 따라서 FE 요청은 `localhost:5173`의 같은 Origin으로 보내고, 브라우저 CORS 설정에 의존하지 않습니다. BE를 먼저 8080 포트에서 실행해야 정책과 로그인 API가 정상 동작합니다.
 
 ## API 기본 계약
 

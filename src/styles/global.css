@@ -46,13 +46,12 @@ button {
 }
 
 .login-hero {
-  display: flex;
+  display: grid;
   min-height: 420px;
   flex: 1;
-  flex-direction: column;
+  grid-template-rows: auto 1fr;
   align-items: center;
-  justify-content: flex-start;
-  padding: calc(env(safe-area-inset-top) + 92px) 30px 56px;
+  padding: calc(env(safe-area-inset-top) + 76px) 30px 24px;
   text-align: center;
 }
 
@@ -70,7 +69,7 @@ button {
 }
 
 .login-hero .brand-mark {
-  margin-top: 72px;
+  margin: 0 auto;
 }
 
 .brand-mark {
@@ -172,6 +171,29 @@ button {
   white-space: pre-wrap;
 }
 
+.policy-modal__error {
+  display: grid;
+  min-height: 180px;
+  place-content: center;
+  gap: 16px;
+  text-align: center;
+}
+
+.policy-modal__error p {
+  margin: 0;
+}
+
+.policy-modal__error button {
+  justify-self: center;
+  padding: 10px 16px;
+  border: 1px solid #b8b8bd;
+  border-radius: 8px;
+  background: #fff;
+  color: #141417;
+  cursor: pointer;
+  font-weight: 700;
+}
+
 .policy-modal .primary-button {
   margin-top: 22px;
 }
@@ -198,6 +220,13 @@ button {
   width: 36px;
   height: 36px;
   margin: 18px auto;
+  animation: loading-rotation 900ms linear infinite;
+}
+
+@keyframes loading-rotation {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .auth-result-page h1 {
@@ -266,14 +295,16 @@ button {
   .login-hero {
     min-height: 360px;
     padding-top: calc(env(safe-area-inset-top) + 56px);
-    padding-bottom: 44px;
-  }
-
-  .login-hero .brand-mark {
-    margin-top: 44px;
+    padding-bottom: 20px;
   }
 
   .login-actions {
     padding-bottom: calc(env(safe-area-inset-bottom) + 40px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-indicator {
+    animation: none;
   }
 }

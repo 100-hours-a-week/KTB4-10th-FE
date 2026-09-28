@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -48,7 +48,10 @@ describe('App', () => {
     ).not.toBeInTheDocument()
     expect(screen.getByLabelText('KGB 임시 로고')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: '카카오로 로그인' }))
-    expect(startKakaoLoginMock).toHaveBeenCalledOnce()
+    expect(
+      screen.getByRole('heading', { name: '로그인 정보를 확인하고 있어요' }),
+    ).toBeInTheDocument()
+    await waitFor(() => expect(startKakaoLoginMock).toHaveBeenCalledOnce())
   })
 
   it('개인정보 처리방침을 API에서 조회해 모달에 표시한다', async () => {
@@ -71,6 +74,32 @@ describe('App', () => {
     expect(await screen.findByRole('dialog')).toHaveTextContent(
       '회원 정보를 안전하게 처리합니다.',
     )
+  })
+
+  it('정책 조회 실패 후 모달에서 다시 불러온다', async () => {
+    const user = userEvent.setup()
+    getPolicyMock
+      .mockRejectedValueOnce(new Error('network error'))
+      .mockResolvedValueOnce({
+        policy_type: 'terms',
+        title: '이용약관',
+        format: 'MARKDOWN',
+        content: '# 이용약관\n\n서비스 이용 조건입니다.',
+      })
+
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <App />
+      </MemoryRouter>,
+    )
+
+    await user.click(screen.getByRole('button', { name: '이용약관' }))
+    await user.click(await screen.findByRole('button', { name: '다시 불러오기' }))
+
+    expect(await screen.findByRole('dialog')).toHaveTextContent(
+      '서비스 이용 조건입니다.',
+    )
+    expect(getPolicyMock).toHaveBeenCalledTimes(2)
   })
 
   it('ONBOARDING 회원을 취향 선택 화면으로 보낸다', async () => {
