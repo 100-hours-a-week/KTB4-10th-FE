@@ -86,6 +86,20 @@ describe('PreferenceSelectionPage', () => {
     expect(screen.getByRole('button', { name: '역사' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('button', { name: '관광 명소' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('button', { name: '체험' })).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByText('최대 3개까지 선택할 수 있어요.')).toBeInTheDocument()
+  })
+
+  it('저장된 취향이 있으면 수정 모드의 취소와 저장 버튼을 표시한다', async () => {
+    getMemberPreferencesMock.mockResolvedValue([
+      { preference_type: 'THEME', preference_code: 'NATURE' },
+      { preference_type: 'DETAIL', preference_code: 'NATURE_MOUNTAIN' },
+    ])
+
+    renderPage()
+
+    expect(await screen.findByRole('button', { name: '취소' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '저장' })).toBeEnabled()
+    expect(screen.queryByRole('button', { name: '다음' })).not.toBeInTheDocument()
   })
 
   it('취향 조회 실패 후 다시 불러올 수 있다', async () => {

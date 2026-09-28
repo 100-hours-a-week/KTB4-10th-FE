@@ -345,6 +345,19 @@ button:disabled {
   font-weight: 700;
 }
 
+.preference-chip--limit {
+  border-color: #d92d20;
+  animation: preference-limit-shake 650ms ease-in-out;
+  color: #b42318;
+}
+
+@keyframes preference-limit-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  50% { transform: translateX(4px); }
+  75% { transform: translateX(-2px); }
+}
+
 .preference-chip:focus-visible,
 .preference-state button:focus-visible {
   outline: 3px solid #b8b8bd;
@@ -413,6 +426,30 @@ button:disabled {
   min-height: 48px;
 }
 
+.preference-footer__actions {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 10px;
+}
+
+.secondary-button {
+  min-height: 48px;
+  border: 1px solid #b8b8bd;
+  border-radius: 12px;
+  background: #fff;
+  color: #141417;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.preference-limit-message {
+  display: block;
+  min-height: 18px;
+  color: #b42318;
+  font-size: 12px;
+  text-align: center;
+}
+
 .preference-footer .primary-button:disabled {
   border-color: #d9d9de;
   background: #d9d9de;
@@ -476,7 +513,8 @@ button:disabled {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .loading-indicator {
+  .loading-indicator,
+  .preference-chip--limit {
     animation: none;
   }
 }

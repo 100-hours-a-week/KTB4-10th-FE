@@ -22,6 +22,8 @@ export function PreferenceSelectionPage() {
   const [selectedThemes, setSelectedThemes] = useState<string[]>([])
   const [selectedDetails, setSelectedDetails] = useState<Record<string, string[]>>({})
   const [selectedStyles, setSelectedStyles] = useState<string[]>([])
+  const [isEditMode, setIsEditMode] = useState(false)
+  const [limitFeedbackCode, setLimitFeedbackCode] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -47,6 +49,7 @@ export function PreferenceSelectionPage() {
         }, {})
 
       setOptions(preferenceOptions)
+      setIsEditMode(currentSelections.length > 0)
       setSelectedThemes(themes)
       setSelectedDetails(detailsByTheme)
       setSelectedStyles(
@@ -101,8 +104,20 @@ export function PreferenceSelectionPage() {
       return detailCount >= 1 && detailCount <= MAX_DETAIL_SELECTIONS
     })
 
+  const showLimitFeedback = (code: string) => {
+    setLimitFeedbackCode(code)
+    window.setTimeout(() => {
+      setLimitFeedbackCode((current) => current === code ? null : current)
+    }, 650)
+  }
+
   const toggleTheme = (themeCode: string) => {
     setSubmitError(null)
+    if (!selectedThemes.includes(themeCode) && selectedThemes.length >= MAX_THEME_SELECTIONS) {
+      showLimitFeedback(themeCode)
+      return
+    }
+
     setSelectedThemes((current) => {
       if (current.includes(themeCode)) {
         setSelectedDetails((details) => {
@@ -113,12 +128,18 @@ export function PreferenceSelectionPage() {
         return current.filter((code) => code !== themeCode)
       }
 
-      return current.length < MAX_THEME_SELECTIONS ? [...current, themeCode] : current
+      return [...current, themeCode]
     })
   }
 
   const toggleDetail = (themeCode: string, detailCode: string) => {
     setSubmitError(null)
+    const currentDetails = selectedDetails[themeCode] ?? []
+    if (!currentDetails.includes(detailCode) && currentDetails.length >= MAX_DETAIL_SELECTIONS) {
+      showLimitFeedback(detailCode)
+      return
+    }
+
     setSelectedDetails((current) => {
       const selected = current[themeCode] ?? []
       if (selected.includes(detailCode)) {
@@ -128,7 +149,6 @@ export function PreferenceSelectionPage() {
         }
       }
 
-      if (selected.length >= MAX_DETAIL_SELECTIONS) return current
       return { ...current, [themeCode]: [...selected, detailCode] }
     })
   }
@@ -207,7 +227,7 @@ export function PreferenceSelectionPage() {
               <div className="preference-chip-grid preference-chip-grid--three">
                 {themes.map((option) => (
                   <button
-                    className="preference-chip"
+                    className={`preference-chip${limitFeedbackCode === option.code ? ' preference-chip--limit' : ''}`}
                     type="button"
                     key={option.code}
                     aria-pressed={selectedThemes.includes(option.code)}
@@ -229,7 +249,7 @@ export function PreferenceSelectionPage() {
                     <div className="preference-chip-grid preference-chip-grid--three">
                       {detailsByTheme[themeCode]?.map((option) => (
                         <button
-                          className="preference-chip preference-chip--small"
+                          className={`preference-chip preference-chip--small${limitFeedbackCode === option.code ? ' preference-chip--limit' : ''}`}
                           type="button"
                           key={option.code}
                           aria-pressed={(selectedDetails[themeCode] ?? []).includes(option.code)}
@@ -266,15 +286,25 @@ export function PreferenceSelectionPage() {
       </div>
 
       <footer className="preference-footer">
+        <span className="preference-limit-message" aria-live="polite">
+          {limitFeedbackCode ? '최대 3개까지 선택할 수 있어요.' : ''}
+        </span>
         {submitError && <p role="alert">{submitError}</p>}
-        <button
-          className="primary-button"
-          type="button"
-          disabled={!canSubmit || isSubmitting}
-          onClick={() => void handleSubmit()}
-        >
-          {isSubmitting ? '저장하고 있어요' : '다음'}
-        </button>
+        <div className={isEditMode ? 'preference-footer__actions' : undefined}>
+          {isEditMode && (
+            <button className="secondary-button" type="button" onClick={() => navigate(routes.map)}>
+              취소
+            </button>
+          )}
+          <button
+            className="primary-button"
+            type="button"
+            disabled={!canSubmit || isSubmitting}
+            onClick={() => void handleSubmit()}
+          >
+            {isSubmitting ? '저장하고 있어요' : isEditMode ? '저장' : '다음'}
+          </button>
+        </div>
       </footer>
     </main>
   )

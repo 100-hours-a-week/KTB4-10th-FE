@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { routes } from '../../../shared/config/routes.ts'
+import { getMemberPreferences } from '../../preference/api/preferences.ts'
 import { getCurrentMember } from '../api/auth.ts'
 import { AuthLoadingView } from './AuthLoadingView.tsx'
 
@@ -10,9 +11,10 @@ export function AuthCompletePage() {
 
   useEffect(() => {
     let active = true
-    getCurrentMember()
-      .then((member) => {
-        if (active) navigate(member.status === 'ONBOARDING' ? routes.preferences : routes.map, { replace: true })
+    Promise.all([getCurrentMember(), getMemberPreferences()])
+      .then(([member, preferences]) => {
+        const needsOnboarding = member.status === 'ONBOARDING' || preferences.length === 0
+        if (active) navigate(needsOnboarding ? routes.preferences : routes.map, { replace: true })
       })
       .catch(() => { if (active) setFailed(true) })
     return () => { active = false }
