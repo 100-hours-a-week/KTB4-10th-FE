@@ -1,7 +1,13 @@
 import { useCallback, useRef, useState } from 'react'
 import { BottomNavigation } from '../../../shared/ui/BottomNavigation.tsx'
 import { Toast } from '../../../shared/ui/Toast.tsx'
-import { getMapContents, type MapBounds, type MapContentItem } from '../api/map.ts'
+import {
+  filterContentsWithinRadius,
+  getMapContents,
+  type MapBounds,
+  type MapContentItem,
+} from '../api/map.ts'
+import { removeFavorite, saveFavorite } from '../api/favorites.ts'
 import { updatePushEnabled } from '../api/settings.ts'
 import type { KakaoMap } from '../lib/kakaoMaps.ts'
 import { KakaoMapCanvas } from './KakaoMapCanvas.tsx'
@@ -10,8 +16,10 @@ import { PermissionModal } from './PermissionModal.tsx'
 const DEFAULT_CENTER = { latitude: 37.5665, longitude: 126.978 }
 const LOCATION_PROMPT_KEY = 'kgb.location-prompt-completed'
 const NOTIFICATION_PROMPT_KEY = 'kgb.notification-prompt-completed'
+const CONTENT_RADIUS_KILOMETERS = 3
 
 type PermissionStep = 'location' | 'notification' | null
+type SheetLevel = 'collapsed' | 'default' | 'expanded'
 
 function initialPermissionStep(): PermissionStep {
   return localStorage.getItem(LOCATION_PROMPT_KEY) ? null : 'location'
@@ -22,19 +30,49 @@ function eventPeriodText(item: MapContentItem): string | null {
   return `${item.event_period.start_date} ~ ${item.event_period.end_date}`
 }
 
-function MapContentCard({ item }: { item: MapContentItem }) {
+type MapContentCardProps = {
+  item: MapContentItem
+  favoritePending: boolean
+  onSelect?: () => void
+  onToggleFavorite: () => void
+}
+
+function MapContentCard({
+  item,
+  favoritePending,
+  onSelect,
+  onToggleFavorite,
+}: MapContentCardProps) {
   return (
     <article className="map-content-card">
-      <div className="map-content-card__thumbnail">
-        {item.thumbnail_url
-          ? <img src={item.thumbnail_url} alt="" />
-          : <span aria-hidden="true">{item.content_type === 'EVENT' ? '행사' : '장소'}</span>}
-      </div>
-      <div className="map-content-card__body">
-        <span>{item.content_type === 'EVENT' ? '행사' : '관광지'}</span>
-        <h2>{item.title}</h2>
-        <p>{eventPeriodText(item) ?? item.address}</p>
-      </div>
+      <button
+        type="button"
+        className="map-content-card__select"
+        aria-label={`${item.title} 선택`}
+        onClick={onSelect}
+        disabled={!onSelect}
+      >
+        <span className="map-content-card__thumbnail">
+          {item.thumbnail_url
+            ? <img src={item.thumbnail_url} alt="" />
+            : <span aria-hidden="true">{item.content_type === 'EVENT' ? '행사' : '장소'}</span>}
+        </span>
+        <span className="map-content-card__body">
+          <span>{item.is_in_guidebook ? '가이드북 장소' : item.content_type === 'EVENT' ? '행사' : '관광지'}</span>
+          <strong className="map-content-card__title">{item.title}</strong>
+          <span className="map-content-card__description">{eventPeriodText(item) ?? item.address}</span>
+        </span>
+      </button>
+      <button
+        type="button"
+        className={`map-content-card__favorite${item.is_favorite ? ' map-content-card__favorite--active' : ''}`}
+        aria-label={item.is_favorite ? `${item.title} 즐겨찾기 해제` : `${item.title} 즐겨찾기 저장`}
+        aria-pressed={item.is_favorite}
+        disabled={favoritePending}
+        onClick={onToggleFavorite}
+      >
+        <span aria-hidden="true">{item.is_favorite ? '★' : '☆'}</span>
+      </button>
     </article>
   )
 }
@@ -42,27 +80,36 @@ function MapContentCard({ item }: { item: MapContentItem }) {
 export function MapPage() {
   const mapRef = useRef<KakaoMap | null>(null)
   const [position, setPosition] = useState<{ latitude: number; longitude: number } | null>(null)
+  const contentCenterRef = useRef(DEFAULT_CENTER)
   const [items, setItems] = useState<MapContentItem[]>([])
   const [selectedItem, setSelectedItem] = useState<MapContentItem | null>(null)
   const [hasMore, setHasMore] = useState(false)
   const [isContentsLoading, setIsContentsLoading] = useState(false)
   const [contentsError, setContentsError] = useState(false)
-  const [isSheetExpanded, setIsSheetExpanded] = useState(false)
-  const sheetPointerStartY = useRef<number | null>(null)
+  const [sheetLevel, setSheetLevel] = useState<SheetLevel>('default')
+  const [sheetDragHeight, setSheetDragHeight] = useState<number | null>(null)
+  const sheetRef = useRef<HTMLElement>(null)
+  const sheetDragStart = useRef<{ pointerY: number; height: number } | null>(null)
   const sheetWasDragged = useRef(false)
   const [permissionStep, setPermissionStep] = useState<PermissionStep>(initialPermissionStep)
   const [toast, setToast] = useState<string | null>(null)
   const [mapError, setMapError] = useState<string | null>(null)
+  const [favoritePendingId, setFavoritePendingId] = useState<string | null>(null)
 
   const requestContents = useCallback((bounds: MapBounds) => {
     setIsContentsLoading(true)
     setContentsError(false)
     getMapContents(bounds)
       .then((result) => {
-        setItems(result.items)
+        const nearbyItems = filterContentsWithinRadius(
+          result.items,
+          contentCenterRef.current,
+          CONTENT_RADIUS_KILOMETERS,
+        )
+        setItems(nearbyItems)
         setHasMore(result.has_more)
         setSelectedItem((current) => (
-          current && result.items.some((item) => item.content_id === current.content_id)
+          current && nearbyItems.some((item) => item.content_id === current.content_id)
             ? current
             : null
         ))
@@ -83,6 +130,7 @@ export function MapPage() {
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
         const next = { latitude: coords.latitude, longitude: coords.longitude }
+        contentCenterRef.current = next
         setPosition(next)
         afterRequest?.()
       },
@@ -132,26 +180,81 @@ export function MapPage() {
   const changeZoom = (difference: number) => {
     const map = mapRef.current
     if (!map) return
-    map.setLevel(Math.min(6, Math.max(1, map.getLevel() + difference)), {
+    map.setLevel(Math.min(16, Math.max(1, map.getLevel() + difference)), {
       anchor: map.getCenter(),
     })
   }
 
-  const finishSheetDrag = (clientY: number) => {
-    if (sheetPointerStartY.current === null) return
-    const movement = clientY - sheetPointerStartY.current
-    if (movement <= -30) {
-      sheetWasDragged.current = true
-      setIsSheetExpanded(true)
-    }
-    if (movement >= 30) {
-      sheetWasDragged.current = true
-      setIsSheetExpanded(false)
-    }
-    sheetPointerStartY.current = null
+  const sheetHeights = () => ({
+    collapsed: 48,
+    default: 174,
+    expanded: Math.min(window.innerHeight * 0.64, 580),
+  })
+
+  const moveSheet = (clientY: number) => {
+    const start = sheetDragStart.current
+    if (!start) return
+    const heights = sheetHeights()
+    const nextHeight = start.height + start.pointerY - clientY
+    const constrainedHeight = Math.min(heights.expanded, Math.max(heights.collapsed, nextHeight))
+    if (Math.abs(constrainedHeight - start.height) >= 4) sheetWasDragged.current = true
+    setSheetDragHeight(constrainedHeight)
+  }
+
+  const finishSheetDrag = (pointerId: number, clientY: number, element: HTMLButtonElement) => {
+    moveSheet(clientY)
+    const start = sheetDragStart.current
+    if (!start) return
+    const heights = sheetHeights()
+    const currentHeight = Math.min(
+      heights.expanded,
+      Math.max(heights.collapsed, start.height + start.pointerY - clientY),
+    )
+    const nextLevel = (Object.entries(heights) as Array<[SheetLevel, number]>)
+      .reduce((closest, candidate) => (
+        Math.abs(candidate[1] - currentHeight) < Math.abs(closest[1] - currentHeight)
+          ? candidate
+          : closest
+      ))[0]
+    setSheetLevel(nextLevel)
+    setSheetDragHeight(null)
+    sheetDragStart.current = null
+    if (element.hasPointerCapture?.(pointerId)) element.releasePointerCapture?.(pointerId)
   }
 
   const displayedItem = selectedItem ?? items[0] ?? null
+  const handleMapClick = useCallback(() => {
+    setSheetLevel((current) => current === 'expanded' ? 'default' : current)
+    setSheetDragHeight(null)
+  }, [])
+
+  const toggleFavorite = async (item: MapContentItem) => {
+    if (favoritePendingId) return
+    setFavoritePendingId(item.content_id)
+    try {
+      if (item.is_favorite) {
+        await removeFavorite(item.content_id)
+      } else {
+        await saveFavorite(item.content_id)
+      }
+      const favorite = !item.is_favorite
+      setItems((current) => current.map((candidate) => (
+        candidate.content_id === item.content_id
+          ? { ...candidate, is_favorite: favorite }
+          : candidate
+      )))
+      setSelectedItem((current) => (
+        current?.content_id === item.content_id
+          ? { ...current, is_favorite: favorite }
+          : current
+      ))
+      setToast(favorite ? '즐겨찾기에 저장했어요.' : '즐겨찾기에서 삭제했어요.')
+    } catch {
+      setToast('즐겨찾기 상태를 변경하지 못했어요.')
+    } finally {
+      setFavoritePendingId(null)
+    }
+  }
 
   return (
     <main className="app-shell map-page">
@@ -163,13 +266,20 @@ export function MapPage() {
         mapRef={mapRef}
         onBoundsChange={requestContents}
         onError={setMapError}
+        onMapClick={handleMapClick}
         onSelectItem={setSelectedItem}
       />
 
       <div className="map-controls" aria-label="지도 조작">
-        <button type="button" aria-label="확대" onClick={() => changeZoom(-1)}>＋</button>
-        <button type="button" aria-label="축소" onClick={() => changeZoom(1)}>－</button>
-        <button type="button" aria-label="현재 위치로 이동" onClick={() => requestCurrentPosition()}>⌖</button>
+        <button type="button" aria-label="확대" onClick={() => changeZoom(-1)}>
+          <img src="/assets/map-controls/add.png" alt="" aria-hidden="true" />
+        </button>
+        <button type="button" aria-label="축소" onClick={() => changeZoom(1)}>
+          <img src="/assets/map-controls/minus.png" alt="" aria-hidden="true" />
+        </button>
+        <button type="button" aria-label="현재 위치로 이동" onClick={() => requestCurrentPosition()}>
+          <img src="/assets/map-controls/gps.png" alt="" aria-hidden="true" />
+        </button>
       </div>
 
       {mapError && (
@@ -180,27 +290,42 @@ export function MapPage() {
       )}
 
       <section
-        className={`map-content-sheet${isSheetExpanded ? ' map-content-sheet--expanded' : ''}`}
+        ref={sheetRef}
+        className={`map-content-sheet map-content-sheet--${sheetLevel}${sheetDragHeight !== null ? ' map-content-sheet--dragging' : ''}`}
         aria-live="polite"
+        style={sheetDragHeight === null ? undefined : { height: `${sheetDragHeight}px` }}
       >
         <button
           type="button"
           className="map-content-sheet__handle-button"
-          aria-label={isSheetExpanded ? '장소 목록 접기' : '장소 목록 펼치기'}
-          aria-expanded={isSheetExpanded}
+          aria-label={sheetLevel === 'expanded' ? '장소 목록 접기' : '장소 목록 펼치기'}
+          aria-expanded={sheetLevel === 'expanded'}
           onClick={() => {
             if (sheetWasDragged.current) {
               sheetWasDragged.current = false
               return
             }
-            setIsSheetExpanded((expanded) => !expanded)
+            setSheetLevel((current) => current === 'expanded' ? 'default' : 'expanded')
           }}
           onPointerDown={(event) => {
             sheetWasDragged.current = false
-            sheetPointerStartY.current = event.clientY
+            const measuredHeight = sheetRef.current?.getBoundingClientRect().height ?? 0
+            sheetDragStart.current = {
+              pointerY: event.clientY,
+              height: measuredHeight > 0 ? measuredHeight : sheetHeights()[sheetLevel],
+            }
+            event.currentTarget.setPointerCapture?.(event.pointerId)
           }}
-          onPointerUp={(event) => finishSheetDrag(event.clientY)}
-          onPointerCancel={() => { sheetPointerStartY.current = null }}
+          onPointerMove={(event) => moveSheet(event.clientY)}
+          onPointerUp={(event) => finishSheetDrag(
+            event.pointerId,
+            event.clientY,
+            event.currentTarget,
+          )}
+          onPointerCancel={() => {
+            sheetDragStart.current = null
+            setSheetDragHeight(null)
+          }}
         >
           <span className="map-content-sheet__handle" aria-hidden="true" />
         </button>
@@ -225,23 +350,32 @@ export function MapPage() {
               <strong>주변 장소·행사 {items.length}개</strong>
               {hasMore && <small>지도를 확대하면 더 많은 장소를 확인할 수 있어요.</small>}
             </div>
-            {isSheetExpanded ? (
+            {sheetLevel === 'expanded' ? (
               <div className="map-content-sheet__list" aria-label="주변 장소와 행사 목록">
                 {items.map((item) => (
-                  <button
-                    type="button"
+                  <div
                     className={`map-content-sheet__list-item${selectedItem?.content_id === item.content_id ? ' map-content-sheet__list-item--selected' : ''}`}
                     key={item.content_id}
-                    onClick={() => {
-                      setSelectedItem(item)
-                      setIsSheetExpanded(false)
-                    }}
                   >
-                    <MapContentCard item={item} />
-                  </button>
+                    <MapContentCard
+                      item={item}
+                      favoritePending={favoritePendingId === item.content_id}
+                      onSelect={() => {
+                        setSelectedItem(item)
+                        setSheetLevel('default')
+                      }}
+                      onToggleFavorite={() => void toggleFavorite(item)}
+                    />
+                  </div>
                 ))}
               </div>
-            ) : displayedItem ? <MapContentCard item={displayedItem} /> : null}
+            ) : displayedItem ? (
+              <MapContentCard
+                item={displayedItem}
+                favoritePending={favoritePendingId === displayedItem.content_id}
+                onToggleFavorite={() => void toggleFavorite(displayedItem)}
+              />
+            ) : null}
           </div>
         )}
       </section>

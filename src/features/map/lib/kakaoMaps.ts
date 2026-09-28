@@ -14,20 +14,68 @@ export type KakaoMap = {
   getLevel: () => number
   panTo: (position: KakaoLatLng) => void
   setLevel: (level: number, options?: { anchor?: KakaoLatLng }) => void
+  setMinLevel: (level: number) => void
+  setMaxLevel: (level: number) => void
 }
 
 export type KakaoMarker = {
+  getPosition: () => KakaoLatLng
   setMap: (map: KakaoMap | null) => void
 }
+
+export type KakaoCluster = {
+  getCenter: () => KakaoLatLng
+  getSize: () => number
+}
+
+export type KakaoMarkerClusterer = {
+  addMarkers: (markers: KakaoMarker[]) => void
+  clear: () => void
+}
+
+type KakaoSize = object
+type KakaoPoint = object
+type KakaoMarkerImage = object
 
 export type KakaoMaps = {
   load: (callback: () => void) => void
   LatLng: new (latitude: number, longitude: number) => KakaoLatLng
+  Size: new (width: number, height: number) => KakaoSize
+  Point: new (x: number, y: number) => KakaoPoint
+  MarkerImage: new (
+    source: string,
+    size: KakaoSize,
+    options?: { offset?: KakaoPoint },
+  ) => KakaoMarkerImage
   Map: new (container: HTMLElement, options: { center: KakaoLatLng; level: number }) => KakaoMap
-  Marker: new (options: { map?: KakaoMap; position: KakaoLatLng; title?: string }) => KakaoMarker
+  Marker: new (options: {
+    image?: KakaoMarkerImage
+    map?: KakaoMap
+    position: KakaoLatLng
+    title?: string
+  }) => KakaoMarker
+  MarkerClusterer: new (options: {
+    map: KakaoMap
+    markers?: KakaoMarker[]
+    gridSize?: number
+    averageCenter?: boolean
+    minLevel?: number
+    minClusterSize?: number
+    disableClickZoom?: boolean
+    texts?: (size: number) => string
+    styles?: Array<Record<string, string>>
+  }) => KakaoMarkerClusterer
   event: {
-    addListener: (target: object, eventName: string, handler: () => void) => void
-    removeListener: (target: object, eventName: string, handler: () => void) => void
+    addListener: <TArgs extends unknown[]>(
+      target: object,
+      eventName: string,
+      handler: (...args: TArgs) => void,
+    ) => void
+    removeListener: <TArgs extends unknown[]>(
+      target: object,
+      eventName: string,
+      handler: (...args: TArgs) => void,
+    ) => void
   }
 }
 
@@ -50,7 +98,7 @@ export function loadKakaoMaps(): Promise<KakaoMaps> {
 
   const loading = new Promise<KakaoMaps>((resolve, reject) => {
     const script = document.createElement('script')
-    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(appKey)}&autoload=false`
+    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(appKey)}&autoload=false&libraries=clusterer`
     script.async = true
     script.addEventListener('load', () => {
       if (!window.kakao?.maps) {
