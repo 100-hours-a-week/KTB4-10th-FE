@@ -49,6 +49,7 @@ export function MapPage() {
   const [contentsError, setContentsError] = useState(false)
   const [isSheetExpanded, setIsSheetExpanded] = useState(false)
   const sheetPointerStartY = useRef<number | null>(null)
+  const sheetWasDragged = useRef(false)
   const [permissionStep, setPermissionStep] = useState<PermissionStep>(initialPermissionStep)
   const [toast, setToast] = useState<string | null>(null)
   const [mapError, setMapError] = useState<string | null>(null)
@@ -139,8 +140,14 @@ export function MapPage() {
   const finishSheetDrag = (clientY: number) => {
     if (sheetPointerStartY.current === null) return
     const movement = clientY - sheetPointerStartY.current
-    if (movement <= -30) setIsSheetExpanded(true)
-    if (movement >= 30) setIsSheetExpanded(false)
+    if (movement <= -30) {
+      sheetWasDragged.current = true
+      setIsSheetExpanded(true)
+    }
+    if (movement >= 30) {
+      sheetWasDragged.current = true
+      setIsSheetExpanded(false)
+    }
     sheetPointerStartY.current = null
   }
 
@@ -181,8 +188,17 @@ export function MapPage() {
           className="map-content-sheet__handle-button"
           aria-label={isSheetExpanded ? '장소 목록 접기' : '장소 목록 펼치기'}
           aria-expanded={isSheetExpanded}
-          onClick={() => setIsSheetExpanded((expanded) => !expanded)}
-          onPointerDown={(event) => { sheetPointerStartY.current = event.clientY }}
+          onClick={() => {
+            if (sheetWasDragged.current) {
+              sheetWasDragged.current = false
+              return
+            }
+            setIsSheetExpanded((expanded) => !expanded)
+          }}
+          onPointerDown={(event) => {
+            sheetWasDragged.current = false
+            sheetPointerStartY.current = event.clientY
+          }}
           onPointerUp={(event) => finishSheetDrag(event.clientY)}
           onPointerCancel={() => { sheetPointerStartY.current = null }}
         >
