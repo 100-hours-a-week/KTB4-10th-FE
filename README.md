@@ -53,8 +53,6 @@ npm run build
 npm run preview
 ```
 
-Pull Request에서는 같은 타입 검사·린트·테스트·빌드를 GitHub Actions가 다시 실행합니다.
-
 ## 디렉터리
 
 ```text
