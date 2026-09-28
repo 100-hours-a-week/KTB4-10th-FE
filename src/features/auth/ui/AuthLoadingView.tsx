@@ -1,10 +1,10 @@
 export function AuthLoadingView() {
   return (
     <main className="app-shell auth-result-page" aria-busy="true">
-      <div className="auth-result-page__content">
-        <div className="brand-mark" aria-label="KGB 임시 로고">
-          KGB
-        </div>
+      <div className="brand-mark auth-brand-position" aria-label="KGB 임시 로고">
+        KGB
+      </div>
+      <div className="auth-result-page__status">
         <img
           className="loading-indicator"
           src="/assets/loading-indicator.svg"

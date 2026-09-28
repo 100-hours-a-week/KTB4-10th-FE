@@ -28,7 +28,7 @@ export function LoginPage() {
           <h2 id="login-copy">여행을 더 쉽게,<br />가이드북을 더 특별하게</h2>
           <p>취향에 맞는 행사와 여행 일정을 한곳에서</p>
         </div>
-        <div className="brand-mark" aria-label="KGB 임시 로고">KGB</div>
+        <div className="brand-mark auth-brand-position" aria-label="KGB 임시 로고">KGB</div>
       </section>
       <section className="login-actions">
         {errorMessage && <p className="login-message" role="status" aria-label={errorMessage}>{errorMessage}</p>}
