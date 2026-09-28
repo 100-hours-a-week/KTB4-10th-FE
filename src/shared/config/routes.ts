@@ -4,5 +4,7 @@ export const routes = {
   authError: '/auth/error',
   preferences: '/preferences',
   map: '/map',
+  guidebooks: '/guidebooks',
+  myPage: '/mypage',
   guidebookDetail: '/guidebooks/:guidebookId',
 } as const
