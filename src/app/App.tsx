@@ -4,34 +4,46 @@ import { LoginPage } from '../features/auth/ui/LoginPage.tsx'
 import { MapPage } from '../features/map/ui/MapPage.tsx'
 import { PreferenceSelectionPage } from '../features/preference/ui/PreferenceSelectionPage.tsx'
 import { MainTabPlaceholderPage } from '../pages/MainTabPlaceholderPage.tsx'
-import { RoutePlaceholderPage } from '../pages/RoutePlaceholderPage.tsx'
+import { GenerationProvider } from '../features/guidebook/model/GenerationProvider.tsx'
+import { GuidebookAccess } from '../features/guidebook/ui/GuidebookLayout.tsx'
+import { GuidebookListPage } from '../features/guidebook/ui/GuidebookListPage.tsx'
+import { GuidebookCreatePage } from '../features/guidebook/ui/GuidebookCreatePage.tsx'
+import { GuidebookGeneratingPage } from '../features/guidebook/ui/GuidebookGeneratingPage.tsx'
+import { GuidebookDetailPage } from '../features/guidebook/ui/GuidebookDetailPage.tsx'
+import { GuidebookViewerPage } from '../features/guidebook/ui/GuidebookViewerPage.tsx'
 import { routes } from '../shared/config/routes.ts'
+import '../features/guidebook/ui/guidebook.css'
 
 function App() {
   return (
-    <Routes>
-      <Route path={routes.home} element={<LoginPage />} />
-      <Route path={routes.authComplete} element={<AuthCompletePage />} />
-      <Route path={routes.authError} element={<LoginPage />} />
-      <Route
-        path={routes.preferences}
-        element={<PreferenceSelectionPage />}
-      />
-      <Route path={routes.map} element={<MapPage />} />
-      <Route
-        path={routes.guidebooks}
-        element={<MainTabPlaceholderPage title="가이드북" />}
-      />
-      <Route
-        path={routes.myPage}
-        element={<MainTabPlaceholderPage title="마이페이지" />}
-      />
-      <Route
-        path={routes.guidebookDetail}
-        element={<RoutePlaceholderPage title="가이드북 상세" />}
-      />
-      <Route path="*" element={<Navigate to={routes.home} replace />} />
-    </Routes>
+    <GenerationProvider>
+      <Routes>
+        <Route path={routes.home} element={<LoginPage />} />
+        <Route path={routes.authComplete} element={<AuthCompletePage />} />
+        <Route path={routes.authError} element={<LoginPage />} />
+        <Route
+          path={routes.preferences}
+          element={<PreferenceSelectionPage />}
+        />
+        <Route path={routes.map} element={<MapPage />} />
+        <Route
+          path={routes.guidebooks}
+          element={<GuidebookAccess><GuidebookListPage /></GuidebookAccess>}
+        />
+        <Route path={routes.guidebookCreate} element={<GuidebookAccess><GuidebookCreatePage /></GuidebookAccess>} />
+        <Route path={routes.guidebookGenerating} element={<GuidebookAccess><GuidebookGeneratingPage /></GuidebookAccess>} />
+        <Route path={routes.guidebookViewer} element={<GuidebookAccess><GuidebookViewerPage /></GuidebookAccess>} />
+        <Route
+          path={routes.myPage}
+          element={<MainTabPlaceholderPage title="마이페이지" />}
+        />
+        <Route
+          path={routes.guidebookDetail}
+          element={<GuidebookAccess><GuidebookDetailPage /></GuidebookAccess>}
+        />
+        <Route path="*" element={<Navigate to={routes.home} replace />} />
+      </Routes>
+    </GenerationProvider>
   )
 }
 
