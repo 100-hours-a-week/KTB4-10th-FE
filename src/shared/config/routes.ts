@@ -6,5 +6,7 @@ export const routes = {
   map: '/map',
   guidebooks: '/guidebooks',
   myPage: '/mypage',
+  notifications: '/mypage/notifications',
+  settings: '/mypage/settings',
   guidebookDetail: '/guidebooks/:guidebookId',
 } as const

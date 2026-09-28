@@ -875,6 +875,200 @@ button:disabled {
   transition: opacity 160ms ease;
 }
 
+.mypage-page {
+  min-height: 100dvh;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 92px);
+  background: #f7f7f9;
+}
+
+.mypage-header {
+  display: flex;
+  min-height: calc(env(safe-area-inset-top) + 70px);
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 0 20px 14px;
+  border-bottom: 1px solid #ededf0;
+  background: #fff;
+}
+
+.mypage-header h1 {
+  margin: 0;
+  font-size: 20px;
+  letter-spacing: -0.03em;
+}
+
+.mypage-notification-button {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  margin: 0 -9px -8px 0;
+  padding: 9px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+
+.mypage-notification-button:active {
+  background: #ededf0;
+  transform: scale(0.94);
+}
+
+.mypage-notification-button:focus-visible,
+.mypage-menu button:focus-visible,
+.mypage-state button:focus-visible {
+  outline: 3px solid #b8b8bd;
+  outline-offset: 2px;
+}
+
+.mypage-notification-button img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.mypage-content {
+  padding: 22px 18px;
+}
+
+.mypage-profile {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 22px 20px;
+  border: 1px solid #ededf0;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 5px 18px rgb(20 20 23 / 5%);
+}
+
+.mypage-profile__image {
+  width: 64px;
+  height: 64px;
+  flex: none;
+  overflow: hidden;
+  border: 1px solid #e2e2e6;
+  border-radius: 50%;
+  background: #ededf0;
+}
+
+.mypage-profile__image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mypage-profile__fallback {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  color: #515158;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.mypage-profile__details {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+}
+
+.mypage-profile__details strong {
+  overflow: hidden;
+  font-size: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mypage-profile__details span {
+  overflow: hidden;
+  color: #797980;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mypage-menu {
+  display: grid;
+  overflow: hidden;
+  margin-top: 18px;
+  border: 1px solid #ededf0;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 5px 18px rgb(20 20 23 / 5%);
+}
+
+.mypage-menu button {
+  display: flex;
+  min-height: 78px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px;
+  border: 0;
+  border-bottom: 1px solid #ededf0;
+  background: #fff;
+  color: #242428;
+  cursor: pointer;
+  text-align: left;
+}
+
+.mypage-menu button:last-child {
+  border-bottom: 0;
+}
+
+.mypage-menu button:active {
+  background: #f2f2f5;
+}
+
+.mypage-menu button > span:first-child {
+  display: grid;
+  gap: 6px;
+}
+
+.mypage-menu strong {
+  font-size: 15px;
+}
+
+.mypage-menu small {
+  color: #8c8c94;
+  font-size: 11px;
+}
+
+.mypage-menu button > span:last-child {
+  color: #929298;
+  font-size: 25px;
+  line-height: 1;
+}
+
+.mypage-state {
+  display: grid;
+  min-height: 320px;
+  place-content: center;
+  justify-items: center;
+  color: #6b6b73;
+  font-size: 14px;
+  text-align: center;
+}
+
+.mypage-state p {
+  max-width: 270px;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.mypage-state button {
+  margin-top: 18px;
+  padding: 10px 16px;
+  border: 1px solid #b8b8bd;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  font-weight: 700;
+}
+
 .permission-backdrop {
   position: fixed;
   z-index: 20;
