@@ -32,10 +32,9 @@ jobs:
 
       - name: Build
         env:
-          VITE_API_MOCKING: ${{ secrets.VITE_API_MOCKING }}
-          VITE_SERVER: ${{ secrets.VITE_SERVER }}
-          VITE_CRYPTO_KEY_NAME: ${{ secrets.VITE_CRYPTO_KEY_NAME }}
-          VITE_CRYPTO_KEY_LENGTH: ${{ secrets.VITE_CRYPTO_KEY_LENGTH }}
+          VITE_API_BASE_URL: ""
+          VITE_KAKAO_MAP_APP_KEY: ${{ secrets.VITE_KAKAO_MAP_APP_KEY }}
+          
         run: npm run build
 
       # 현재 배포 Commit을 확인하기 위한 파일 생성
