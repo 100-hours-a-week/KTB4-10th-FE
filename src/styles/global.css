@@ -39,16 +39,6 @@ button {
   background: #fbfbfc;
 }
 
-.page-header {
-  padding: calc(env(safe-area-inset-top) + 44px) 23px 0;
-}
-
-.page-header h1 {
-  margin: 0;
-  font-size: 23px;
-  line-height: 1.3;
-}
-
 .login-page {
   display: flex;
   min-height: 100dvh;
@@ -60,8 +50,10 @@ button {
   min-height: 420px;
   flex: 1;
   flex-direction: column;
-  justify-content: space-between;
-  padding: 108px 30px 68px;
+  align-items: center;
+  justify-content: flex-start;
+  padding: calc(env(safe-area-inset-top) + 92px) 30px 56px;
+  text-align: center;
 }
 
 .login-hero h2 {
@@ -77,17 +69,21 @@ button {
   font-size: 14px;
 }
 
+.login-hero .brand-mark {
+  margin-top: 72px;
+}
+
 .brand-mark {
   display: grid;
-  width: 120px;
-  height: 120px;
+  width: 136px;
+  height: 136px;
   flex: none;
   place-items: center;
   align-self: center;
   border: 1px solid #ededf0;
   border-radius: 28px;
   background: #fff;
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 700;
 }
 
@@ -262,18 +258,19 @@ button {
 
 @media (min-width: 391px) {
   .app-shell {
-    min-height: min(100vh, 844px);
-    margin-block: max(0px, calc((100vh - 844px) / 2));
-    border: 1px solid #b8b8bd;
-    border-radius: 32px;
+    min-height: 100vh;
   }
 }
 
 @media (max-height: 720px) {
   .login-hero {
     min-height: 360px;
-    padding-top: 64px;
+    padding-top: calc(env(safe-area-inset-top) + 56px);
     padding-bottom: 44px;
+  }
+
+  .login-hero .brand-mark {
+    margin-top: 44px;
   }
 
   .login-actions {

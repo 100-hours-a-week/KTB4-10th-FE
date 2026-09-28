@@ -38,7 +38,15 @@ describe('App', () => {
       </MemoryRouter>,
     )
 
-    expect(screen.getByRole('heading', { name: '로그인' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', {
+        name: /여행을 더 쉽게,\s*가이드북을 더 특별하게/,
+      }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('heading', { name: '로그인' }),
+    ).not.toBeInTheDocument()
+    expect(screen.getByLabelText('KGB 임시 로고')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: '카카오로 로그인' }))
     expect(startKakaoLoginMock).toHaveBeenCalledOnce()
   })

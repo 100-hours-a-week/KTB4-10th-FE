@@ -21,7 +21,7 @@ export function AuthCompletePage() {
     return (
       <main className="app-shell auth-result-page">
         <div className="auth-result-page__content">
-          <div className="brand-mark">콜인원</div>
+          <div className="brand-mark">KGB</div>
           <h1>로그인 정보를 확인하지 못했어요</h1>
           <p>다시 로그인해 주세요.</p>
           <button className="primary-button" type="button" onClick={() => navigate(routes.home, { replace: true })}>로그인 화면으로</button>
@@ -33,7 +33,7 @@ export function AuthCompletePage() {
   return (
     <main className="app-shell auth-result-page" aria-busy="true">
       <div className="auth-result-page__content">
-        <div className="brand-mark">콜인원</div>
+        <div className="brand-mark">KGB</div>
         <img className="loading-indicator" src="/assets/loading-indicator.svg" alt="" />
         <h1>로그인 정보를 확인하고 있어요</h1>
         <p>회원 정보를 확인한 뒤<br />알맞은 화면으로 이동할게요.</p>
