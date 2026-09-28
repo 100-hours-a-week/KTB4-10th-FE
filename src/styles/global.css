@@ -601,10 +601,26 @@ button:disabled {
   background: rgb(255 255 255 / 96%);
   box-shadow: 0 8px 28px rgb(20 20 23 / 15%);
   transition: height 220ms ease;
+  overflow: hidden;
 }
 
 .map-content-sheet--expanded {
   height: min(64dvh, 580px);
+}
+
+.map-content-sheet--collapsed {
+  height: 48px;
+  padding-bottom: 0;
+}
+
+.map-content-sheet--dragging {
+  transition: none;
+  user-select: none;
+}
+
+.map-content-sheet--collapsed .map-content-sheet__contents,
+.map-content-sheet--collapsed .map-content-sheet__empty {
+  visibility: hidden;
 }
 
 .map-content-sheet__handle-button {

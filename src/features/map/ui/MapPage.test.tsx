@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -19,16 +19,25 @@ vi.mock('../api/settings.ts', () => ({
 }))
 
 vi.mock('./KakaoMapCanvas.tsx', () => ({
-  KakaoMapCanvas: ({ onBoundsChange }: { onBoundsChange: (bounds: object) => void }) => (
-    <button type="button" onClick={() => onBoundsChange({
-      south: 37.5,
-      west: 126.9,
-      north: 37.6,
-      east: 127,
-      zoom: 18,
-    })}>
-      지도 범위 조회
-    </button>
+  KakaoMapCanvas: ({
+    onBoundsChange,
+    onMapClick,
+  }: {
+    onBoundsChange: (bounds: object) => void
+    onMapClick: () => void
+  }) => (
+    <div>
+      <button type="button" onClick={() => onBoundsChange({
+        south: 37.5,
+        west: 126.9,
+        north: 37.6,
+        east: 127,
+        zoom: 18,
+      })}>
+        지도 범위 조회
+      </button>
+      <button type="button" onClick={onMapClick}>지도 클릭</button>
+    </div>
   ),
 }))
 
@@ -106,6 +115,21 @@ describe('MapPage', () => {
     await user.click(screen.getByRole('button', { name: '장소 목록 펼치기' }))
     expect(screen.getByRole('button', { name: '장소 목록 접기' })).toHaveAttribute('aria-expanded', 'true')
     expect(screen.getByRole('heading', { name: '서울 축제' })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: '지도 클릭' }))
+    expect(document.querySelector('.map-content-sheet--expanded')).not.toBeInTheDocument()
+  })
+
+  it('핸들바를 아래로 드래그하면 하단 탭 위까지 축소된다', () => {
+    localStorage.setItem('kgb.location-prompt-completed', 'true')
+    render(<MemoryRouter><MapPage /></MemoryRouter>)
+    const handle = screen.getByRole('button', { name: '장소 목록 펼치기' })
+
+    fireEvent.pointerDown(handle, { clientY: 100, pointerId: 1 })
+    fireEvent.pointerMove(handle, { clientY: 240, pointerId: 1 })
+    fireEvent.pointerUp(handle, { clientY: 240, pointerId: 1 })
+
+    expect(document.querySelector('.map-content-sheet--collapsed')).toBeInTheDocument()
   })
 
   it('조회 결과가 비어 있으면 콘텐츠 미적재 가능성을 안내한다', async () => {

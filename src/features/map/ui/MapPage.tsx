@@ -18,6 +18,7 @@ const NOTIFICATION_PROMPT_KEY = 'kgb.notification-prompt-completed'
 const CONTENT_RADIUS_KILOMETERS = 3
 
 type PermissionStep = 'location' | 'notification' | null
+type SheetLevel = 'collapsed' | 'default' | 'expanded'
 
 function initialPermissionStep(): PermissionStep {
   return localStorage.getItem(LOCATION_PROMPT_KEY) ? null : 'location'
@@ -54,8 +55,10 @@ export function MapPage() {
   const [hasMore, setHasMore] = useState(false)
   const [isContentsLoading, setIsContentsLoading] = useState(false)
   const [contentsError, setContentsError] = useState(false)
-  const [isSheetExpanded, setIsSheetExpanded] = useState(false)
-  const sheetPointerStartY = useRef<number | null>(null)
+  const [sheetLevel, setSheetLevel] = useState<SheetLevel>('default')
+  const [sheetDragHeight, setSheetDragHeight] = useState<number | null>(null)
+  const sheetRef = useRef<HTMLElement>(null)
+  const sheetDragStart = useRef<{ pointerY: number; height: number } | null>(null)
   const sheetWasDragged = useRef(false)
   const [permissionStep, setPermissionStep] = useState<PermissionStep>(initialPermissionStep)
   const [toast, setToast] = useState<string | null>(null)
@@ -150,22 +153,48 @@ export function MapPage() {
     })
   }
 
-  const finishSheetDrag = (clientY: number) => {
-    if (sheetPointerStartY.current === null) return
-    const movement = clientY - sheetPointerStartY.current
-    if (movement <= -30) {
-      sheetWasDragged.current = true
-      setIsSheetExpanded(true)
-    }
-    if (movement >= 30) {
-      sheetWasDragged.current = true
-      setIsSheetExpanded(false)
-    }
-    sheetPointerStartY.current = null
+  const sheetHeights = () => ({
+    collapsed: 48,
+    default: 174,
+    expanded: Math.min(window.innerHeight * 0.64, 580),
+  })
+
+  const moveSheet = (clientY: number) => {
+    const start = sheetDragStart.current
+    if (!start) return
+    const heights = sheetHeights()
+    const nextHeight = start.height + start.pointerY - clientY
+    const constrainedHeight = Math.min(heights.expanded, Math.max(heights.collapsed, nextHeight))
+    if (Math.abs(constrainedHeight - start.height) >= 4) sheetWasDragged.current = true
+    setSheetDragHeight(constrainedHeight)
+  }
+
+  const finishSheetDrag = (pointerId: number, clientY: number, element: HTMLButtonElement) => {
+    moveSheet(clientY)
+    const start = sheetDragStart.current
+    if (!start) return
+    const heights = sheetHeights()
+    const currentHeight = Math.min(
+      heights.expanded,
+      Math.max(heights.collapsed, start.height + start.pointerY - clientY),
+    )
+    const nextLevel = (Object.entries(heights) as Array<[SheetLevel, number]>)
+      .reduce((closest, candidate) => (
+        Math.abs(candidate[1] - currentHeight) < Math.abs(closest[1] - currentHeight)
+          ? candidate
+          : closest
+      ))[0]
+    setSheetLevel(nextLevel)
+    setSheetDragHeight(null)
+    sheetDragStart.current = null
+    if (element.hasPointerCapture?.(pointerId)) element.releasePointerCapture?.(pointerId)
   }
 
   const displayedItem = selectedItem ?? items[0] ?? null
-  const handleMapClick = useCallback(() => setIsSheetExpanded(false), [])
+  const handleMapClick = useCallback(() => {
+    setSheetLevel((current) => current === 'expanded' ? 'default' : current)
+    setSheetDragHeight(null)
+  }, [])
 
   return (
     <main className="app-shell map-page">
@@ -195,27 +224,42 @@ export function MapPage() {
       )}
 
       <section
-        className={`map-content-sheet${isSheetExpanded ? ' map-content-sheet--expanded' : ''}`}
+        ref={sheetRef}
+        className={`map-content-sheet map-content-sheet--${sheetLevel}${sheetDragHeight !== null ? ' map-content-sheet--dragging' : ''}`}
         aria-live="polite"
+        style={sheetDragHeight === null ? undefined : { height: `${sheetDragHeight}px` }}
       >
         <button
           type="button"
           className="map-content-sheet__handle-button"
-          aria-label={isSheetExpanded ? '장소 목록 접기' : '장소 목록 펼치기'}
-          aria-expanded={isSheetExpanded}
+          aria-label={sheetLevel === 'expanded' ? '장소 목록 접기' : '장소 목록 펼치기'}
+          aria-expanded={sheetLevel === 'expanded'}
           onClick={() => {
             if (sheetWasDragged.current) {
               sheetWasDragged.current = false
               return
             }
-            setIsSheetExpanded((expanded) => !expanded)
+            setSheetLevel((current) => current === 'expanded' ? 'default' : 'expanded')
           }}
           onPointerDown={(event) => {
             sheetWasDragged.current = false
-            sheetPointerStartY.current = event.clientY
+            const measuredHeight = sheetRef.current?.getBoundingClientRect().height ?? 0
+            sheetDragStart.current = {
+              pointerY: event.clientY,
+              height: measuredHeight > 0 ? measuredHeight : sheetHeights()[sheetLevel],
+            }
+            event.currentTarget.setPointerCapture?.(event.pointerId)
           }}
-          onPointerUp={(event) => finishSheetDrag(event.clientY)}
-          onPointerCancel={() => { sheetPointerStartY.current = null }}
+          onPointerMove={(event) => moveSheet(event.clientY)}
+          onPointerUp={(event) => finishSheetDrag(
+            event.pointerId,
+            event.clientY,
+            event.currentTarget,
+          )}
+          onPointerCancel={() => {
+            sheetDragStart.current = null
+            setSheetDragHeight(null)
+          }}
         >
           <span className="map-content-sheet__handle" aria-hidden="true" />
         </button>
@@ -240,7 +284,7 @@ export function MapPage() {
               <strong>주변 장소·행사 {items.length}개</strong>
               {hasMore && <small>지도를 확대하면 더 많은 장소를 확인할 수 있어요.</small>}
             </div>
-            {isSheetExpanded ? (
+            {sheetLevel === 'expanded' ? (
               <div className="map-content-sheet__list" aria-label="주변 장소와 행사 목록">
                 {items.map((item) => (
                   <button
@@ -249,7 +293,7 @@ export function MapPage() {
                     key={item.content_id}
                     onClick={() => {
                       setSelectedItem(item)
-                      setIsSheetExpanded(false)
+                      setSheetLevel('default')
                     }}
                   >
                     <MapContentCard item={item} />
