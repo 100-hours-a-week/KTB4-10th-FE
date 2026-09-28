@@ -1,7 +1,9 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AuthCompletePage } from '../features/auth/ui/AuthCompletePage.tsx'
 import { LoginPage } from '../features/auth/ui/LoginPage.tsx'
+import { MapPage } from '../features/map/ui/MapPage.tsx'
 import { PreferenceSelectionPage } from '../features/preference/ui/PreferenceSelectionPage.tsx'
+import { MainTabPlaceholderPage } from '../pages/MainTabPlaceholderPage.tsx'
 import { RoutePlaceholderPage } from '../pages/RoutePlaceholderPage.tsx'
 import { routes } from '../shared/config/routes.ts'
 
@@ -15,7 +17,15 @@ function App() {
         path={routes.preferences}
         element={<PreferenceSelectionPage />}
       />
-      <Route path={routes.map} element={<RoutePlaceholderPage title="지도" />} />
+      <Route path={routes.map} element={<MapPage />} />
+      <Route
+        path={routes.guidebooks}
+        element={<MainTabPlaceholderPage title="가이드북" />}
+      />
+      <Route
+        path={routes.myPage}
+        element={<MainTabPlaceholderPage title="마이페이지" />}
+      />
       <Route
         path={routes.guidebookDetail}
         element={<RoutePlaceholderPage title="가이드북 상세" />}
