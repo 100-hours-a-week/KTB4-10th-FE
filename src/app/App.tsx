@@ -4,7 +4,6 @@ import { LoginPage } from '../features/auth/ui/LoginPage.tsx'
 import { MapPage } from '../features/map/ui/MapPage.tsx'
 import { MyPage } from '../features/member/ui/MyPage.tsx'
 import { PreferenceSelectionPage } from '../features/preference/ui/PreferenceSelectionPage.tsx'
-import { RoutePlaceholderPage } from '../pages/RoutePlaceholderPage.tsx'
 import { GenerationProvider } from '../features/guidebook/model/GenerationProvider.tsx'
 import { GuidebookAccess } from '../features/guidebook/ui/GuidebookLayout.tsx'
 import { GuidebookListPage } from '../features/guidebook/ui/GuidebookListPage.tsx'
@@ -14,6 +13,7 @@ import { GuidebookDetailPage } from '../features/guidebook/ui/GuidebookDetailPag
 import { GuidebookViewerPage } from '../features/guidebook/ui/GuidebookViewerPage.tsx'
 import { NotificationCenter } from '../features/notification/ui/NotificationCenter.tsx'
 import { NotificationPage } from '../features/notification/ui/NotificationPage.tsx'
+import { SettingsPage } from '../features/settings/ui/SettingsPage.tsx'
 import { routes } from '../shared/config/routes.ts'
 import '../features/guidebook/ui/guidebook.css'
 
@@ -43,7 +43,7 @@ function App() {
         />
         <Route
           path={routes.settings}
-          element={<RoutePlaceholderPage title="설정" />}
+          element={<SettingsPage />}
         />
         <Route
           path={routes.guidebookDetail}

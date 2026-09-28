@@ -1,0 +1,279 @@
+.settings-page {
+  min-height: 100dvh;
+  background: #f7f7f9;
+}
+
+.settings-page__header {
+  display: grid;
+  grid-template-columns: 42px 1fr 42px;
+  min-height: calc(env(safe-area-inset-top) + 70px);
+  align-items: end;
+  padding: 0 14px 14px;
+  border-bottom: 1px solid #ededf0;
+  background: #fff;
+}
+
+.settings-page__header h1 {
+  margin: 0;
+  font-size: 20px;
+  text-align: center;
+}
+
+.settings-page__header button {
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #242427;
+  cursor: pointer;
+  font-size: 32px;
+  line-height: 1;
+}
+
+.settings-page__content {
+  display: grid;
+  gap: 20px;
+  padding: 22px 16px;
+}
+
+.settings-section h2 {
+  margin: 0 0 10px 4px;
+  color: #6c6c73;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.settings-row,
+.settings-account-actions {
+  overflow: hidden;
+  border: 1px solid #ededf0;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 4px 16px rgb(20 20 23 / 4%);
+}
+
+.settings-row {
+  display: flex;
+  min-height: 76px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 16px 18px;
+}
+
+.settings-row > div {
+  display: grid;
+  gap: 5px;
+}
+
+.settings-row strong {
+  font-size: 15px;
+}
+
+.settings-row small {
+  color: #929298;
+  font-size: 11px;
+}
+
+.settings-toggle {
+  position: relative;
+  display: inline-flex;
+}
+
+.settings-toggle input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.settings-toggle > span {
+  position: relative;
+  display: block;
+  width: 46px;
+  height: 26px;
+  border-radius: 999px;
+  background: #d7d7dc;
+}
+
+.settings-toggle > span::after {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 18%);
+  content: '';
+}
+
+.settings-toggle--disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.settings-account-actions {
+  display: grid;
+}
+
+.settings-account-actions button {
+  min-height: 58px;
+  padding: 0 18px;
+  border: 0;
+  border-bottom: 1px solid #ededf0;
+  background: #fff;
+  color: #242427;
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+}
+
+.settings-account-actions button:last-child {
+  border-bottom: 0;
+}
+
+.settings-account-actions button:active {
+  background: #f2f2f5;
+}
+
+.settings-account-actions .settings-account-actions__danger {
+  color: #a53c35;
+}
+
+.settings-modal-backdrop {
+  position: fixed;
+  z-index: 40;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgb(18 18 20 / 52%);
+}
+
+.settings-modal {
+  width: min(100%, 330px);
+  overflow: hidden;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 18px 48px rgb(0 0 0 / 22%);
+  text-align: center;
+}
+
+.settings-modal h2 {
+  margin: 0;
+  padding: 28px 22px 24px;
+  color: #18181b;
+  font-size: 18px;
+}
+
+.settings-modal--withdrawal {
+  text-align: left;
+}
+
+.settings-modal--withdrawal h2 {
+  padding-bottom: 12px;
+  text-align: center;
+}
+
+.settings-modal--withdrawal > p {
+  margin: 0;
+  padding: 0 22px;
+  color: #68686f;
+  font-size: 13px;
+  line-height: 1.55;
+  text-align: center;
+}
+
+.settings-modal--withdrawal > ul {
+  margin: 0;
+  padding: 0 30px 18px 42px;
+  color: #68686f;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.settings-modal--withdrawal > small {
+  display: block;
+  padding: 10px 22px 20px;
+  color: #929298;
+  font-size: 11px;
+  text-align: center;
+}
+
+.settings-withdrawal-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 22px 22px;
+  padding: 13px;
+  border-radius: 12px;
+  background: #f5f5f7;
+  color: #343439;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.settings-withdrawal-check input {
+  width: 18px;
+  height: 18px;
+  accent-color: #242427;
+}
+
+.settings-withdrawal-input {
+  display: grid;
+  gap: 8px;
+  padding: 18px 22px 0;
+}
+
+.settings-withdrawal-input > span {
+  color: #68686f;
+  font-size: 11px;
+}
+
+.settings-withdrawal-input input {
+  min-height: 46px;
+  padding: 0 13px;
+  border: 1px solid #cfcfd5;
+  border-radius: 11px;
+  font: inherit;
+}
+
+.settings-withdrawal-input input:focus {
+  border-color: #242427;
+  outline: 2px solid rgb(36 36 39 / 12%);
+}
+
+.settings-modal__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-top: 1px solid #ededf0;
+}
+
+.settings-modal__actions button {
+  min-height: 52px;
+  border: 0;
+  border-right: 1px solid #ededf0;
+  background: #fff;
+  color: #6c6c73;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
+.settings-modal__actions button:last-child {
+  border-right: 0;
+  color: #242427;
+}
+
+.settings-modal__actions button:disabled {
+  color: #b7b7bd;
+  cursor: not-allowed;
+}
+
+.settings-modal__actions .settings-modal__danger:not(:disabled) {
+  color: #a53c35;
+}
