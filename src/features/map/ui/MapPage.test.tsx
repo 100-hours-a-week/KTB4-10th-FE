@@ -65,4 +65,54 @@ describe('MapPage', () => {
       zoom: 18,
     }))
   })
+
+  it('조회한 장소와 행사를 바텀시트에서 펼쳐 볼 수 있다', async () => {
+    const user = userEvent.setup()
+    localStorage.setItem('kgb.location-prompt-completed', 'true')
+    getMapContentsMock.mockResolvedValue({
+      items: [
+        {
+          content_id: 'place-1',
+          title: '서울숲',
+          content_type: 'PLACE',
+          address: '서울 성동구',
+          latitude: 37.5444,
+          longitude: 127.0374,
+          thumbnail_url: null,
+          event_period: null,
+          is_favorite: false,
+        },
+        {
+          content_id: 'event-1',
+          title: '서울 축제',
+          content_type: 'EVENT',
+          address: '서울 중구',
+          latitude: 37.5665,
+          longitude: 126.978,
+          thumbnail_url: null,
+          event_period: { start_date: '2026-09-01', end_date: '2026-09-30' },
+          is_favorite: false,
+        },
+      ],
+      has_more: false,
+    })
+    render(<MemoryRouter><MapPage /></MemoryRouter>)
+
+    await user.click(screen.getByRole('button', { name: '지도 범위 조회' }))
+    expect(await screen.findByText('주변 장소·행사 2개')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: '서울숲' })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: '장소 목록 펼치기' }))
+    expect(screen.getByRole('button', { name: '장소 목록 접기' })).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('heading', { name: '서울 축제' })).toBeInTheDocument()
+  })
+
+  it('조회 결과가 비어 있으면 콘텐츠 미적재 가능성을 안내한다', async () => {
+    const user = userEvent.setup()
+    localStorage.setItem('kgb.location-prompt-completed', 'true')
+    render(<MemoryRouter><MapPage /></MemoryRouter>)
+
+    await user.click(screen.getByRole('button', { name: '지도 범위 조회' }))
+    expect(await screen.findByText('이 지도 영역에 표시할 장소·행사가 없어요')).toBeInTheDocument()
+  })
 })

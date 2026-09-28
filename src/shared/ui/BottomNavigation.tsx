@@ -2,9 +2,9 @@ import { NavLink } from 'react-router-dom'
 import { routes } from '../config/routes.ts'
 
 const tabs = [
-  { to: routes.map, label: '지도', icon: '⌖' },
-  { to: routes.guidebooks, label: '가이드북', icon: '▤' },
-  { to: routes.myPage, label: '마이페이지', icon: '○' },
+  { to: routes.map, label: '지도', icon: '/assets/navigation/map.png' },
+  { to: routes.guidebooks, label: '가이드북', icon: '/assets/navigation/guidebook.png' },
+  { to: routes.myPage, label: '마이페이지', icon: '/assets/navigation/mypage.png' },
 ] as const
 
 export function BottomNavigation() {
@@ -18,7 +18,7 @@ export function BottomNavigation() {
           key={to}
           to={to}
         >
-          <span className="bottom-navigation__icon" aria-hidden="true">{icon}</span>
+          <img className="bottom-navigation__icon" src={icon} alt="" aria-hidden="true" />
           <span>{label}</span>
         </NavLink>
       ))}

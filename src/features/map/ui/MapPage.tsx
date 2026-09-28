@@ -22,23 +22,55 @@ function eventPeriodText(item: MapContentItem): string | null {
   return `${item.event_period.start_date} ~ ${item.event_period.end_date}`
 }
 
+function MapContentCard({ item }: { item: MapContentItem }) {
+  return (
+    <article className="map-content-card">
+      <div className="map-content-card__thumbnail">
+        {item.thumbnail_url
+          ? <img src={item.thumbnail_url} alt="" />
+          : <span aria-hidden="true">{item.content_type === 'EVENT' ? '행사' : '장소'}</span>}
+      </div>
+      <div className="map-content-card__body">
+        <span>{item.content_type === 'EVENT' ? '행사' : '관광지'}</span>
+        <h2>{item.title}</h2>
+        <p>{eventPeriodText(item) ?? item.address}</p>
+      </div>
+    </article>
+  )
+}
+
 export function MapPage() {
   const mapRef = useRef<KakaoMap | null>(null)
   const [position, setPosition] = useState<{ latitude: number; longitude: number } | null>(null)
   const [items, setItems] = useState<MapContentItem[]>([])
   const [selectedItem, setSelectedItem] = useState<MapContentItem | null>(null)
   const [hasMore, setHasMore] = useState(false)
+  const [isContentsLoading, setIsContentsLoading] = useState(false)
+  const [contentsError, setContentsError] = useState(false)
+  const [isSheetExpanded, setIsSheetExpanded] = useState(false)
+  const sheetPointerStartY = useRef<number | null>(null)
   const [permissionStep, setPermissionStep] = useState<PermissionStep>(initialPermissionStep)
   const [toast, setToast] = useState<string | null>(null)
   const [mapError, setMapError] = useState<string | null>(null)
 
   const requestContents = useCallback((bounds: MapBounds) => {
+    setIsContentsLoading(true)
+    setContentsError(false)
     getMapContents(bounds)
       .then((result) => {
         setItems(result.items)
         setHasMore(result.has_more)
+        setSelectedItem((current) => (
+          current && result.items.some((item) => item.content_id === current.content_id)
+            ? current
+            : null
+        ))
       })
-      .catch(() => setToast('주변 관광 정보를 불러오지 못했어요.'))
+      .catch(() => {
+        setContentsError(true)
+        setToast('주변 관광 정보를 불러오지 못했어요.')
+      })
+      .finally(() => setIsContentsLoading(false))
   }, [])
 
   const requestCurrentPosition = useCallback((afterRequest?: () => void) => {
@@ -104,6 +136,16 @@ export function MapPage() {
     })
   }
 
+  const finishSheetDrag = (clientY: number) => {
+    if (sheetPointerStartY.current === null) return
+    const movement = clientY - sheetPointerStartY.current
+    if (movement <= -30) setIsSheetExpanded(true)
+    if (movement >= 30) setIsSheetExpanded(false)
+    sheetPointerStartY.current = null
+  }
+
+  const displayedItem = selectedItem ?? items[0] ?? null
+
   return (
     <main className="app-shell map-page">
       <h1 className="visually-hidden">지도</h1>
@@ -116,11 +158,6 @@ export function MapPage() {
         onError={setMapError}
         onSelectItem={setSelectedItem}
       />
-
-      <header className="map-header" aria-label="지도 화면">
-        <div className="map-header__brand" aria-label="KGB">KGB</div>
-        <span>내 주변 여행지</span>
-      </header>
 
       <div className="map-controls" aria-label="지도 조작">
         <button type="button" aria-label="확대" onClick={() => changeZoom(-1)}>＋</button>
@@ -135,26 +172,60 @@ export function MapPage() {
         </section>
       )}
 
-      <section className="map-content-sheet" aria-live="polite">
-        <span className="map-content-sheet__handle" aria-hidden="true" />
-        {selectedItem ? (
-          <article className="map-content-card">
-            <div className="map-content-card__thumbnail">
-              {selectedItem.thumbnail_url
-                ? <img src={selectedItem.thumbnail_url} alt="" />
-                : <span aria-hidden="true">{selectedItem.content_type === 'EVENT' ? '행사' : '장소'}</span>}
-            </div>
-            <div>
-              <span>{selectedItem.content_type === 'EVENT' ? '행사' : '관광지'}</span>
-              <h2>{selectedItem.title}</h2>
-              <p>{eventPeriodText(selectedItem) ?? selectedItem.address}</p>
-            </div>
-          </article>
-        ) : (
+      <section
+        className={`map-content-sheet${isSheetExpanded ? ' map-content-sheet--expanded' : ''}`}
+        aria-live="polite"
+      >
+        <button
+          type="button"
+          className="map-content-sheet__handle-button"
+          aria-label={isSheetExpanded ? '장소 목록 접기' : '장소 목록 펼치기'}
+          aria-expanded={isSheetExpanded}
+          onClick={() => setIsSheetExpanded((expanded) => !expanded)}
+          onPointerDown={(event) => { sheetPointerStartY.current = event.clientY }}
+          onPointerUp={(event) => finishSheetDrag(event.clientY)}
+          onPointerCancel={() => { sheetPointerStartY.current = null }}
+        >
+          <span className="map-content-sheet__handle" aria-hidden="true" />
+        </button>
+
+        {isContentsLoading && items.length === 0 ? (
           <div className="map-content-sheet__empty">
-            <strong>주변 여행지를 둘러보세요</strong>
-            <p>지도 핀을 누르면 장소와 행사 정보를 볼 수 있어요.</p>
-            {hasMore && <small>지도를 확대하면 더 많은 장소를 확인할 수 있어요.</small>}
+            <strong>주변 장소와 행사를 찾고 있어요</strong>
+          </div>
+        ) : contentsError && items.length === 0 ? (
+          <div className="map-content-sheet__empty">
+            <strong>관광 정보를 불러오지 못했어요</strong>
+            <p>지도를 움직여 다시 조회해 주세요.</p>
+          </div>
+        ) : items.length === 0 ? (
+          <div className="map-content-sheet__empty">
+            <strong>이 지도 영역에 표시할 장소·행사가 없어요</strong>
+            <p>관광 콘텐츠 적재 여부를 확인하거나 다른 지역으로 이동해 주세요.</p>
+          </div>
+        ) : (
+          <div className="map-content-sheet__contents">
+            <div className="map-content-sheet__summary">
+              <strong>주변 장소·행사 {items.length}개</strong>
+              {hasMore && <small>지도를 확대하면 더 많은 장소를 확인할 수 있어요.</small>}
+            </div>
+            {isSheetExpanded ? (
+              <div className="map-content-sheet__list" aria-label="주변 장소와 행사 목록">
+                {items.map((item) => (
+                  <button
+                    type="button"
+                    className={`map-content-sheet__list-item${selectedItem?.content_id === item.content_id ? ' map-content-sheet__list-item--selected' : ''}`}
+                    key={item.content_id}
+                    onClick={() => {
+                      setSelectedItem(item)
+                      setIsSheetExpanded(false)
+                    }}
+                  >
+                    <MapContentCard item={item} />
+                  </button>
+                ))}
+              </div>
+            ) : displayedItem ? <MapContentCard item={displayedItem} /> : null}
           </div>
         )}
       </section>
