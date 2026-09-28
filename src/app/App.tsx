@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AuthCompletePage } from '../features/auth/ui/AuthCompletePage.tsx'
 import { LoginPage } from '../features/auth/ui/LoginPage.tsx'
+import { PreferenceSelectionPage } from '../features/preference/ui/PreferenceSelectionPage.tsx'
 import { RoutePlaceholderPage } from '../pages/RoutePlaceholderPage.tsx'
 import { routes } from '../shared/config/routes.ts'
 
@@ -12,7 +13,7 @@ function App() {
       <Route path={routes.authError} element={<LoginPage />} />
       <Route
         path={routes.preferences}
-        element={<RoutePlaceholderPage title="취향 선택" />}
+        element={<PreferenceSelectionPage />}
       />
       <Route path={routes.map} element={<RoutePlaceholderPage title="지도" />} />
       <Route

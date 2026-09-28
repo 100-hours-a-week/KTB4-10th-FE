@@ -4,10 +4,12 @@ import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App.tsx'
 
-const { getCurrentMemberMock, getPolicyMock, startKakaoLoginMock } = vi.hoisted(
+const { getCurrentMemberMock, getMemberPreferencesMock, getPolicyMock, getPreferenceOptionsMock, startKakaoLoginMock } = vi.hoisted(
   () => ({
     getCurrentMemberMock: vi.fn(),
+    getMemberPreferencesMock: vi.fn(),
     getPolicyMock: vi.fn(),
+    getPreferenceOptionsMock: vi.fn(),
     startKakaoLoginMock: vi.fn(),
   }),
 )
@@ -25,9 +27,17 @@ vi.mock('../features/policy/api/policy.ts', () => ({
   getPolicy: getPolicyMock,
 }))
 
+vi.mock('../features/preference/api/preferences.ts', () => ({
+  getMemberPreferences: getMemberPreferencesMock,
+  getPreferenceOptions: getPreferenceOptionsMock,
+  replaceMemberPreferences: vi.fn(),
+}))
+
 describe('App', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    getMemberPreferencesMock.mockResolvedValue([])
+    getPreferenceOptionsMock.mockResolvedValue([])
   })
 
   it('V1 로그인 화면에서 카카오 로그인을 시작한다', async () => {
@@ -118,6 +128,10 @@ describe('App', () => {
 
   it('ACTIVE 회원을 지도 화면으로 보낸다', async () => {
     getCurrentMemberMock.mockResolvedValue({ status: 'ACTIVE' })
+    getMemberPreferencesMock.mockResolvedValue([
+      { preference_type: 'THEME', preference_code: 'NATURE' },
+      { preference_type: 'DETAIL', preference_code: 'NATURE_MOUNTAIN' },
+    ])
 
     render(
       <MemoryRouter initialEntries={['/auth/complete']}>
@@ -126,6 +140,21 @@ describe('App', () => {
     )
 
     expect(await screen.findByRole('heading', { name: '지도' })).toBeInTheDocument()
+  })
+
+  it('ACTIVE 상태여도 저장된 취향이 없으면 취향 선택 화면으로 보낸다', async () => {
+    getCurrentMemberMock.mockResolvedValue({ status: 'ACTIVE' })
+    getMemberPreferencesMock.mockResolvedValue([])
+
+    render(
+      <MemoryRouter initialEntries={['/auth/complete']}>
+        <App />
+      </MemoryRouter>,
+    )
+
+    expect(
+      await screen.findByRole('heading', { name: '취향 선택' }),
+    ).toBeInTheDocument()
   })
 
   it('카카오 로그인 취소 안내를 로그인 화면에 표시한다', () => {
