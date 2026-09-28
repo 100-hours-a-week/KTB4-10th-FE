@@ -4,10 +4,12 @@ import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App.tsx'
 
-const { getCurrentMemberMock, getPolicyMock, startKakaoLoginMock } = vi.hoisted(
+const { getCurrentMemberMock, getMemberPreferencesMock, getPolicyMock, getPreferenceOptionsMock, startKakaoLoginMock } = vi.hoisted(
   () => ({
     getCurrentMemberMock: vi.fn(),
+    getMemberPreferencesMock: vi.fn(),
     getPolicyMock: vi.fn(),
+    getPreferenceOptionsMock: vi.fn(),
     startKakaoLoginMock: vi.fn(),
   }),
 )
@@ -25,9 +27,17 @@ vi.mock('../features/policy/api/policy.ts', () => ({
   getPolicy: getPolicyMock,
 }))
 
+vi.mock('../features/preference/api/preferences.ts', () => ({
+  getMemberPreferences: getMemberPreferencesMock,
+  getPreferenceOptions: getPreferenceOptionsMock,
+  replaceMemberPreferences: vi.fn(),
+}))
+
 describe('App', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    getMemberPreferencesMock.mockResolvedValue([])
+    getPreferenceOptionsMock.mockResolvedValue([])
   })
 
   it('V1 로그인 화면에서 카카오 로그인을 시작한다', async () => {
