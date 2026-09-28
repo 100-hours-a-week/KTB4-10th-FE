@@ -11,6 +11,7 @@ const { getMapContentsMock, updatePushEnabledMock } = vi.hoisted(() => ({
 
 vi.mock('../api/map.ts', () => ({
   getMapContents: getMapContentsMock,
+  filterContentsWithinRadius: (items: unknown[]) => items,
 }))
 
 vi.mock('../api/settings.ts', () => ({

@@ -1,7 +1,12 @@
 import { useCallback, useRef, useState } from 'react'
 import { BottomNavigation } from '../../../shared/ui/BottomNavigation.tsx'
 import { Toast } from '../../../shared/ui/Toast.tsx'
-import { getMapContents, type MapBounds, type MapContentItem } from '../api/map.ts'
+import {
+  filterContentsWithinRadius,
+  getMapContents,
+  type MapBounds,
+  type MapContentItem,
+} from '../api/map.ts'
 import { updatePushEnabled } from '../api/settings.ts'
 import type { KakaoMap } from '../lib/kakaoMaps.ts'
 import { KakaoMapCanvas } from './KakaoMapCanvas.tsx'
@@ -10,6 +15,7 @@ import { PermissionModal } from './PermissionModal.tsx'
 const DEFAULT_CENTER = { latitude: 37.5665, longitude: 126.978 }
 const LOCATION_PROMPT_KEY = 'kgb.location-prompt-completed'
 const NOTIFICATION_PROMPT_KEY = 'kgb.notification-prompt-completed'
+const CONTENT_RADIUS_KILOMETERS = 3
 
 type PermissionStep = 'location' | 'notification' | null
 
@@ -42,6 +48,7 @@ function MapContentCard({ item }: { item: MapContentItem }) {
 export function MapPage() {
   const mapRef = useRef<KakaoMap | null>(null)
   const [position, setPosition] = useState<{ latitude: number; longitude: number } | null>(null)
+  const contentCenterRef = useRef(DEFAULT_CENTER)
   const [items, setItems] = useState<MapContentItem[]>([])
   const [selectedItem, setSelectedItem] = useState<MapContentItem | null>(null)
   const [hasMore, setHasMore] = useState(false)
@@ -59,10 +66,15 @@ export function MapPage() {
     setContentsError(false)
     getMapContents(bounds)
       .then((result) => {
-        setItems(result.items)
+        const nearbyItems = filterContentsWithinRadius(
+          result.items,
+          contentCenterRef.current,
+          CONTENT_RADIUS_KILOMETERS,
+        )
+        setItems(nearbyItems)
         setHasMore(result.has_more)
         setSelectedItem((current) => (
-          current && result.items.some((item) => item.content_id === current.content_id)
+          current && nearbyItems.some((item) => item.content_id === current.content_id)
             ? current
             : null
         ))
@@ -83,6 +95,7 @@ export function MapPage() {
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
         const next = { latitude: coords.latitude, longitude: coords.longitude }
+        contentCenterRef.current = next
         setPosition(next)
         afterRequest?.()
       },
@@ -152,6 +165,7 @@ export function MapPage() {
   }
 
   const displayedItem = selectedItem ?? items[0] ?? null
+  const handleMapClick = useCallback(() => setIsSheetExpanded(false), [])
 
   return (
     <main className="app-shell map-page">
@@ -163,6 +177,7 @@ export function MapPage() {
         mapRef={mapRef}
         onBoundsChange={requestContents}
         onError={setMapError}
+        onMapClick={handleMapClick}
         onSelectItem={setSelectedItem}
       />
 
