@@ -87,7 +87,7 @@ button:disabled {
 
 .auth-brand-position {
   position: absolute;
-  top: 47.5%;
+  top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
 }
@@ -112,16 +112,6 @@ button:disabled {
 .policy-consent button:focus-visible {
   outline: 3px solid #ffd43b;
   outline-offset: 2px;
-}
-
-.login-message {
-  margin: 0 0 12px;
-  padding: 12px 14px;
-  border-radius: 10px;
-  background: #f0f0f3;
-  color: #3f3f46;
-  font-size: 13px;
-  text-align: center;
 }
 
 .policy-consent {
@@ -347,15 +337,16 @@ button:disabled {
 
 .preference-chip--limit {
   border-color: #d92d20;
-  animation: preference-limit-shake 650ms ease-in-out;
+  animation: preference-limit-shake 320ms ease-in-out;
   color: #b42318;
 }
 
 @keyframes preference-limit-shake {
   0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-4px); }
-  50% { transform: translateX(4px); }
-  75% { transform: translateX(-2px); }
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(3px); }
 }
 
 .preference-chip:focus-visible,
@@ -442,18 +433,37 @@ button:disabled {
   font-weight: 700;
 }
 
-.preference-limit-message {
-  display: block;
-  min-height: 18px;
-  color: #b42318;
-  font-size: 12px;
-  text-align: center;
-}
-
 .preference-footer .primary-button:disabled {
   border-color: #d9d9de;
   background: #d9d9de;
   color: #8c8c94;
+}
+
+.app-toast {
+  position: fixed;
+  z-index: 30;
+  bottom: calc(env(safe-area-inset-bottom) + 92px);
+  left: 50%;
+  display: grid;
+  width: min(calc(100% - 48px), 330px);
+  min-height: 46px;
+  place-items: center;
+  padding: 12px 18px;
+  border-radius: 10px;
+  background: #242428;
+  box-shadow: 0 8px 22px rgb(20 20 23 / 20%);
+  color: #fff;
+  font-size: 13px;
+  line-height: 1.4;
+  text-align: center;
+  transform: translate(-50%, 18px);
+  animation: toast-rise 180ms ease-out forwards;
+}
+
+@keyframes toast-rise {
+  to {
+    transform: translate(-50%, 0);
+  }
 }
 
 .setup-page {
@@ -514,7 +524,8 @@ button:disabled {
 
 @media (prefers-reduced-motion: reduce) {
   .loading-indicator,
-  .preference-chip--limit {
+  .preference-chip--limit,
+  .app-toast {
     animation: none;
   }
 }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { routes } from '../../../shared/config/routes.ts'
+import { Toast } from '../../../shared/ui/Toast.tsx'
 import {
   getMemberPreferences,
   getPreferenceOptions,
@@ -24,6 +25,7 @@ export function PreferenceSelectionPage() {
   const [selectedStyles, setSelectedStyles] = useState<string[]>([])
   const [isEditMode, setIsEditMode] = useState(false)
   const [limitFeedbackCode, setLimitFeedbackCode] = useState<string | null>(null)
+  const [limitNotice, setLimitNotice] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -106,9 +108,10 @@ export function PreferenceSelectionPage() {
 
   const showLimitFeedback = (code: string) => {
     setLimitFeedbackCode(code)
+    setLimitNotice('최대 3개까지 선택할 수 있어요.')
     window.setTimeout(() => {
       setLimitFeedbackCode((current) => current === code ? null : current)
-    }, 650)
+    }, 320)
   }
 
   const toggleTheme = (themeCode: string) => {
@@ -286,9 +289,6 @@ export function PreferenceSelectionPage() {
       </div>
 
       <footer className="preference-footer">
-        <span className="preference-limit-message" aria-live="polite">
-          {limitFeedbackCode ? '최대 3개까지 선택할 수 있어요.' : ''}
-        </span>
         {submitError && <p role="alert">{submitError}</p>}
         <div className={isEditMode ? 'preference-footer__actions' : undefined}>
           {isEditMode && (
@@ -306,6 +306,9 @@ export function PreferenceSelectionPage() {
           </button>
         </div>
       </footer>
+      {limitNotice && (
+        <Toast message={limitNotice} onDismiss={() => setLimitNotice(null)} />
+      )}
     </main>
   )
 }

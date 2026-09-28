@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { Toast } from '../../../shared/ui/Toast.tsx'
 import type { PolicyType } from '../../policy/api/policy.ts'
 import { PolicyModal } from '../../policy/ui/PolicyModal.tsx'
 import { startKakaoLogin } from '../api/auth.ts'
@@ -11,6 +12,7 @@ export function LoginPage() {
   const [policyType, setPolicyType] = useState<PolicyType | null>(null)
   const [isStartingLogin, setIsStartingLogin] = useState(false)
   const errorMessage = getOauthErrorMessage(searchParams.get('code'))
+  const [visibleErrorMessage, setVisibleErrorMessage] = useState(errorMessage)
 
   const handleKakaoLogin = () => {
     setIsStartingLogin(true)
@@ -31,13 +33,15 @@ export function LoginPage() {
         <div className="brand-mark auth-brand-position" aria-label="KGB 임시 로고">KGB</div>
       </section>
       <section className="login-actions">
-        {errorMessage && <p className="login-message" role="status" aria-label={errorMessage}>{errorMessage}</p>}
         <button className="primary-button" type="button" onClick={handleKakaoLogin}>카카오로 로그인</button>
         <p className="policy-consent">
           로그인하면 <button type="button" onClick={() => setPolicyType('terms')}>이용약관</button>과{' '}
           <button type="button" onClick={() => setPolicyType('privacy')}>개인정보 처리방침</button>에 동의합니다.
         </p>
       </section>
+      {visibleErrorMessage && (
+        <Toast message={visibleErrorMessage} onDismiss={() => setVisibleErrorMessage(null)} />
+      )}
       {policyType && <PolicyModal policyType={policyType} onClose={() => setPolicyType(null)} />}
     </main>
   )
