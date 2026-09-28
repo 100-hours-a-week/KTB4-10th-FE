@@ -875,6 +875,60 @@ button:disabled {
   transition: opacity 160ms ease;
 }
 
+.preference-cancel-overlay {
+  position: fixed;
+  z-index: 30;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgb(18 18 20 / 52%);
+}
+
+.preference-cancel-dialog {
+  width: min(100%, 320px);
+  padding: 24px 20px 18px;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 18px 48px rgb(0 0 0 / 20%);
+  text-align: center;
+}
+
+.preference-cancel-dialog h2 {
+  margin: 0;
+  color: #18181b;
+  font-size: 18px;
+}
+
+.preference-cancel-dialog p {
+  margin: 10px 0 22px;
+  color: #68686f;
+  font-size: 14px;
+}
+
+.preference-cancel-dialog__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.preference-cancel-dialog__actions button {
+  min-height: 46px;
+  border: 1px solid #d9d9de;
+  border-radius: 12px;
+  background: #fff;
+  color: #242427;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.preference-cancel-dialog__actions button:last-child {
+  border-color: #242427;
+  background: #242427;
+  color: #fff;
+}
+
 .mypage-page {
   min-height: 100dvh;
   padding-bottom: calc(env(safe-area-inset-bottom) + 92px);

@@ -23,6 +23,36 @@ function getOptionDisplayLabel(option: PreferenceOption): string {
     : option.label
 }
 
+function buildSelections(
+  selectedThemes: string[],
+  selectedDetails: Record<string, string[]>,
+  selectedStyles: string[],
+): PreferenceSelection[] {
+  return [
+    ...selectedThemes.map((preference_code) => ({
+      preference_type: 'THEME' as const,
+      preference_code,
+    })),
+    ...selectedThemes.flatMap((themeCode) => (
+      selectedDetails[themeCode] ?? []
+    ).map((preference_code) => ({
+      preference_type: 'DETAIL' as const,
+      preference_code,
+    }))),
+    ...selectedStyles.map((preference_code) => ({
+      preference_type: 'TRAVEL_STYLE' as const,
+      preference_code,
+    })),
+  ]
+}
+
+function selectionKey(selections: PreferenceSelection[]): string {
+  return selections
+    .map(({ preference_type, preference_code }) => `${preference_type}:${preference_code}`)
+    .sort()
+    .join('|')
+}
+
 export function PreferenceSelectionPage() {
   const navigate = useNavigate()
   const [options, setOptions] = useState<PreferenceOption[]>([])
@@ -34,6 +64,8 @@ export function PreferenceSelectionPage() {
   const [limitNotice, setLimitNotice] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [initialSelectionKey, setInitialSelectionKey] = useState<string | null>(null)
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
 
@@ -58,6 +90,7 @@ export function PreferenceSelectionPage() {
 
       setOptions(preferenceOptions)
       setIsEditMode(currentSelections.length > 0)
+      setInitialSelectionKey(selectionKey(currentSelections))
       setSelectedThemes(themes)
       setSelectedDetails(detailsByTheme)
       setSelectedStyles(
@@ -111,6 +144,13 @@ export function PreferenceSelectionPage() {
       const detailCount = selectedDetails[themeCode]?.length ?? 0
       return detailCount >= 1 && detailCount <= MAX_DETAIL_SELECTIONS
     })
+  const currentSelections = useMemo(
+    () => buildSelections(selectedThemes, selectedDetails, selectedStyles),
+    [selectedDetails, selectedStyles, selectedThemes],
+  )
+  const hasUnsavedChanges = isEditMode
+    && initialSelectionKey !== null
+    && selectionKey(currentSelections) !== initialSelectionKey
 
   const showLimitFeedback = (code: string) => {
     setLimitFeedbackCode(code)
@@ -174,33 +214,24 @@ export function PreferenceSelectionPage() {
   const handleSubmit = async () => {
     if (!canSubmit || isSubmitting) return
 
-    const selections: PreferenceSelection[] = [
-      ...selectedThemes.map((preference_code) => ({
-        preference_type: 'THEME' as const,
-        preference_code,
-      })),
-      ...selectedThemes.flatMap((themeCode) => (
-        selectedDetails[themeCode] ?? []
-      ).map((preference_code) => ({
-        preference_type: 'DETAIL' as const,
-        preference_code,
-      }))),
-      ...selectedStyles.map((preference_code) => ({
-        preference_type: 'TRAVEL_STYLE' as const,
-        preference_code,
-      })),
-    ]
-
     setIsSubmitting(true)
     setSubmitError(null)
     try {
-      await replaceMemberPreferences(selections)
+      await replaceMemberPreferences(currentSelections)
       navigate(routes.map, { replace: true })
     } catch {
       setSubmitError('취향을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.')
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  const handleCancel = () => {
+    if (hasUnsavedChanges) {
+      setIsCancelDialogOpen(true)
+      return
+    }
+    navigate(routes.myPage)
   }
 
   return (
@@ -298,7 +329,7 @@ export function PreferenceSelectionPage() {
         {submitError && <p role="alert">{submitError}</p>}
         <div className={isEditMode ? 'preference-footer__actions' : undefined}>
           {isEditMode && (
-            <button className="secondary-button" type="button" onClick={() => navigate(routes.map)}>
+            <button className="secondary-button" type="button" onClick={handleCancel}>
               취소
             </button>
           )}
@@ -314,6 +345,26 @@ export function PreferenceSelectionPage() {
       </footer>
       {limitNotice && (
         <Toast message={limitNotice} onDismiss={() => setLimitNotice(null)} />
+      )}
+      {isCancelDialogOpen && (
+        <div className="preference-cancel-overlay" role="presentation">
+          <section
+            className="preference-cancel-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="preference-cancel-title"
+            aria-describedby="preference-cancel-description"
+          >
+            <h2 id="preference-cancel-title">취향 수정을 취소할까요?</h2>
+            <p id="preference-cancel-description">
+              변경한 내용은 저장되지 않아요.
+            </p>
+            <div className="preference-cancel-dialog__actions">
+              <button type="button" onClick={() => navigate(routes.myPage)}>네</button>
+              <button type="button" autoFocus onClick={() => setIsCancelDialogOpen(false)}>아니요</button>
+            </div>
+          </section>
+        </div>
       )}
     </main>
   )
