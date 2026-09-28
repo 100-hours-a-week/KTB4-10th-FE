@@ -11,6 +11,7 @@ import { GuidebookCreatePage } from '../features/guidebook/ui/GuidebookCreatePag
 import { GuidebookGeneratingPage } from '../features/guidebook/ui/GuidebookGeneratingPage.tsx'
 import { GuidebookDetailPage } from '../features/guidebook/ui/GuidebookDetailPage.tsx'
 import { GuidebookViewerPage } from '../features/guidebook/ui/GuidebookViewerPage.tsx'
+import { NotificationCenter } from '../features/notification/ui/NotificationCenter.tsx'
 import { routes } from '../shared/config/routes.ts'
 import '../features/guidebook/ui/guidebook.css'
 
@@ -43,6 +44,7 @@ function App() {
         />
         <Route path="*" element={<Navigate to={routes.home} replace />} />
       </Routes>
+      <NotificationCenter />
     </GenerationProvider>
   )
 }
