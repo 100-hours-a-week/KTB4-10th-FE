@@ -13,6 +13,7 @@ import { GuidebookGeneratingPage } from '../features/guidebook/ui/GuidebookGener
 import { GuidebookDetailPage } from '../features/guidebook/ui/GuidebookDetailPage.tsx'
 import { GuidebookViewerPage } from '../features/guidebook/ui/GuidebookViewerPage.tsx'
 import { NotificationCenter } from '../features/notification/ui/NotificationCenter.tsx'
+import { NotificationPage } from '../features/notification/ui/NotificationPage.tsx'
 import { routes } from '../shared/config/routes.ts'
 import '../features/guidebook/ui/guidebook.css'
 
@@ -38,7 +39,7 @@ function App() {
         <Route path={routes.myPage} element={<MyPage />} />
         <Route
           path={routes.notifications}
-          element={<RoutePlaceholderPage title="알림" />}
+          element={<NotificationPage />}
         />
         <Route
           path={routes.settings}
