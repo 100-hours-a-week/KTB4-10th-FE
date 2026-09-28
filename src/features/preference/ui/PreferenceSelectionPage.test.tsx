@@ -27,6 +27,7 @@ const options = [
   { preference_type: 'DETAIL', code: 'HISTORY_RELIC', label: '역사 유물', parent_code: 'HISTORY', sort_order: 10 },
   { preference_type: 'THEME', code: 'ATTRACTION', label: '관광 명소', parent_code: null, sort_order: 30 },
   { preference_type: 'DETAIL', code: 'ATTRACTION_LANDMARK', label: '랜드마크', parent_code: 'ATTRACTION', sort_order: 10 },
+  { preference_type: 'DETAIL', code: 'ATTRACTION_URBAN_CULTURE', label: '도시·지역 문화 관광', parent_code: 'ATTRACTION', sort_order: 20 },
   { preference_type: 'THEME', code: 'EXPERIENCE', label: '체험', parent_code: null, sort_order: 40 },
   { preference_type: 'DETAIL', code: 'EXPERIENCE_CRAFT', label: '공예 체험', parent_code: 'EXPERIENCE', sort_order: 10 },
   { preference_type: 'TRAVEL_STYLE', code: 'RELAXING', label: '여유롭게', parent_code: null, sort_order: 10 },
@@ -86,6 +87,7 @@ describe('PreferenceSelectionPage', () => {
     expect(screen.getByRole('button', { name: '역사' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('button', { name: '관광 명소' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('button', { name: '체험' })).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByRole('button', { name: '도시·지역 문화' })).toBeInTheDocument()
     expect(screen.getByText('최대 3개까지 선택할 수 있어요.')).toBeInTheDocument()
   })
 

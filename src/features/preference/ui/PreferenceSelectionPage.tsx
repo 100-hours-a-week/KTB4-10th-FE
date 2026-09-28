@@ -17,6 +17,12 @@ function sortOptions(options: PreferenceOption[]): PreferenceOption[] {
   return [...options].sort((left, right) => left.sort_order - right.sort_order)
 }
 
+function getOptionDisplayLabel(option: PreferenceOption): string {
+  return option.code === 'ATTRACTION_URBAN_CULTURE'
+    ? '도시·지역 문화'
+    : option.label
+}
+
 export function PreferenceSelectionPage() {
   const navigate = useNavigate()
   const [options, setOptions] = useState<PreferenceOption[]>([])
@@ -258,7 +264,7 @@ export function PreferenceSelectionPage() {
                           aria-pressed={(selectedDetails[themeCode] ?? []).includes(option.code)}
                           onClick={() => toggleDetail(themeCode, option.code)}
                         >
-                          {option.label}
+                          {getOptionDisplayLabel(option)}
                         </button>
                       ))}
                     </div>
