@@ -7,6 +7,7 @@ import {
   type MapBounds,
   type MapContentItem,
 } from '../api/map.ts'
+import { removeFavorite, saveFavorite } from '../api/favorites.ts'
 import { updatePushEnabled } from '../api/settings.ts'
 import type { KakaoMap } from '../lib/kakaoMaps.ts'
 import { KakaoMapCanvas } from './KakaoMapCanvas.tsx'
@@ -29,19 +30,49 @@ function eventPeriodText(item: MapContentItem): string | null {
   return `${item.event_period.start_date} ~ ${item.event_period.end_date}`
 }
 
-function MapContentCard({ item }: { item: MapContentItem }) {
+type MapContentCardProps = {
+  item: MapContentItem
+  favoritePending: boolean
+  onSelect?: () => void
+  onToggleFavorite: () => void
+}
+
+function MapContentCard({
+  item,
+  favoritePending,
+  onSelect,
+  onToggleFavorite,
+}: MapContentCardProps) {
   return (
     <article className="map-content-card">
-      <div className="map-content-card__thumbnail">
-        {item.thumbnail_url
-          ? <img src={item.thumbnail_url} alt="" />
-          : <span aria-hidden="true">{item.content_type === 'EVENT' ? '행사' : '장소'}</span>}
-      </div>
-      <div className="map-content-card__body">
-        <span>{item.content_type === 'EVENT' ? '행사' : '관광지'}</span>
-        <h2>{item.title}</h2>
-        <p>{eventPeriodText(item) ?? item.address}</p>
-      </div>
+      <button
+        type="button"
+        className="map-content-card__select"
+        aria-label={`${item.title} 선택`}
+        onClick={onSelect}
+        disabled={!onSelect}
+      >
+        <span className="map-content-card__thumbnail">
+          {item.thumbnail_url
+            ? <img src={item.thumbnail_url} alt="" />
+            : <span aria-hidden="true">{item.content_type === 'EVENT' ? '행사' : '장소'}</span>}
+        </span>
+        <span className="map-content-card__body">
+          <span>{item.is_in_guidebook ? '가이드북 장소' : item.content_type === 'EVENT' ? '행사' : '관광지'}</span>
+          <strong className="map-content-card__title">{item.title}</strong>
+          <span className="map-content-card__description">{eventPeriodText(item) ?? item.address}</span>
+        </span>
+      </button>
+      <button
+        type="button"
+        className={`map-content-card__favorite${item.is_favorite ? ' map-content-card__favorite--active' : ''}`}
+        aria-label={item.is_favorite ? `${item.title} 즐겨찾기 해제` : `${item.title} 즐겨찾기 저장`}
+        aria-pressed={item.is_favorite}
+        disabled={favoritePending}
+        onClick={onToggleFavorite}
+      >
+        <span aria-hidden="true">{item.is_favorite ? '★' : '☆'}</span>
+      </button>
     </article>
   )
 }
@@ -63,6 +94,7 @@ export function MapPage() {
   const [permissionStep, setPermissionStep] = useState<PermissionStep>(initialPermissionStep)
   const [toast, setToast] = useState<string | null>(null)
   const [mapError, setMapError] = useState<string | null>(null)
+  const [favoritePendingId, setFavoritePendingId] = useState<string | null>(null)
 
   const requestContents = useCallback((bounds: MapBounds) => {
     setIsContentsLoading(true)
@@ -148,7 +180,7 @@ export function MapPage() {
   const changeZoom = (difference: number) => {
     const map = mapRef.current
     if (!map) return
-    map.setLevel(Math.min(6, Math.max(1, map.getLevel() + difference)), {
+    map.setLevel(Math.min(16, Math.max(1, map.getLevel() + difference)), {
       anchor: map.getCenter(),
     })
   }
@@ -196,6 +228,34 @@ export function MapPage() {
     setSheetDragHeight(null)
   }, [])
 
+  const toggleFavorite = async (item: MapContentItem) => {
+    if (favoritePendingId) return
+    setFavoritePendingId(item.content_id)
+    try {
+      if (item.is_favorite) {
+        await removeFavorite(item.content_id)
+      } else {
+        await saveFavorite(item.content_id)
+      }
+      const favorite = !item.is_favorite
+      setItems((current) => current.map((candidate) => (
+        candidate.content_id === item.content_id
+          ? { ...candidate, is_favorite: favorite }
+          : candidate
+      )))
+      setSelectedItem((current) => (
+        current?.content_id === item.content_id
+          ? { ...current, is_favorite: favorite }
+          : current
+      ))
+      setToast(favorite ? '즐겨찾기에 저장했어요.' : '즐겨찾기에서 삭제했어요.')
+    } catch {
+      setToast('즐겨찾기 상태를 변경하지 못했어요.')
+    } finally {
+      setFavoritePendingId(null)
+    }
+  }
+
   return (
     <main className="app-shell map-page">
       <h1 className="visually-hidden">지도</h1>
@@ -211,9 +271,15 @@ export function MapPage() {
       />
 
       <div className="map-controls" aria-label="지도 조작">
-        <button type="button" aria-label="확대" onClick={() => changeZoom(-1)}>＋</button>
-        <button type="button" aria-label="축소" onClick={() => changeZoom(1)}>－</button>
-        <button type="button" aria-label="현재 위치로 이동" onClick={() => requestCurrentPosition()}>⌖</button>
+        <button type="button" aria-label="확대" onClick={() => changeZoom(-1)}>
+          <img src="/assets/map-controls/add.png" alt="" aria-hidden="true" />
+        </button>
+        <button type="button" aria-label="축소" onClick={() => changeZoom(1)}>
+          <img src="/assets/map-controls/minus.png" alt="" aria-hidden="true" />
+        </button>
+        <button type="button" aria-label="현재 위치로 이동" onClick={() => requestCurrentPosition()}>
+          <img src="/assets/map-controls/gps.png" alt="" aria-hidden="true" />
+        </button>
       </div>
 
       {mapError && (
@@ -287,20 +353,29 @@ export function MapPage() {
             {sheetLevel === 'expanded' ? (
               <div className="map-content-sheet__list" aria-label="주변 장소와 행사 목록">
                 {items.map((item) => (
-                  <button
-                    type="button"
+                  <div
                     className={`map-content-sheet__list-item${selectedItem?.content_id === item.content_id ? ' map-content-sheet__list-item--selected' : ''}`}
                     key={item.content_id}
-                    onClick={() => {
-                      setSelectedItem(item)
-                      setSheetLevel('default')
-                    }}
                   >
-                    <MapContentCard item={item} />
-                  </button>
+                    <MapContentCard
+                      item={item}
+                      favoritePending={favoritePendingId === item.content_id}
+                      onSelect={() => {
+                        setSelectedItem(item)
+                        setSheetLevel('default')
+                      }}
+                      onToggleFavorite={() => void toggleFavorite(item)}
+                    />
+                  </div>
                 ))}
               </div>
-            ) : displayedItem ? <MapContentCard item={displayedItem} /> : null}
+            ) : displayedItem ? (
+              <MapContentCard
+                item={displayedItem}
+                favoritePending={favoritePendingId === displayedItem.content_id}
+                onToggleFavorite={() => void toggleFavorite(displayedItem)}
+              />
+            ) : null}
           </div>
         )}
       </section>
