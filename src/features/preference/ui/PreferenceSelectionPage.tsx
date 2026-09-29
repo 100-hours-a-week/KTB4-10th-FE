@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { routes } from '../../../shared/config/routes.ts'
 import { Toast } from '../../../shared/ui/Toast.tsx'
 import {
@@ -55,6 +55,10 @@ function selectionKey(selections: PreferenceSelection[]): string {
 
 export function PreferenceSelectionPage() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const routeState = location.state as { returnTo?: string; guidebookDraft?: unknown } | null
+  const returnTo = routeState?.returnTo === routes.guidebookCreate ? routes.guidebookCreate : routes.myPage
+  const returnState = routeState?.guidebookDraft === undefined ? undefined : { guidebookDraft: routeState.guidebookDraft }
   const [options, setOptions] = useState<PreferenceOption[]>([])
   const [selectedThemes, setSelectedThemes] = useState<string[]>([])
   const [selectedDetails, setSelectedDetails] = useState<Record<string, string[]>>({})
@@ -218,7 +222,10 @@ export function PreferenceSelectionPage() {
     setSubmitError(null)
     try {
       await replaceMemberPreferences(currentSelections)
-      navigate(routes.map, { replace: true })
+      navigate(isEditMode ? returnTo : routes.map, {
+        replace: true,
+        state: isEditMode ? returnState : undefined,
+      })
     } catch {
       setSubmitError('취향을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.')
     } finally {
@@ -231,7 +238,7 @@ export function PreferenceSelectionPage() {
       setIsCancelDialogOpen(true)
       return
     }
-    navigate(routes.myPage)
+    navigate(returnTo, { state: returnState })
   }
 
   return (
@@ -360,7 +367,7 @@ export function PreferenceSelectionPage() {
               변경한 내용은 저장되지 않아요.
             </p>
             <div className="preference-cancel-dialog__actions">
-              <button type="button" onClick={() => navigate(routes.myPage)}>네</button>
+              <button type="button" onClick={() => navigate(returnTo, { state: returnState })}>네</button>
               <button type="button" autoFocus onClick={() => setIsCancelDialogOpen(false)}>아니요</button>
             </div>
           </section>
