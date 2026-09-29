@@ -108,7 +108,6 @@ export function KakaoMapCanvas({
           const southWest = bounds.getSouthWest()
           const northEast = bounds.getNorthEast()
           const zoom = toApiZoom(map.getLevel())
-          if (zoom < 13) return
           onBoundsChange({
             south: southWest.getLat(),
             west: southWest.getLng(),
