@@ -5,6 +5,7 @@ import { clusterLabel, pinColor } from '../lib/mapMarkers.ts'
 function item(
   contentType: MapContentItem['content_type'],
   inGuidebook = false,
+  favorite = false,
 ): MapContentItem {
   return {
     content_id: 'content-1',
@@ -15,14 +16,19 @@ function item(
     longitude: 126.978,
     thumbnail_url: null,
     event_period: null,
-    is_favorite: false,
+    is_favorite: favorite,
     is_in_guidebook: inGuidebook,
   }
 }
 
 describe('지도 핀 색상', () => {
   it('가이드북 포함 장소를 가장 우선해 구분한다', () => {
-    expect(pinColor(item('EVENT', true))).toBe('#f5c542')
+    expect(pinColor(item('EVENT', true, true))).toBe('#f5c542')
+  })
+
+  it('즐겨찾기를 행사와 일반 장소보다 우선해 구분한다', () => {
+    expect(pinColor(item('EVENT', false, true))).toBe('#e85d75')
+    expect(pinColor(item('PLACE', false, true))).toBe('#e85d75')
   })
 
   it('행사와 일반 장소 색상을 구분한다', () => {
