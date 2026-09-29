@@ -24,6 +24,15 @@ export function GuidebookCreatePage() {
   const maxDate = yearLimit(minDate)
   const endLimit = form.start_date ? [dayOffset(form.start_date, 6), maxDate].sort()[0] : maxDate
   const rule = companions[form.companion]
+  const hasRequiredConditions = Boolean(
+    regions[form.province]?.includes(form.city) &&
+    form.start_date &&
+    form.end_date &&
+    form.start_date >= minDate &&
+    form.end_date >= form.start_date &&
+    form.end_date <= maxDate &&
+    form.end_date <= dayOffset(form.start_date, 6),
+  )
 
   function update<K extends keyof GenerationRequest>(key: K, value: GenerationRequest[K]) {
     setForm((current) => ({ ...current, [key]: value }))
@@ -78,7 +87,7 @@ export function GuidebookCreatePage() {
       </div>
       {error && <p className="book-error" role="alert">{error}</p>}
       {uncertain && <p className="book-hint">같은 여행 조건으로 접수 결과를 다시 확인해요.</p>}
-      <button className="primary-button" disabled={submitting || isRunning(job)}>{submitting ? '접수 중…' : uncertain ? '같은 요청 다시 확인' : '생성'}</button>
+      <button className="primary-button" disabled={submitting || isRunning(job) || (!uncertain && !hasRequiredConditions)}>{submitting ? '접수 중…' : uncertain ? '같은 요청 다시 확인' : '생성'}</button>
       {uncertain && <button type="button" className="book-text-button" onClick={() => { setUncertain(false); submission.current = null }}>조건 수정</button>}
     </form>
   </main>

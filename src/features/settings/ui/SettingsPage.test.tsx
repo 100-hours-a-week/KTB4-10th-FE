@@ -46,6 +46,7 @@ describe('SettingsPage', () => {
 
     await user.click(screen.getByRole('button', { name: '로그아웃' }))
     expect(screen.getByRole('dialog', { name: '로그아웃을 하시겠습니까?' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '아니요' })).toHaveClass('settings-modal__primary')
     await user.click(screen.getByRole('button', { name: '예' }))
 
     await waitFor(() => expect(logoutMock).toHaveBeenCalledOnce())

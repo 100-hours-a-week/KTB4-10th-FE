@@ -1,5 +1,5 @@
 import axios from 'axios'
-export const companions = { ALONE: ['혼자', 1, 1], FRIEND: ['친구', 2, 4], COUPLE: ['연인', 2, 2], FAMILY: ['가족', 2, 6], GROUP: ['단체', 2, 10] } as const
+export const companions = { ALONE: ['혼자', 1, 1], FRIEND: ['친구', 2, 4], COUPLE: ['연인', 2, 2], FAMILY: ['가족', 2, 6], GROUP: ['단체', 5, 10] } as const
 export function today() {
   const parts = new Intl.DateTimeFormat('en', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date())
   return ['year', 'month', 'day'].map((type) => parts.find((p) => p.type === type)!.value).join('-')
