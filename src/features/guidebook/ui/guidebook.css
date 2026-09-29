@@ -35,6 +35,9 @@
 .book-dialog-actions button { min-height: 44px; }
 .book-form { padding: 24px 22px; }
 .book-form-intro { margin: 0 0 28px; font-size: 22px; line-height: 1.55; letter-spacing: -.03em; }
+.book-credit { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 16px; margin-bottom: 26px; border: 1px solid #ededf0; border-radius: 10px; background: #fff; font-size: 13px; }
+.book-credit strong { margin-left: auto; }
+.book-credit button { padding: 4px 0; border: 0; background: none; color: #73737d; font: inherit; font-size: 12px; text-decoration: underline; cursor: pointer; }
 .book-form fieldset { padding: 0; margin: 0; border: 0; min-width: 0; }
 .book-form legend { position: absolute; clip-path: inset(50%); width: 1px; height: 1px; overflow: hidden; }
 .book-form section { margin-bottom: 28px; }
