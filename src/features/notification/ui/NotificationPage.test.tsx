@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { NotificationPage } from './NotificationPage.tsx'
+import { NOTIFICATIONS_UPDATED_EVENT } from '../model/events.ts'
 
 const {
   deleteAllNotificationsMock,
@@ -84,6 +85,21 @@ describe('NotificationPage', () => {
 
     expect(await screen.findByText('새로운 알림이 없습니다.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '모든 알림 읽음 처리' })).toBeDisabled()
+  })
+
+  it('생성 완료 알림 갱신 이벤트를 받으면 열려 있는 목록을 다시 조회한다', async () => {
+    getNotificationsMock
+      .mockResolvedValueOnce(response([]))
+      .mockResolvedValueOnce(response([newerNotification]))
+    renderPage()
+    await screen.findByText('새로운 알림이 없습니다.')
+
+    window.dispatchEvent(new CustomEvent(NOTIFICATIONS_UPDATED_EVENT, {
+      detail: { unreadCount: 1 },
+    }))
+
+    expect(await screen.findByText('서울 가이드북 생성 완료')).toBeInTheDocument()
+    expect(getNotificationsMock).toHaveBeenCalledTimes(2)
   })
 
   it('카드를 왼쪽으로 밀면 개별 읽음 처리 후 목록에서 제거한다', async () => {
