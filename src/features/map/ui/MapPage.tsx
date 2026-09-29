@@ -6,6 +6,7 @@ import {
   filterContentsWithinBounds,
   getMapContents,
   type MapBounds,
+  type MapCluster,
   type MapContentItem,
 } from '../api/map.ts'
 import { removeFavorite, saveFavorite } from '../api/favorites.ts'
@@ -17,6 +18,7 @@ import { PermissionModal } from './PermissionModal.tsx'
 const DEFAULT_CENTER = { latitude: 37.3952969470752, longitude: 127.110449292622 }
 const LOCATION_PROMPT_KEY = 'kgb.location-prompt-completed'
 const NOTIFICATION_PROMPT_KEY = 'kgb.notification-prompt-completed'
+const SHEET_PAGE_SIZE = 20
 
 type PermissionStep = 'location' | 'notification' | null
 type SheetLevel = 'collapsed' | 'default' | 'expanded'
@@ -54,7 +56,7 @@ function MapContentCard({
       >
         <span className="map-content-card__thumbnail">
           {item.thumbnail_url
-            ? <img src={item.thumbnail_url} alt="" />
+            ? <img src={item.thumbnail_url} alt="" loading="lazy" decoding="async" />
             : <span aria-hidden="true">{item.content_type === 'EVENT' ? '행사' : '장소'}</span>}
         </span>
         <span className="map-content-card__body">
@@ -82,6 +84,9 @@ export function MapPage() {
   const [position, setPosition] = useState<{ latitude: number; longitude: number } | null>(null)
   const latestContentRequestRef = useRef(0)
   const [items, setItems] = useState<MapContentItem[]>([])
+  const [clusters, setClusters] = useState<MapCluster[]>([])
+  const [responseMode, setResponseMode] = useState<'CONTENT' | 'CLUSTER'>('CONTENT')
+  const [visibleSheetItemCount, setVisibleSheetItemCount] = useState(SHEET_PAGE_SIZE)
   const [selectedItem, setSelectedItem] = useState<MapContentItem | null>(null)
   const [isContentsLoading, setIsContentsLoading] = useState(false)
   const [contentsError, setContentsError] = useState(false)
@@ -105,6 +110,9 @@ export function MapPage() {
         if (requestId !== latestContentRequestRef.current) return
         const visibleItems = filterContentsWithinBounds(result.items, bounds)
         setItems(visibleItems)
+        setClusters(result.clusters)
+        setResponseMode(result.mode)
+        setVisibleSheetItemCount(SHEET_PAGE_SIZE)
         setSelectedItem((current) => (
           current && visibleItems.some((item) => item.content_id === current.content_id)
             ? current
@@ -222,6 +230,8 @@ export function MapPage() {
   }
 
   const displayedItem = selectedItem ?? items[0] ?? null
+  const visibleSheetItems = items.slice(0, visibleSheetItemCount)
+  const clusteredContentCount = clusters.reduce((total, cluster) => total + cluster.count, 0)
   const handleMapClick = useCallback(() => {
     setSelectedItem(null)
     setSheetLevel((current) => current === 'expanded' ? 'default' : 'collapsed')
@@ -263,7 +273,8 @@ export function MapPage() {
       <KakaoMapCanvas
         center={position ?? DEFAULT_CENTER}
         currentPosition={position}
-        items={items}
+        items={responseMode === 'CONTENT' ? items : []}
+        clusters={clusters}
         selectedContentId={selectedItem?.content_id ?? null}
         mapRef={mapRef}
         onBoundsChange={requestContents}
@@ -352,11 +363,28 @@ export function MapPage() {
         ) : (
           <div className="map-content-sheet__contents">
             <div className="map-content-sheet__summary">
-              <strong>주변 장소·행사 {items.length}개</strong>
+              <strong>
+                {responseMode === 'CLUSTER'
+                  ? `현재 화면 장소·행사 ${clusteredContentCount}개 · 주요 ${items.length}개`
+                  : `주변 장소·행사 ${items.length}개`}
+              </strong>
             </div>
             {sheetLevel === 'expanded' ? (
-              <div className="map-content-sheet__list" aria-label="주변 장소와 행사 목록">
-                {items.map((item) => (
+              <div
+                className="map-content-sheet__list"
+                role="region"
+                aria-label="주변 장소와 행사 목록"
+                onScroll={(event) => {
+                  const list = event.currentTarget
+                  const remaining = list.scrollHeight - list.scrollTop - list.clientHeight
+                  if (responseMode === 'CONTENT' && remaining <= 120) {
+                    setVisibleSheetItemCount((current) => (
+                      Math.min(items.length, current + SHEET_PAGE_SIZE)
+                    ))
+                  }
+                }}
+              >
+                {visibleSheetItems.map((item) => (
                   <div
                     className={`map-content-sheet__list-item${selectedItem?.content_id === item.content_id ? ' map-content-sheet__list-item--selected' : ''}`}
                     key={item.content_id}

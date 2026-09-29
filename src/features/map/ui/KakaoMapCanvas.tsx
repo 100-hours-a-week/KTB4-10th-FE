@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import type { MapBounds, MapContentItem } from '../api/map.ts'
+import type { MapBounds, MapCluster, MapContentItem } from '../api/map.ts'
 import {
   loadKakaoMaps,
   type KakaoMap,
@@ -19,6 +19,7 @@ type KakaoMapCanvasProps = {
   center: Coordinate
   currentPosition: Coordinate | null
   items: MapContentItem[]
+  clusters: MapCluster[]
   selectedContentId: string | null
   onBoundsChange: (bounds: MapBounds) => void
   onError: (message: string) => void
@@ -47,10 +48,25 @@ function markerImage(maps: KakaoMaps, color: string, selected: boolean) {
   })
 }
 
+function clusterImage(maps: KakaoMaps, count: number) {
+  const label = clusterLabel(count)
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="42" height="42" viewBox="0 0 42 42">
+      <circle cx="21" cy="21" r="19" fill="#242428" stroke="white" stroke-width="2"/>
+      <text x="21" y="22" fill="white" font-size="13" font-weight="700"
+        text-anchor="middle" dominant-baseline="middle">${label}</text>
+    </svg>`
+  const source = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`
+  return new maps.MarkerImage(source, new maps.Size(42, 42), {
+    offset: new maps.Point(21, 21),
+  })
+}
+
 export function KakaoMapCanvas({
   center,
   currentPosition,
   items,
+  clusters,
   selectedContentId,
   onBoundsChange,
   onError,
@@ -61,6 +77,7 @@ export function KakaoMapCanvas({
   const containerRef = useRef<HTMLDivElement>(null)
   const mapsRef = useRef<KakaoMaps | null>(null)
   const contentMarkersRef = useRef<KakaoMarker[]>([])
+  const serverClusterMarkersRef = useRef<KakaoMarker[]>([])
   const clustererRef = useRef<KakaoMarkerClusterer | null>(null)
   const currentMarkerRef = useRef<KakaoMarker | null>(null)
 
@@ -117,6 +134,7 @@ export function KakaoMapCanvas({
       }
       clustererRef.current?.clear()
       contentMarkersRef.current.forEach((marker) => marker.setMap(null))
+      serverClusterMarkersRef.current.forEach((marker) => marker.setMap(null))
       currentMarkerRef.current?.setMap(null)
       mapRef.current = null
     }
@@ -179,6 +197,32 @@ export function KakaoMapCanvas({
       clusterer.clear()
     }
   }, [items, mapRef, onSelectItem, selectedContentId])
+
+  useEffect(() => {
+    const maps = mapsRef.current
+    const map = mapRef.current
+    if (!maps || !map) return
+
+    serverClusterMarkersRef.current.forEach((marker) => marker.setMap(null))
+    serverClusterMarkersRef.current = clusters.map((cluster) => {
+      const position = new maps.LatLng(cluster.latitude, cluster.longitude)
+      const marker = new maps.Marker({
+        map,
+        image: clusterImage(maps, cluster.count),
+        position,
+        title: `콘텐츠 ${cluster.count}개`,
+      })
+      maps.event.addListener(marker, 'click', () => {
+        map.setLevel(7, { anchor: position })
+      })
+      return marker
+    })
+
+    return () => {
+      serverClusterMarkersRef.current.forEach((marker) => marker.setMap(null))
+      serverClusterMarkersRef.current = []
+    }
+  }, [clusters, mapRef])
 
   useEffect(() => {
     const maps = mapsRef.current
