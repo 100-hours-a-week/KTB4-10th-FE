@@ -17,6 +17,7 @@ const {
 }))
 
 vi.mock('../api/map.ts', () => ({
+  clearMapContentCache: vi.fn(),
   getMapContents: getMapContentsMock,
   filterContentsWithinBounds: (items: unknown[]) => items,
 }))

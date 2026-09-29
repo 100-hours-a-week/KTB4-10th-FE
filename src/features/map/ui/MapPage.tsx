@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from 'react'
 import { BottomNavigation } from '../../../shared/ui/BottomNavigation.tsx'
 import { Toast } from '../../../shared/ui/Toast.tsx'
 import {
+  clearMapContentCache,
   filterContentsWithinBounds,
   getMapContents,
   type MapBounds,
@@ -237,6 +238,7 @@ export function MapPage() {
         await saveFavorite(item.content_id)
       }
       const favorite = !item.is_favorite
+      clearMapContentCache()
       setItems((current) => current.map((candidate) => (
         candidate.content_id === item.content_id
           ? { ...candidate, is_favorite: favorite }
