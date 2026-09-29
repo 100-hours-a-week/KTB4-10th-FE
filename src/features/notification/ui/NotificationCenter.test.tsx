@@ -1,13 +1,14 @@
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { NOTIFICATIONS_UPDATED_EVENT } from '../model/events.ts'
 import { NotificationCenter } from './NotificationCenter.tsx'
 
-const { getNotifications, deleteNotification, state } = vi.hoisted(() => ({
-  getNotifications: vi.fn(), deleteNotification: vi.fn(),
+const { getNotifications, state } = vi.hoisted(() => ({
+  getNotifications: vi.fn(),
   state: { member: { member_id: 1, status: 'ACTIVE', unread_count: 0 }, job: { job_id: 31, status: 'PROCESSING', guidebook_id: null as number | null } },
 }))
-vi.mock('../api/notifications.ts', () => ({ getNotifications, deleteNotification }))
+vi.mock('../api/notifications.ts', () => ({ getNotifications }))
 vi.mock('../../guidebook/model/generation.ts', () => ({ useGeneration: () => state }))
 describe('생성 완료 알림', () => {
   beforeEach(() => {
@@ -15,7 +16,17 @@ describe('생성 완료 알림', () => {
     state.job = { job_id: 31, status: 'PROCESSING', guidebook_id: null }
     getNotifications.mockResolvedValue({ items: [], unread_count: 0 })
   })
-  it('다른 화면에서도 완료되면 서버 알림을 다시 읽고 개수와 알림 메시지를 표시한다', async () => {
+  it('완료 전에는 알림 UI와 추가 조회를 만들지 않는다', async () => {
+    render(<MemoryRouter initialEntries={['/map']}><NotificationCenter /></MemoryRouter>)
+    await act(async () => {})
+
+    expect(getNotifications).not.toHaveBeenCalled()
+    expect(screen.queryByRole('button', { name: /알림/ })).not.toBeInTheDocument()
+  })
+
+  it('완료되면 서버 알림을 다시 읽고 갱신 이벤트와 알림 메시지를 표시한다', async () => {
+    const updated = vi.fn()
+    window.addEventListener(NOTIFICATIONS_UPDATED_EVENT, updated)
     const view = render(<MemoryRouter initialEntries={['/map']}><NotificationCenter /></MemoryRouter>)
     await act(async () => {})
     getNotifications.mockResolvedValue({
@@ -24,12 +35,11 @@ describe('생성 완료 알림', () => {
     })
     state.job = { job_id: 31, status: 'COMPLETED', guidebook_id: 10 }
     view.rerender(<MemoryRouter initialEntries={['/map']}><NotificationCenter /></MemoryRouter>)
-    expect(await screen.findByRole('button', { name: '알림 1개' })).toBeInTheDocument()
-    expect(screen.getByRole('status')).toHaveTextContent('가이드북 생성 완료')
-    fireEvent.click(screen.getByRole('button', { name: '알림 1개' }))
-    const link = await screen.findByRole('link', { name: /가이드북 생성 완료/ })
-    expect(link).toHaveAttribute('href', '/guidebooks/10')
-    expect(deleteNotification).not.toHaveBeenCalled()
-    expect(getNotifications.mock.calls.length).toBeGreaterThanOrEqual(2)
+    expect(await screen.findByRole('status')).toHaveTextContent('가이드북 생성 완료')
+    expect(updated).toHaveBeenCalledTimes(1)
+    expect((updated.mock.calls[0][0] as CustomEvent).detail).toEqual({ unreadCount: 1 })
+    expect(screen.queryByRole('button', { name: /알림/ })).not.toBeInTheDocument()
+    expect(getNotifications).toHaveBeenCalledTimes(1)
+    window.removeEventListener(NOTIFICATIONS_UPDATED_EVENT, updated)
   })
 })

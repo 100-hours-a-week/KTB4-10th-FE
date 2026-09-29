@@ -1,9 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getCurrentMember, type CurrentMember } from '../../auth/api/auth.ts'
+import {
+  NOTIFICATIONS_UPDATED_EVENT,
+  type NotificationsUpdatedDetail,
+} from '../../notification/model/events.ts'
 import { routes } from '../../../shared/config/routes.ts'
 import { BottomNavigation } from '../../../shared/ui/BottomNavigation.tsx'
-import { NotificationBellIcon, PageHeader } from '../../../shared/ui/PageHeader.tsx'
+import { PageHeader } from '../../../shared/ui/PageHeader.tsx'
 
 function ProfileFallback({ nickname }: { nickname: string }) {
   return (
@@ -39,6 +43,15 @@ export function MyPage() {
     void loadMember()
   }, [loadMember])
 
+  useEffect(() => {
+    const handleNotificationsUpdated = (event: Event) => {
+      const { unreadCount } = (event as CustomEvent<NotificationsUpdatedDetail>).detail
+      setMember((current) => current ? { ...current, unread_count: unreadCount } : current)
+    }
+    window.addEventListener(NOTIFICATIONS_UPDATED_EVENT, handleNotificationsUpdated)
+    return () => window.removeEventListener(NOTIFICATIONS_UPDATED_EVENT, handleNotificationsUpdated)
+  }, [])
+
   const hasUnreadNotifications = (member?.unread_count ?? 0) > 0
 
   return (
@@ -52,7 +65,13 @@ export function MyPage() {
             : '알림 확인'}
           onClick={() => navigate(routes.notifications)}
         >
-          <NotificationBellIcon />
+          <img
+            src={hasUnreadNotifications
+              ? '/assets/mypage/bell-unread.png'
+              : '/assets/mypage/bell-empty.png'}
+            alt=""
+            aria-hidden="true"
+          />
           {hasUnreadNotifications && <span>{member?.unread_count}</span>}
         </button>
       </PageHeader>

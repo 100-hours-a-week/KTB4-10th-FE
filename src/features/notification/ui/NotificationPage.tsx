@@ -8,6 +8,7 @@ import {
   getNotifications,
   type Notification,
 } from '../api/notifications.ts'
+import { NOTIFICATIONS_UPDATED_EVENT } from '../model/events.ts'
 import './notification-page.css'
 
 const SWIPE_LIMIT = 88
@@ -62,6 +63,12 @@ export function NotificationPage() {
     // 페이지 진입 시 회원에게 저장된 최신 인앱 알림을 조회합니다.
     // oxlint-disable-next-line react/set-state-in-effect
     void loadNotifications()
+  }, [loadNotifications])
+
+  useEffect(() => {
+    const handleNotificationsUpdated = () => { void loadNotifications() }
+    window.addEventListener(NOTIFICATIONS_UPDATED_EVENT, handleNotificationsUpdated)
+    return () => window.removeEventListener(NOTIFICATIONS_UPDATED_EVENT, handleNotificationsUpdated)
   }, [loadNotifications])
 
   const isMutating = deletingId !== null || isDeletingAll
