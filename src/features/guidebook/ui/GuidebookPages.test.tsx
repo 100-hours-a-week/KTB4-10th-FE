@@ -66,15 +66,16 @@ describe('가이드북 화면', () => {
     await waitFor(() => expect(screen.queryByText('다음 여행')).not.toBeInTheDocument())
   })
 
-  it('뷰어는 서버 HTML을 변형하지 않고 전체 화면으로 표시하며 탭하면 닫기 버튼을 보여준다', async () => {
+  it('뷰어는 전체 화면에서 내부 스크립트와 탭 감지를 지원한다', async () => {
     const html = '<!doctype html><html><head><style>h1{color:red}</style></head><body><h1>여행</h1><table><tr><td>일정</td></tr></table></body></html>'
     getViewer.mockResolvedValue({ guidebook_id: 10, content_html: html, version: 1, updated_at: '2026-09-29T00:00:00Z' })
     render(<MemoryRouter initialEntries={['/guidebooks/10/viewer']}><Routes><Route path="/guidebooks/:guidebookId/viewer" element={<GuidebookViewerPage />} /></Routes></MemoryRouter>)
-    const viewer = await screen.findByTitle('가이드북 본문')
-    expect(viewer).toHaveAttribute('srcdoc', html)
-    expect(viewer).toHaveAttribute('sandbox', '')
+    const viewer = await screen.findByTitle('가이드북 본문') as HTMLIFrameElement
+    expect(viewer.getAttribute('srcdoc')).toContain('<body><h1>여행</h1><table><tr><td>일정</td></tr></table>')
+    expect(viewer.getAttribute('srcdoc')).toContain('kgb:guidebook-interaction')
+    expect(viewer).toHaveAttribute('sandbox', 'allow-scripts')
     expect(screen.queryByRole('link', { name: '가이드북 뷰어 닫기' })).not.toBeInTheDocument()
-    await act(async () => { fireEvent.click(screen.getByRole('button', { name: '뷰어 컨트롤 보이기' })) })
+    await act(async () => { window.dispatchEvent(new MessageEvent('message', { data: 'kgb:guidebook-interaction', source: viewer.contentWindow })) })
     expect(screen.getByRole('link', { name: '가이드북 뷰어 닫기' })).toBeVisible()
   })
 })
