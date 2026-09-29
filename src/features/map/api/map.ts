@@ -29,8 +29,17 @@ export type MapContentItem = {
 }
 
 export type MapContentResult = {
+  mode: 'CONTENT' | 'CLUSTER'
+  clusters: MapCluster[]
   items: MapContentItem[]
   has_more: boolean
+}
+
+export type MapCluster = {
+  cluster_id: string
+  latitude: number
+  longitude: number
+  count: number
 }
 
 type MapContentCacheEntry = {
@@ -93,6 +102,18 @@ function isMapContentItem(value: unknown): value is MapContentItem {
   )
 }
 
+function isMapCluster(value: unknown): value is MapCluster {
+  if (!isRecord(value)) return false
+  return (
+    typeof value.cluster_id === 'string' &&
+    typeof value.latitude === 'number' &&
+    typeof value.longitude === 'number' &&
+    typeof value.count === 'number' &&
+    Number.isInteger(value.count) &&
+    value.count > 0
+  )
+}
+
 type Coordinate = {
   latitude: number
   longitude: number
@@ -149,12 +170,19 @@ export async function getMapContents(bounds: MapBounds): Promise<MapContentResul
         throw new Error('지도 콘텐츠 응답 계약이 올바르지 않습니다.')
       }
 
-      const { items, has_more: hasMore } = response.data.data
-      if (!Array.isArray(items) || !items.every(isMapContentItem) || typeof hasMore !== 'boolean') {
+      const { mode, clusters, items, has_more: hasMore } = response.data.data
+      if (
+        (mode !== 'CONTENT' && mode !== 'CLUSTER') ||
+        !Array.isArray(clusters) ||
+        !clusters.every(isMapCluster) ||
+        !Array.isArray(items) ||
+        !items.every(isMapContentItem) ||
+        typeof hasMore !== 'boolean'
+      ) {
         throw new Error('지도 콘텐츠 응답 계약이 올바르지 않습니다.')
       }
 
-      const result = { items, has_more: hasMore }
+      const result: MapContentResult = { mode, clusters, items, has_more: hasMore }
       cacheResult(cacheKey, result)
       return result
     })

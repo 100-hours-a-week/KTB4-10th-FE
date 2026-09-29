@@ -58,7 +58,9 @@ describe('MapPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     localStorage.clear()
-    getMapContentsMock.mockResolvedValue({ items: [], has_more: false })
+    getMapContentsMock.mockResolvedValue({
+      mode: 'CONTENT', clusters: [], items: [], has_more: false,
+    })
     removeFavoriteMock.mockResolvedValue(undefined)
     saveFavoriteMock.mockResolvedValue({ content_id: 'place-1', is_favorite: true })
     updatePushEnabledMock.mockResolvedValue({ language_code: 'ko', push_enabled: false })
@@ -91,10 +93,85 @@ describe('MapPage', () => {
     }))
   })
 
+  it('광역 줌에서 클러스터 전체 개수와 대표 콘텐츠를 표시한다', async () => {
+    const user = userEvent.setup()
+    localStorage.setItem('kgb.location-prompt-completed', 'true')
+    getMapContentsMock.mockResolvedValue({
+      mode: 'CLUSTER',
+      clusters: [
+        { cluster_id: '37:126', latitude: 37.5, longitude: 126.9, count: 120 },
+        { cluster_id: '35:129', latitude: 35.1, longitude: 129.0, count: 80 },
+      ],
+      items: [{
+        content_id: 'place-1',
+        title: '광역 대표 장소',
+        content_type: 'PLACE',
+        address: '서울',
+        latitude: 37.5,
+        longitude: 126.9,
+        thumbnail_url: null,
+        event_period: null,
+        is_favorite: false,
+      }],
+      has_more: false,
+    })
+    render(<MemoryRouter><MapPage /></MemoryRouter>)
+
+    await user.click(screen.getByRole('button', { name: '지도 범위 조회' }))
+
+    expect(await screen.findByText('현재 화면 장소·행사 200개 · 주요 1개')).toBeInTheDocument()
+    expect(screen.getByText('광역 대표 장소')).toBeInTheDocument()
+  })
+
+  it('바텀시트 목록을 20개씩 점진적으로 렌더링한다', async () => {
+    const user = userEvent.setup()
+    localStorage.setItem('kgb.location-prompt-completed', 'true')
+    const items = Array.from({ length: 21 }, (_, index) => ({
+      content_id: `place-${index + 1}`,
+      title: `장소 ${index + 1}`,
+      content_type: 'PLACE' as const,
+      address: '서울',
+      latitude: 37.5444,
+      longitude: 127.0374,
+      thumbnail_url: `https://example.com/place-${index + 1}.jpg`,
+      event_period: null,
+      is_favorite: false,
+    }))
+    getMapContentsMock.mockResolvedValue({
+      mode: 'CONTENT',
+      clusters: [],
+      items,
+      has_more: false,
+    })
+    render(<MemoryRouter><MapPage /></MemoryRouter>)
+
+    await user.click(screen.getByRole('button', { name: '지도 범위 조회' }))
+    expect(await screen.findByText('장소 1')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '장소 목록 펼치기' }))
+
+    expect(screen.getByText('장소 20')).toBeInTheDocument()
+    expect(screen.queryByText('장소 21')).not.toBeInTheDocument()
+    expect(document.querySelector('.map-content-card__thumbnail img'))
+      .toHaveAttribute('loading', 'lazy')
+
+    const list = screen.getByRole('region', { name: '주변 장소와 행사 목록' })
+    Object.defineProperties(list, {
+      scrollHeight: { configurable: true, value: 1_000 },
+      scrollTop: { configurable: true, value: 800 },
+      clientHeight: { configurable: true, value: 100 },
+    })
+    fireEvent.scroll(list)
+
+    expect(getMapContentsMock).toHaveBeenCalledTimes(1)
+    expect(screen.getByText('장소 21')).toBeInTheDocument()
+  })
+
   it('조회한 장소와 행사를 바텀시트에서 펼쳐 볼 수 있다', async () => {
     const user = userEvent.setup()
     localStorage.setItem('kgb.location-prompt-completed', 'true')
     getMapContentsMock.mockResolvedValue({
+      mode: 'CONTENT',
+      clusters: [],
       items: [
         {
           content_id: 'place-1',
@@ -160,6 +237,8 @@ describe('MapPage', () => {
     const user = userEvent.setup()
     localStorage.setItem('kgb.location-prompt-completed', 'true')
     getMapContentsMock.mockResolvedValue({
+      mode: 'CONTENT',
+      clusters: [],
       items: [{
         content_id: 'place-1',
         title: '서울숲',
