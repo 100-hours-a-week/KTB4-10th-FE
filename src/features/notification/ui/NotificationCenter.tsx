@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { useGeneration } from '../../guidebook/model/generation.ts'
 import { Toast } from '../../../shared/ui/Toast.tsx'
 import { deleteNotification, getNotifications, type Notifications } from '../api/notifications.ts'
+import { NotificationBellIcon } from '../../../shared/ui/PageHeader.tsx'
 
 export function NotificationCenter() {
   const { member } = useGeneration()
@@ -57,7 +58,7 @@ function MemberNotifications() {
   }
   return <>
     <button className="notification-bell" aria-label={`알림 ${data?.unread_count ?? member?.unread_count ?? 0}개`} onClick={() => { setOpen(true); setRevision((value) => value + 1) }}>
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 9a6 6 0 0 1 12 0v5l2 3H4l2-3V9Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" /><path d="M10 20h4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg>
+      <NotificationBellIcon />
       {(data?.unread_count ?? member?.unread_count ?? 0) > 0 && <span>{data?.unread_count ?? member?.unread_count}</span>}
     </button>
     <dialog className="notification-dialog" ref={dialog} onCancel={() => setOpen(false)} onClose={() => setOpen(false)}>
