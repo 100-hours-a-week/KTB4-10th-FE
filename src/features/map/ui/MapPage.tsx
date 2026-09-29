@@ -13,7 +13,7 @@ import type { KakaoMap } from '../lib/kakaoMaps.ts'
 import { KakaoMapCanvas } from './KakaoMapCanvas.tsx'
 import { PermissionModal } from './PermissionModal.tsx'
 
-const DEFAULT_CENTER = { latitude: 37.5665, longitude: 126.978 }
+const DEFAULT_CENTER = { latitude: 37.3952969470752, longitude: 127.110449292622 }
 const LOCATION_PROMPT_KEY = 'kgb.location-prompt-completed'
 const NOTIFICATION_PROMPT_KEY = 'kgb.notification-prompt-completed'
 const CONTENT_RADIUS_KILOMETERS = 3
@@ -83,7 +83,6 @@ export function MapPage() {
   const contentCenterRef = useRef(DEFAULT_CENTER)
   const [items, setItems] = useState<MapContentItem[]>([])
   const [selectedItem, setSelectedItem] = useState<MapContentItem | null>(null)
-  const [hasMore, setHasMore] = useState(false)
   const [isContentsLoading, setIsContentsLoading] = useState(false)
   const [contentsError, setContentsError] = useState(false)
   const [sheetLevel, setSheetLevel] = useState<SheetLevel>('default')
@@ -107,7 +106,6 @@ export function MapPage() {
           CONTENT_RADIUS_KILOMETERS,
         )
         setItems(nearbyItems)
-        setHasMore(result.has_more)
         setSelectedItem((current) => (
           current && nearbyItems.some((item) => item.content_id === current.content_id)
             ? current
@@ -224,7 +222,8 @@ export function MapPage() {
 
   const displayedItem = selectedItem ?? items[0] ?? null
   const handleMapClick = useCallback(() => {
-    setSheetLevel((current) => current === 'expanded' ? 'default' : current)
+    setSelectedItem(null)
+    setSheetLevel((current) => current === 'expanded' ? 'default' : 'collapsed')
     setSheetDragHeight(null)
   }, [])
 
@@ -263,11 +262,15 @@ export function MapPage() {
         center={position ?? DEFAULT_CENTER}
         currentPosition={position}
         items={items}
+        selectedContentId={selectedItem?.content_id ?? null}
         mapRef={mapRef}
         onBoundsChange={requestContents}
         onError={setMapError}
         onMapClick={handleMapClick}
-        onSelectItem={setSelectedItem}
+        onSelectItem={(item) => {
+          setSelectedItem(item)
+          setSheetLevel((current) => current === 'collapsed' ? 'default' : current)
+        }}
       />
 
       <div className="map-controls" aria-label="지도 조작">
@@ -348,7 +351,6 @@ export function MapPage() {
           <div className="map-content-sheet__contents">
             <div className="map-content-sheet__summary">
               <strong>주변 장소·행사 {items.length}개</strong>
-              {hasMore && <small>지도를 확대하면 더 많은 장소를 확인할 수 있어요.</small>}
             </div>
             {sheetLevel === 'expanded' ? (
               <div className="map-content-sheet__list" aria-label="주변 장소와 행사 목록">

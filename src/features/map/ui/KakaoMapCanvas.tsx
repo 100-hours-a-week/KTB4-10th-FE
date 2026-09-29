@@ -8,7 +8,7 @@ import {
   type KakaoMarkerClusterer,
   type KakaoMarker,
 } from '../lib/kakaoMaps.ts'
-import { pinColor } from '../lib/mapMarkers.ts'
+import { clusterLabel, pinColor } from '../lib/mapMarkers.ts'
 
 type Coordinate = {
   latitude: number
@@ -19,6 +19,7 @@ type KakaoMapCanvasProps = {
   center: Coordinate
   currentPosition: Coordinate | null
   items: MapContentItem[]
+  selectedContentId: string | null
   onBoundsChange: (bounds: MapBounds) => void
   onError: (message: string) => void
   onMapClick: () => void
@@ -32,15 +33,17 @@ function toApiZoom(level: number): number {
 
 const CLUSTER_KAKAO_LEVEL = 8
 
-function markerImage(maps: KakaoMaps, color: string) {
+function markerImage(maps: KakaoMaps, color: string, selected: boolean) {
+  const width = selected ? 38 : 32
+  const height = selected ? 50 : 42
   const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="42" viewBox="0 0 32 42">
+    <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 32 42">
       <path d="M16 1C7.7 1 1 7.7 1 16c0 10.5 15 25 15 25s15-14.5 15-25C31 7.7 24.3 1 16 1Z" fill="${color}" stroke="white" stroke-width="2"/>
       <circle cx="16" cy="16" r="5" fill="white"/>
     </svg>`
   const source = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`
-  return new maps.MarkerImage(source, new maps.Size(32, 42), {
-    offset: new maps.Point(16, 42),
+  return new maps.MarkerImage(source, new maps.Size(width, height), {
+    offset: new maps.Point(width / 2, height),
   })
 }
 
@@ -48,6 +51,7 @@ export function KakaoMapCanvas({
   center,
   currentPosition,
   items,
+  selectedContentId,
   onBoundsChange,
   onError,
   onMapClick,
@@ -70,7 +74,7 @@ export function KakaoMapCanvas({
         mapsRef.current = maps
         const map = new maps.Map(containerRef.current, {
           center: new maps.LatLng(center.latitude, center.longitude),
-          level: 4,
+          level: 5,
         })
         mapRef.current = map
         map.setMinLevel(1)
@@ -127,7 +131,11 @@ export function KakaoMapCanvas({
     contentMarkersRef.current.forEach((marker) => marker.setMap(null))
     contentMarkersRef.current = items.map((item) => {
       const marker = new maps.Marker({
-        image: markerImage(maps, pinColor(item)),
+        image: markerImage(
+          maps,
+          item.content_id === selectedContentId ? '#2478ff' : pinColor(item),
+          item.content_id === selectedContentId,
+        ),
         position: new maps.LatLng(item.latitude, item.longitude),
         title: item.title,
       })
@@ -143,7 +151,7 @@ export function KakaoMapCanvas({
       minLevel: CLUSTER_KAKAO_LEVEL,
       minClusterSize: 2,
       disableClickZoom: true,
-      texts: (size) => size >= 10 ? '9+' : String(size),
+      texts: clusterLabel,
       styles: [{
         width: '38px',
         height: '38px',
@@ -170,7 +178,7 @@ export function KakaoMapCanvas({
       maps.event.removeListener(clusterer, 'clusterclick', handleClusterClick)
       clusterer.clear()
     }
-  }, [items, mapRef, onSelectItem])
+  }, [items, mapRef, onSelectItem, selectedContentId])
 
   useEffect(() => {
     const maps = mapsRef.current
@@ -183,7 +191,9 @@ export function KakaoMapCanvas({
       position: new maps.LatLng(currentPosition.latitude, currentPosition.longitude),
       title: '현재 위치',
     })
-    map.panTo(new maps.LatLng(currentPosition.latitude, currentPosition.longitude))
+    const nextCenter = new maps.LatLng(currentPosition.latitude, currentPosition.longitude)
+    map.setLevel(5, { anchor: nextCenter })
+    map.panTo(nextCenter)
   }, [currentPosition, mapRef])
 
   return <div className="map-canvas" ref={containerRef} aria-label="현재 위치 주변 관광 지도" />
