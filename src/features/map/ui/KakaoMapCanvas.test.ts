@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { MapContentItem } from '../api/map.ts'
-import { pinColor } from '../lib/mapMarkers.ts'
+import { clusterLabel, pinColor } from '../lib/mapMarkers.ts'
 
 function item(
   contentType: MapContentItem['content_type'],
@@ -22,11 +22,20 @@ function item(
 
 describe('지도 핀 색상', () => {
   it('가이드북 포함 장소를 가장 우선해 구분한다', () => {
-    expect(pinColor(item('EVENT', true))).toBe('#b76e42')
+    expect(pinColor(item('EVENT', true))).toBe('#f5c542')
   })
 
   it('행사와 일반 장소 색상을 구분한다', () => {
     expect(pinColor(item('EVENT'))).toBe('#5b4b8a')
     expect(pinColor(item('PLACE'))).toBe('#4a6754')
+  })
+})
+
+describe('지도 클러스터 표기', () => {
+  it('두 자리 수와 세 자리 수를 각각 축약한다', () => {
+    expect(clusterLabel(9)).toBe('9')
+    expect(clusterLabel(10)).toBe('9+')
+    expect(clusterLabel(99)).toBe('9+')
+    expect(clusterLabel(100)).toBe('99+')
   })
 })

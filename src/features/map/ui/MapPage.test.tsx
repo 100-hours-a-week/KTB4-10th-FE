@@ -18,7 +18,7 @@ const {
 
 vi.mock('../api/map.ts', () => ({
   getMapContents: getMapContentsMock,
-  filterContentsWithinRadius: (items: unknown[]) => items,
+  filterContentsWithinBounds: (items: unknown[]) => items,
 }))
 
 vi.mock('../api/settings.ts', () => ({

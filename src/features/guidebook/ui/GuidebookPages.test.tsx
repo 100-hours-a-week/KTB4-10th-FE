@@ -48,6 +48,15 @@ describe('가이드북 화면', () => {
     expect(screen.getByLabelText('시·군·구')).toHaveValue('')
   })
 
+  it('필수 조건 전에는 생성 버튼을 비활성화하고 단체는 5명부터 선택한다', () => {
+    render(<MemoryRouter><GuidebookCreatePage /></MemoryRouter>)
+
+    expect(screen.getByRole('button', { name: '생성' })).toBeDisabled()
+    fireEvent.change(screen.getByLabelText('동행'), { target: { value: 'GROUP' } })
+    expect(screen.getByLabelText('인원')).toHaveValue('5')
+    expect(screen.getByLabelText('인원').querySelectorAll('option')).toHaveLength(6)
+  })
+
   it('목록의 커서를 사용해 더 불러오고 삭제 확인 후 서버 목록을 갱신한다', async () => {
     const book = { guidebook_id: 10, title: '경주 여행', start_date: '2026-10-01', end_date: '2026-10-03', companion: 'FRIEND' }
     listBooks.mockResolvedValueOnce({ items: [book], next_cursor: 'cursor/1', has_more: true })

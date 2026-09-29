@@ -1,6 +1,6 @@
 import axios from 'axios'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { createBook, type Companion, type GenerationRequest } from '../api/guidebooks.ts'
 import { companions, dayOffset, message, today, yearLimit } from '../model/conditions.ts'
 import { regions } from '../model/regions.ts'
@@ -9,8 +9,10 @@ import { BookHeader } from './GuidebookLayout.tsx'
 
 export function GuidebookCreatePage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { track, job } = useGeneration()
-  const [form, setForm] = useState<GenerationRequest>({ province: '', city: '', start_date: '', end_date: '', companion: 'ALONE', people_count: 1 })
+  const restoredDraft = (location.state as { guidebookDraft?: GenerationRequest } | null)?.guidebookDraft
+  const [form, setForm] = useState<GenerationRequest>(restoredDraft ?? { province: '', city: '', start_date: '', end_date: '', companion: 'ALONE', people_count: 1 })
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [uncertain, setUncertain] = useState(false)
@@ -22,6 +24,15 @@ export function GuidebookCreatePage() {
   const maxDate = yearLimit(minDate)
   const endLimit = form.start_date ? [dayOffset(form.start_date, 6), maxDate].sort()[0] : maxDate
   const rule = companions[form.companion]
+  const hasRequiredConditions = Boolean(
+    regions[form.province]?.includes(form.city) &&
+    form.start_date &&
+    form.end_date &&
+    form.start_date >= minDate &&
+    form.end_date >= form.start_date &&
+    form.end_date <= maxDate &&
+    form.end_date <= dayOffset(form.start_date, 6),
+  )
 
   function update<K extends keyof GenerationRequest>(key: K, value: GenerationRequest[K]) {
     setForm((current) => ({ ...current, [key]: value }))
@@ -71,10 +82,12 @@ export function GuidebookCreatePage() {
           <label><span>인원</span><select aria-label="인원" value={form.people_count} onChange={(event) => update('people_count', Number(event.target.value))}>{Array.from({ length: rule[2] - rule[1] + 1 }, (_, i) => rule[1] + i).map((count) => <option value={count} key={count}>{count}명</option>)}</select></label>
         </div><small>본인을 포함한 인원을 선택해 주세요.</small></section>
       </fieldset>
-      <div className="book-notice">저장한 취향을 바탕으로 여행을 구성해요.<br />생성권은 가이드북이 완성되면 1개 사용돼요.</div>
+      <div className="book-notice">저장한 취향을 바탕으로 여행을 구성해요.<br />생성권은 가이드북이 완성되면 1개 사용돼요.<br />
+        <Link to="/preferences" state={{ returnTo: '/guidebooks/new', guidebookDraft: form }}>취향 수정하기</Link>
+      </div>
       {error && <p className="book-error" role="alert">{error}</p>}
       {uncertain && <p className="book-hint">같은 여행 조건으로 접수 결과를 다시 확인해요.</p>}
-      <button className="primary-button" disabled={submitting || isRunning(job)}>{submitting ? '접수 중…' : uncertain ? '같은 요청 다시 확인' : '생성'}</button>
+      <button className="primary-button" disabled={submitting || isRunning(job) || (!uncertain && !hasRequiredConditions)}>{submitting ? '접수 중…' : uncertain ? '같은 요청 다시 확인' : '생성'}</button>
       {uncertain && <button type="button" className="book-text-button" onClick={() => { setUncertain(false); submission.current = null }}>조건 수정</button>}
     </form>
   </main>

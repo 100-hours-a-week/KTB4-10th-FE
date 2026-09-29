@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from 'react'
 import { BottomNavigation } from '../../../shared/ui/BottomNavigation.tsx'
 import { Toast } from '../../../shared/ui/Toast.tsx'
 import {
-  filterContentsWithinRadius,
+  filterContentsWithinBounds,
   getMapContents,
   type MapBounds,
   type MapContentItem,
@@ -13,10 +13,9 @@ import type { KakaoMap } from '../lib/kakaoMaps.ts'
 import { KakaoMapCanvas } from './KakaoMapCanvas.tsx'
 import { PermissionModal } from './PermissionModal.tsx'
 
-const DEFAULT_CENTER = { latitude: 37.5665, longitude: 126.978 }
+const DEFAULT_CENTER = { latitude: 37.3952969470752, longitude: 127.110449292622 }
 const LOCATION_PROMPT_KEY = 'kgb.location-prompt-completed'
 const NOTIFICATION_PROMPT_KEY = 'kgb.notification-prompt-completed'
-const CONTENT_RADIUS_KILOMETERS = 3
 
 type PermissionStep = 'location' | 'notification' | null
 type SheetLevel = 'collapsed' | 'default' | 'expanded'
@@ -80,10 +79,9 @@ function MapContentCard({
 export function MapPage() {
   const mapRef = useRef<KakaoMap | null>(null)
   const [position, setPosition] = useState<{ latitude: number; longitude: number } | null>(null)
-  const contentCenterRef = useRef(DEFAULT_CENTER)
+  const latestContentRequestRef = useRef(0)
   const [items, setItems] = useState<MapContentItem[]>([])
   const [selectedItem, setSelectedItem] = useState<MapContentItem | null>(null)
-  const [hasMore, setHasMore] = useState(false)
   const [isContentsLoading, setIsContentsLoading] = useState(false)
   const [contentsError, setContentsError] = useState(false)
   const [sheetLevel, setSheetLevel] = useState<SheetLevel>('default')
@@ -97,28 +95,29 @@ export function MapPage() {
   const [favoritePendingId, setFavoritePendingId] = useState<string | null>(null)
 
   const requestContents = useCallback((bounds: MapBounds) => {
+    const requestId = latestContentRequestRef.current + 1
+    latestContentRequestRef.current = requestId
     setIsContentsLoading(true)
     setContentsError(false)
     getMapContents(bounds)
       .then((result) => {
-        const nearbyItems = filterContentsWithinRadius(
-          result.items,
-          contentCenterRef.current,
-          CONTENT_RADIUS_KILOMETERS,
-        )
-        setItems(nearbyItems)
-        setHasMore(result.has_more)
+        if (requestId !== latestContentRequestRef.current) return
+        const visibleItems = filterContentsWithinBounds(result.items, bounds)
+        setItems(visibleItems)
         setSelectedItem((current) => (
-          current && nearbyItems.some((item) => item.content_id === current.content_id)
+          current && visibleItems.some((item) => item.content_id === current.content_id)
             ? current
             : null
         ))
       })
       .catch(() => {
+        if (requestId !== latestContentRequestRef.current) return
         setContentsError(true)
         setToast('주변 관광 정보를 불러오지 못했어요.')
       })
-      .finally(() => setIsContentsLoading(false))
+      .finally(() => {
+        if (requestId === latestContentRequestRef.current) setIsContentsLoading(false)
+      })
   }, [])
 
   const requestCurrentPosition = useCallback((afterRequest?: () => void) => {
@@ -130,7 +129,6 @@ export function MapPage() {
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
         const next = { latitude: coords.latitude, longitude: coords.longitude }
-        contentCenterRef.current = next
         setPosition(next)
         afterRequest?.()
       },
@@ -224,7 +222,8 @@ export function MapPage() {
 
   const displayedItem = selectedItem ?? items[0] ?? null
   const handleMapClick = useCallback(() => {
-    setSheetLevel((current) => current === 'expanded' ? 'default' : current)
+    setSelectedItem(null)
+    setSheetLevel((current) => current === 'expanded' ? 'default' : 'collapsed')
     setSheetDragHeight(null)
   }, [])
 
@@ -263,11 +262,15 @@ export function MapPage() {
         center={position ?? DEFAULT_CENTER}
         currentPosition={position}
         items={items}
+        selectedContentId={selectedItem?.content_id ?? null}
         mapRef={mapRef}
         onBoundsChange={requestContents}
         onError={setMapError}
         onMapClick={handleMapClick}
-        onSelectItem={setSelectedItem}
+        onSelectItem={(item) => {
+          setSelectedItem(item)
+          setSheetLevel((current) => current === 'collapsed' ? 'default' : current)
+        }}
       />
 
       <div className="map-controls" aria-label="지도 조작">
@@ -348,7 +351,6 @@ export function MapPage() {
           <div className="map-content-sheet__contents">
             <div className="map-content-sheet__summary">
               <strong>주변 장소·행사 {items.length}개</strong>
-              {hasMore && <small>지도를 확대하면 더 많은 장소를 확인할 수 있어요.</small>}
             </div>
             {sheetLevel === 'expanded' ? (
               <div className="map-content-sheet__list" aria-label="주변 장소와 행사 목록">

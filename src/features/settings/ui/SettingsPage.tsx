@@ -96,7 +96,7 @@ export function SettingsPage() {
               <button type="button" disabled={isSubmitting} onClick={() => void handleLogout()}>
                 {isSubmitting ? '로그아웃 중...' : '예'}
               </button>
-              <button type="button" disabled={isSubmitting} autoFocus onClick={closeModal}>아니요</button>
+              <button className="settings-modal__primary" type="button" disabled={isSubmitting} autoFocus onClick={closeModal}>아니요</button>
             </div>
           </section>
         </div>

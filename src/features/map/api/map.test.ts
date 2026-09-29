@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { distanceKilometers, filterContentsWithinRadius, type MapContentItem } from './map.ts'
+import { distanceKilometers, filterContentsWithinBounds, filterContentsWithinRadius, type MapContentItem } from './map.ts'
 
 function item(
   contentId: string,
@@ -38,5 +38,19 @@ describe('지도 콘텐츠 거리 필터', () => {
 
     expect(filterContentsWithinRadius([nearby, farAway], seoulCityHall, 3))
       .toEqual([nearby])
+  })
+})
+
+describe('지도 콘텐츠 영역 필터', () => {
+  it('백엔드 응답 중 현재 지도 영역 밖 콘텐츠를 제외한다', () => {
+    const inBounds = item('in-bounds', 37.40, 127.11)
+    const outOfBounds = item('out-of-bounds', 37.50, 127.20)
+
+    expect(filterContentsWithinBounds([inBounds, outOfBounds], {
+      south: 37.35,
+      west: 127.05,
+      north: 37.45,
+      east: 127.15,
+    })).toEqual([inBounds])
   })
 })

@@ -33,13 +33,14 @@ const options = [
   { preference_type: 'TRAVEL_STYLE', code: 'RELAXING', label: '여유롭게', parent_code: null, sort_order: 10 },
 ]
 
-function renderPage() {
+function renderPage(initialEntry: string | { pathname: string; state?: unknown } = '/preferences') {
   return render(
-    <MemoryRouter initialEntries={['/preferences']}>
+    <MemoryRouter initialEntries={[initialEntry]}>
       <Routes>
         <Route path="/preferences" element={<PreferenceSelectionPage />} />
         <Route path="/map" element={<h1>지도</h1>} />
         <Route path="/mypage" element={<h1>마이페이지</h1>} />
+        <Route path="/guidebooks/new" element={<h1>가이드북 생성</h1>} />
       </Routes>
     </MemoryRouter>,
   )
@@ -139,6 +140,22 @@ describe('PreferenceSelectionPage', () => {
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(await screen.findByRole('heading', { name: '마이페이지' })).toBeInTheDocument()
+  })
+
+  it('가이드북 생성 화면에서 진입하면 저장 후 생성 화면으로 돌아간다', async () => {
+    const user = userEvent.setup()
+    getMemberPreferencesMock.mockResolvedValue([
+      { preference_type: 'THEME', preference_code: 'NATURE' },
+      { preference_type: 'DETAIL', preference_code: 'NATURE_MOUNTAIN' },
+    ])
+    renderPage({
+      pathname: '/preferences',
+      state: { returnTo: '/guidebooks/new', guidebookDraft: { province: '서울특별시' } },
+    })
+
+    await user.click(await screen.findByRole('button', { name: '저장' }))
+
+    expect(await screen.findByRole('heading', { name: '가이드북 생성' })).toBeInTheDocument()
   })
 
   it('취향 조회 실패 후 다시 불러올 수 있다', async () => {
