@@ -269,6 +269,11 @@
   color: #242427;
 }
 
+.settings-modal__actions .settings-modal__primary:not(:disabled) {
+  background: #242427;
+  color: #fff;
+}
+
 .settings-modal__actions button:disabled {
   color: #b7b7bd;
   cursor: not-allowed;
