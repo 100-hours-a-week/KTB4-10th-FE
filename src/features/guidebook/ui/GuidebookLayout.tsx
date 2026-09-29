@@ -6,7 +6,8 @@ export function GuidebookAccess({ children }: { children: ReactNode }) {
   const { checking, member, sessionError, checkSession } = useGeneration()
   if (checking) return <main className="app-shell"><State>로그인 정보를 확인하고 있어요.</State></main>
   if (member?.status === 'ONBOARDING') return <Navigate to="/preferences" replace />
-  if (!member) return <main className="app-shell"><State error onRetry={checkSession}>{sessionError || '로그인이 필요해요.'}<Link to="/">로그인으로</Link></State></main>
+  if (!member && sessionError) return <Navigate to="/" replace />
+  if (!member) return <main className="app-shell"><State error onRetry={checkSession}>로그인이 필요해요.<Link to="/">로그인으로</Link></State></main>
   return children
 }
 
