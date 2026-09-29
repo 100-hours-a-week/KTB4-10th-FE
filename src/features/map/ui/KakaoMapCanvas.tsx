@@ -192,7 +192,6 @@ export function KakaoMapCanvas({
       title: '현재 위치',
     })
     const nextCenter = new maps.LatLng(currentPosition.latitude, currentPosition.longitude)
-    map.setLevel(5, { anchor: nextCenter })
     map.panTo(nextCenter)
   }, [currentPosition, mapRef])
 

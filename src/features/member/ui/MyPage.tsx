@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { getCurrentMember, type CurrentMember } from '../../auth/api/auth.ts'
 import { routes } from '../../../shared/config/routes.ts'
 import { BottomNavigation } from '../../../shared/ui/BottomNavigation.tsx'
+import { NotificationBellIcon, PageHeader } from '../../../shared/ui/PageHeader.tsx'
 
 function ProfileFallback({ nickname }: { nickname: string }) {
   return (
@@ -42,25 +43,19 @@ export function MyPage() {
 
   return (
     <main className="app-shell mypage-page">
-      <header className="mypage-header">
-        <h1>마이페이지</h1>
+      <PageHeader title="마이페이지">
         <button
-          className="mypage-notification-button"
+          className="app-page-header__notification"
           type="button"
           aria-label={hasUnreadNotifications
             ? `읽지 않은 알림 ${member?.unread_count}개 확인`
             : '알림 확인'}
           onClick={() => navigate(routes.notifications)}
         >
-          <img
-            src={hasUnreadNotifications
-              ? '/assets/mypage/bell-unread.png'
-              : '/assets/mypage/bell-empty.png'}
-            alt=""
-            aria-hidden="true"
-          />
+          <NotificationBellIcon />
+          {hasUnreadNotifications && <span>{member?.unread_count}</span>}
         </button>
-      </header>
+      </PageHeader>
 
       <div className="mypage-content">
         {isLoading && (
