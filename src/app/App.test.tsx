@@ -38,6 +38,7 @@ describe('App', () => {
     vi.clearAllMocks()
     getMemberPreferencesMock.mockResolvedValue([])
     getPreferenceOptionsMock.mockResolvedValue([])
+    getCurrentMemberMock.mockRejectedValue(new Error('unauthorized'))
   })
 
   it('V1 로그인 화면에서 카카오 로그인을 시작한다', async () => {
@@ -48,6 +49,11 @@ describe('App', () => {
       </MemoryRouter>,
     )
 
+    expect(
+      await screen.findByRole('heading', {
+        name: /여행을 더 쉽게,\s*가이드북을 더 특별하게/,
+      }),
+    ).toBeInTheDocument()
     expect(
       screen.getByRole('heading', {
         name: /여행을 더 쉽게,\s*가이드북을 더 특별하게/,
@@ -62,6 +68,17 @@ describe('App', () => {
       screen.getByRole('heading', { name: '로그인 정보를 확인하고 있어요' }),
     ).toBeInTheDocument()
     await waitFor(() => expect(startKakaoLoginMock).toHaveBeenCalledOnce())
+  })
+
+  it('로그인된 ACTIVE 회원이 루트에 접근하면 지도로 이동한다', async () => {
+    getCurrentMemberMock.mockResolvedValue({ status: 'ACTIVE' })
+    getMemberPreferencesMock.mockResolvedValue([
+      { preference_type: 'THEME', preference_code: 'NATURE' },
+    ])
+
+    render(<MemoryRouter initialEntries={['/']}><App /></MemoryRouter>)
+
+    expect(await screen.findByRole('heading', { name: '지도' })).toBeInTheDocument()
   })
 
   it('개인정보 처리방침을 API에서 조회해 모달에 표시한다', async () => {
@@ -79,7 +96,7 @@ describe('App', () => {
       </MemoryRouter>,
     )
 
-    await user.click(screen.getByRole('button', { name: '개인정보 처리방침' }))
+    await user.click(await screen.findByRole('button', { name: '개인정보 처리방침' }))
 
     expect(await screen.findByRole('dialog')).toHaveTextContent(
       '회원 정보를 안전하게 처리합니다.',
@@ -103,7 +120,7 @@ describe('App', () => {
       </MemoryRouter>,
     )
 
-    await user.click(screen.getByRole('button', { name: '이용약관' }))
+    await user.click(await screen.findByRole('button', { name: '이용약관' }))
     await user.click(await screen.findByRole('button', { name: '다시 불러오기' }))
 
     expect(await screen.findByRole('dialog')).toHaveTextContent(

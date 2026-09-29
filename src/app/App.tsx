@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AuthCompletePage } from '../features/auth/ui/AuthCompletePage.tsx'
 import { LoginPage } from '../features/auth/ui/LoginPage.tsx'
+import { AuthBoundary, HomeEntry } from '../features/auth/ui/AuthBoundary.tsx'
 import { MapPage } from '../features/map/ui/MapPage.tsx'
 import { MyPage } from '../features/member/ui/MyPage.tsx'
 import { PreferenceSelectionPage } from '../features/preference/ui/PreferenceSelectionPage.tsx'
@@ -21,14 +22,14 @@ function App() {
   return (
     <GenerationProvider>
       <Routes>
-        <Route path={routes.home} element={<LoginPage />} />
+        <Route path={routes.home} element={<HomeEntry />} />
         <Route path={routes.authComplete} element={<AuthCompletePage />} />
         <Route path={routes.authError} element={<LoginPage />} />
         <Route
           path={routes.preferences}
-          element={<PreferenceSelectionPage />}
+          element={<AuthBoundary allowOnboarding><PreferenceSelectionPage /></AuthBoundary>}
         />
-        <Route path={routes.map} element={<MapPage />} />
+        <Route path={routes.map} element={<AuthBoundary><MapPage /></AuthBoundary>} />
         <Route
           path={routes.guidebooks}
           element={<GuidebookAccess><GuidebookListPage /></GuidebookAccess>}
@@ -36,14 +37,14 @@ function App() {
         <Route path={routes.guidebookCreate} element={<GuidebookAccess><GuidebookCreatePage /></GuidebookAccess>} />
         <Route path={routes.guidebookGenerating} element={<GuidebookAccess><GuidebookGeneratingPage /></GuidebookAccess>} />
         <Route path={routes.guidebookViewer} element={<GuidebookAccess><GuidebookViewerPage /></GuidebookAccess>} />
-        <Route path={routes.myPage} element={<MyPage />} />
+        <Route path={routes.myPage} element={<AuthBoundary><MyPage /></AuthBoundary>} />
         <Route
           path={routes.notifications}
-          element={<NotificationPage />}
+          element={<AuthBoundary><NotificationPage /></AuthBoundary>}
         />
         <Route
           path={routes.settings}
-          element={<SettingsPage />}
+          element={<AuthBoundary><SettingsPage /></AuthBoundary>}
         />
         <Route
           path={routes.guidebookDetail}
