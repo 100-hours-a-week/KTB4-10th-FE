@@ -93,6 +93,13 @@ export function MyPage() {
             </section>
 
             <nav className="mypage-menu" aria-label="마이페이지 메뉴">
+              <button type="button" onClick={() => navigate(routes.coupon)}>
+                <span>
+                  <strong>쿠폰 등록</strong>
+                  <small>쿠폰을 입력하고 가이드북 생성권을 충전해요.</small>
+                </span>
+                <span aria-hidden="true">›</span>
+              </button>
               <button type="button" onClick={() => navigate(routes.preferences)}>
                 <span>
                   <strong>취향 및 선호 수정</strong>

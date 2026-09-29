@@ -2,6 +2,7 @@ import axios from 'axios'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { createBook, type Companion, type GenerationRequest } from '../api/guidebooks.ts'
+import { getCreditWallet, type CreditWallet } from '../api/credits.ts'
 import { companions, dayOffset, message, today, yearLimit } from '../model/conditions.ts'
 import { regions } from '../model/regions.ts'
 import { isRunning, useGeneration } from '../model/generation.ts'
@@ -16,6 +17,20 @@ export function GuidebookCreatePage() {
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [uncertain, setUncertain] = useState(false)
+  const [wallet, setWallet] = useState<CreditWallet | null>(null)
+  const [walletError, setWalletError] = useState(false)
+  const [walletRevision, setWalletRevision] = useState(0)
+  const completedId = job?.status === 'COMPLETED' ? job.guidebook_id : null
+  useEffect(() => {
+    const controller = new AbortController()
+    void getCreditWallet(controller.signal).then((value) => {
+      if (!controller.signal.aborted) { setWallet(value); setWalletError(false) }
+    }).catch(() => {
+      if (!controller.signal.aborted) { setWallet(null); setWalletError(true) }
+    })
+    return () => controller.abort()
+  }, [completedId, walletRevision])
+  const creditBlocked = !uncertain && wallet !== null && (wallet.credit_balance === 0 || !wallet.can_generate)
   const submission = useRef<{ key: string; body: GenerationRequest } | null>(null)
   const locked = useRef(false)
   const mounted = useRef(true)
@@ -40,7 +55,7 @@ export function GuidebookCreatePage() {
   }
   async function submit(event: FormEvent) {
     event.preventDefault()
-    if (locked.current || isRunning(job)) return
+    if (locked.current || isRunning(job) || creditBlocked) return
     if (!regions[form.province]?.includes(form.city) || !form.start_date || !form.end_date ||
       form.start_date < minDate || form.end_date < form.start_date || form.end_date > maxDate ||
       form.end_date > dayOffset(form.start_date, 6)) {
@@ -56,6 +71,7 @@ export function GuidebookCreatePage() {
     } catch (reason) {
       if (mounted.current) {
         setError(message(reason))
+        if (axios.isAxiosError(reason) && reason.response?.data?.error?.code === 'CREDIT_INSUFFICIENT') setWalletRevision((value) => value + 1)
         // 응답 유실 시 같은 내용·같은 키로 재접수하여 중복 생성을 방지합니다.
         setUncertain(!axios.isAxiosError(reason) || !reason.response || reason.response.status >= 500)
       }
@@ -66,6 +82,12 @@ export function GuidebookCreatePage() {
     <BookHeader title="가이드 생성" />
     <form className="book-form" onSubmit={(event) => void submit(event)}>
       <p className="book-form-intro">다음 여행은<br /><strong>어디로 떠나시나요?</strong></p>
+      <div className="book-credit" role="status" aria-label="남은 생성권">
+        <span>남은 가이드북 생성권</span>
+        <strong>{wallet ? `${wallet.credit_balance}개` : walletError ? '조회 불가' : '조회 중…'}</strong>
+        {walletError && <button type="button" onClick={() => { setWalletError(false); setWalletRevision((value) => value + 1) }}>다시 조회</button>}
+      </div>
+      {creditBlocked && <p className="book-hint">{wallet?.credit_balance === 0 ? '사용 가능한 생성권이 없어요.' : '현재 가이드북을 새로 생성할 수 없어요. 진행 중인 작업과 취향 설정을 확인해 주세요.'}</p>}
       {isRunning(job) && <p className="book-notice">이미 만들고 있는 가이드북이 있어요. <Link to={`/guidebooks/generating/${job!.job_id}`}>진행 상황 보기</Link></p>}
       <fieldset disabled={submitting || uncertain || isRunning(job)}>
         <legend>여행 조건</legend>
@@ -87,7 +109,7 @@ export function GuidebookCreatePage() {
       </div>
       {error && <p className="book-error" role="alert">{error}</p>}
       {uncertain && <p className="book-hint">같은 여행 조건으로 접수 결과를 다시 확인해요.</p>}
-      <button className="primary-button" disabled={submitting || isRunning(job) || (!uncertain && !hasRequiredConditions)}>{submitting ? '접수 중…' : uncertain ? '같은 요청 다시 확인' : '생성'}</button>
+      <button className="primary-button" disabled={submitting || isRunning(job) || creditBlocked || (!uncertain && !hasRequiredConditions)}>{submitting ? '접수 중…' : uncertain ? '같은 요청 다시 확인' : '생성'}</button>
       {uncertain && <button type="button" className="book-text-button" onClick={() => { setUncertain(false); submission.current = null }}>조건 수정</button>}
     </form>
   </main>

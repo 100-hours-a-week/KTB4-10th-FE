@@ -6,9 +6,10 @@ import { GuidebookListPage } from './GuidebookListPage.tsx'
 import { GuidebookViewerPage } from './GuidebookViewerPage.tsx'
 import { today, dayOffset } from '../model/conditions.ts'
 
-const { createBook, listBooks, deleteBook, getViewer, track } = vi.hoisted(() => ({
-  createBook: vi.fn(), listBooks: vi.fn(), deleteBook: vi.fn(), getViewer: vi.fn(), track: vi.fn(),
+const { createBook, listBooks, deleteBook, getViewer, track, getCreditWallet } = vi.hoisted(() => ({
+  createBook: vi.fn(), listBooks: vi.fn(), deleteBook: vi.fn(), getViewer: vi.fn(), track: vi.fn(), getCreditWallet: vi.fn(),
 }))
+vi.mock('../api/credits.ts', () => ({ getCreditWallet }))
 vi.mock('../api/guidebooks.ts', () => ({ createBook, listBooks, deleteBook, getViewer }))
 vi.mock('../model/generation.ts', () => ({
   isRunning: () => false,
@@ -16,7 +17,27 @@ vi.mock('../model/generation.ts', () => ({
 }))
 
 describe('가이드북 화면', () => {
-  beforeEach(() => { vi.clearAllMocks() })
+  beforeEach(() => {
+    vi.clearAllMocks()
+    getCreditWallet.mockResolvedValue({ credit_balance: 3, active_job_id: null, can_generate: true })
+  })
+
+  it('생성권 잔액을 표시하고 0개이면 새 생성을 막는다', async () => {
+    getCreditWallet.mockResolvedValue({ credit_balance: 0, active_job_id: null, can_generate: false })
+    render(<MemoryRouter><GuidebookCreatePage /></MemoryRouter>)
+
+    expect(await screen.findByText('0개')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '생성' })).toBeDisabled()
+  })
+
+  it('생성권 조회 실패를 0개로 표시하지 않고 재시도한다', async () => {
+    getCreditWallet.mockRejectedValueOnce(new Error('404'))
+    render(<MemoryRouter><GuidebookCreatePage /></MemoryRouter>)
+
+    expect(await screen.findByText('조회 불가')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '다시 조회' }))
+    expect(await screen.findByText('3개')).toBeInTheDocument()
+  })
   it('접수 응답 유실 시 같은 멱등 키와 입력으로 다시 요청한다', async () => {
     createBook.mockRejectedValueOnce(new Error('응답 유실')).mockResolvedValue({ job_id: 31, status: 'PENDING', guidebook_id: null })
     render(<MemoryRouter><Routes>

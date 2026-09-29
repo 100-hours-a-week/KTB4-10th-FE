@@ -4,6 +4,7 @@ import { LoginPage } from '../features/auth/ui/LoginPage.tsx'
 import { AuthBoundary, HomeEntry } from '../features/auth/ui/AuthBoundary.tsx'
 import { MapPage } from '../features/map/ui/MapPage.tsx'
 import { MyPage } from '../features/member/ui/MyPage.tsx'
+import { CouponPage } from '../features/member/ui/CouponPage.tsx'
 import { PreferenceSelectionPage } from '../features/preference/ui/PreferenceSelectionPage.tsx'
 import { GenerationProvider } from '../features/guidebook/model/GenerationProvider.tsx'
 import { GuidebookAccess } from '../features/guidebook/ui/GuidebookLayout.tsx'
@@ -38,6 +39,7 @@ function App() {
         <Route path={routes.guidebookGenerating} element={<GuidebookAccess><GuidebookGeneratingPage /></GuidebookAccess>} />
         <Route path={routes.guidebookViewer} element={<GuidebookAccess><GuidebookViewerPage /></GuidebookAccess>} />
         <Route path={routes.myPage} element={<AuthBoundary><MyPage /></AuthBoundary>} />
+        <Route path={routes.coupon} element={<AuthBoundary><CouponPage /></AuthBoundary>} />
         <Route
           path={routes.notifications}
           element={<AuthBoundary><NotificationPage /></AuthBoundary>}
