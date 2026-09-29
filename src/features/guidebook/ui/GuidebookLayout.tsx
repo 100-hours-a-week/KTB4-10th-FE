@@ -1,5 +1,6 @@
 import { Navigate, Link } from 'react-router-dom'
 import type { ReactNode } from 'react'
+import { PageHeader } from '../../../shared/ui/PageHeader.tsx'
 import { useGeneration } from '../model/generation.ts'
 
 export function GuidebookAccess({ children }: { children: ReactNode }) {
@@ -12,10 +13,14 @@ export function GuidebookAccess({ children }: { children: ReactNode }) {
 }
 
 export function BookHeader({ title, children }: { title: string; children?: ReactNode }) {
-  return <header className="book-header">
-    <Link className="book-back" to="/guidebooks" aria-label="가이드북 목록">‹</Link>
-    <h1>{title}</h1>{children}
-  </header>
+  return (
+    <PageHeader
+      title={title}
+      leading={<Link className="book-back" to="/guidebooks" aria-label="가이드북 목록">‹</Link>}
+    >
+      {children}
+    </PageHeader>
+  )
 }
 
 export function State({ children, error, onRetry }: { children: ReactNode; error?: boolean; onRetry?: () => void }) {

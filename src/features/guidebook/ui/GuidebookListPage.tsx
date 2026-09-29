@@ -5,6 +5,7 @@ import { deleteBook, listBooks, type BookList, type Book } from '../api/guideboo
 import { companions, message } from '../model/conditions.ts'
 import { isRunning, useGeneration } from '../model/generation.ts'
 import { BookCover, State } from './GuidebookLayout.tsx'
+import { PageHeader } from '../../../shared/ui/PageHeader.tsx'
 
 export function GuidebookListPage() {
   const { job, error: jobError, refresh, dismiss } = useGeneration()
@@ -65,7 +66,9 @@ export function GuidebookListPage() {
   }
 
   return <main className="app-shell book-page book-list-page">
-    <header className="book-header"><h1>가이드북</h1><Link className="book-create-link" to="/guidebooks/new" aria-label="가이드북 만들기">＋</Link></header>
+    <PageHeader title="가이드북">
+      <Link className="book-create-link" to="/guidebooks/new" aria-label="가이드북 만들기">생성</Link>
+    </PageHeader>
     <div className="book-content">
       {job && job.status !== 'COMPLETED' && <Link className="book-job" to={`/guidebooks/generating/${job.job_id}`}>
         <strong>{isRunning(job) ? '가이드북을 만들고 있어요' : job.status === 'FAILED' ? '가이드북 생성에 실패했어요' : '생성이 취소되었어요'}</strong>

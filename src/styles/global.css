@@ -940,51 +940,71 @@ button:disabled {
   background: #f7f7f9;
 }
 
-.mypage-header {
+.app-page-header {
   display: flex;
   min-height: calc(env(safe-area-inset-top) + 70px);
-  align-items: flex-end;
-  justify-content: space-between;
-  padding: 0 20px 14px;
+  align-items: center;
+  padding: env(safe-area-inset-top) 16px 0;
   border-bottom: 1px solid #ededf0;
   background: #fff;
 }
 
-.mypage-header h1 {
+.app-page-header h1 {
+  flex: 1;
   margin: 0;
   font-size: 20px;
   letter-spacing: -0.03em;
+  text-align: center;
 }
 
-.mypage-notification-button {
+.app-page-header__leading,
+.app-page-header__actions {
+  display: flex;
+  width: 64px;
+  align-items: center;
+}
+
+.app-page-header__actions {
+  justify-content: flex-end;
+}
+
+.app-page-header__notification {
+  position: relative;
   display: grid;
-  width: 42px;
-  height: 42px;
+  width: 36px;
+  height: 36px;
   place-items: center;
-  margin: 0 -9px -8px 0;
-  padding: 9px;
-  border: 0;
-  border-radius: 50%;
-  background: transparent;
+  padding: 5px;
+  border: 1px solid #ededf0;
+  border-radius: 10px;
+  background: #fff;
   cursor: pointer;
 }
 
-.mypage-notification-button:active {
+.app-page-header__notification:active {
   background: #ededf0;
   transform: scale(0.94);
 }
 
-.mypage-notification-button:focus-visible,
+.app-page-header__notification:focus-visible,
 .mypage-menu button:focus-visible,
 .mypage-state button:focus-visible {
   outline: 3px solid #b8b8bd;
   outline-offset: 2px;
 }
 
-.mypage-notification-button img {
-  width: 24px;
-  height: 24px;
-  object-fit: contain;
+.app-page-header__notification > span {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+  border-radius: 8px;
+  background: #252529;
+  color: #fff;
+  font-size: 10px;
+  line-height: 16px;
 }
 
 .mypage-content {
