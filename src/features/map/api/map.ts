@@ -2,6 +2,8 @@ import { http } from '../../../shared/api/http.ts'
 import { isApiResponse } from '../../../shared/api/types.ts'
 
 const MAP_CONTENTS_PATH = '/api/v1/map/contents'
+const MAP_CONTENT_CACHE_TTL_MS = 5 * 60 * 1000
+const MAP_CONTENT_CACHE_MAX_ENTRIES = 30
 
 export type MapBounds = {
   south: number
@@ -29,6 +31,45 @@ export type MapContentItem = {
 export type MapContentResult = {
   items: MapContentItem[]
   has_more: boolean
+}
+
+type MapContentCacheEntry = {
+  expiresAt: number
+  result: MapContentResult
+}
+
+const mapContentCache = new Map<string, MapContentCacheEntry>()
+const pendingMapContentRequests = new Map<string, Promise<MapContentResult>>()
+
+function roundedCoordinate(value: number): string {
+  return value.toFixed(4)
+}
+
+export function mapContentCacheKey(bounds: MapBounds): string {
+  return [
+    bounds.zoom,
+    roundedCoordinate(bounds.south),
+    roundedCoordinate(bounds.west),
+    roundedCoordinate(bounds.north),
+    roundedCoordinate(bounds.east),
+    bounds.limit ?? 100,
+  ].join(':')
+}
+
+export function clearMapContentCache(): void {
+  mapContentCache.clear()
+  pendingMapContentRequests.clear()
+}
+
+function cacheResult(key: string, result: MapContentResult): void {
+  if (mapContentCache.size >= MAP_CONTENT_CACHE_MAX_ENTRIES) {
+    const oldestKey = mapContentCache.keys().next().value
+    if (oldestKey !== undefined) mapContentCache.delete(oldestKey)
+  }
+  mapContentCache.set(key, {
+    expiresAt: Date.now() + MAP_CONTENT_CACHE_TTL_MS,
+    result,
+  })
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -94,15 +135,31 @@ export function filterContentsWithinBounds(
 }
 
 export async function getMapContents(bounds: MapBounds): Promise<MapContentResult> {
-  const response = await http.get<unknown>(MAP_CONTENTS_PATH, { params: bounds })
-  if (!isApiResponse(response.data) || !isRecord(response.data.data)) {
-    throw new Error('지도 콘텐츠 응답 계약이 올바르지 않습니다.')
-  }
+  const cacheKey = mapContentCacheKey(bounds)
+  const cached = mapContentCache.get(cacheKey)
+  if (cached && cached.expiresAt > Date.now()) return cached.result
+  if (cached) mapContentCache.delete(cacheKey)
 
-  const { items, has_more: hasMore } = response.data.data
-  if (!Array.isArray(items) || !items.every(isMapContentItem) || typeof hasMore !== 'boolean') {
-    throw new Error('지도 콘텐츠 응답 계약이 올바르지 않습니다.')
-  }
+  const pending = pendingMapContentRequests.get(cacheKey)
+  if (pending) return pending
 
-  return { items, has_more: hasMore }
+  const request = http.get<unknown>(MAP_CONTENTS_PATH, { params: bounds })
+    .then((response) => {
+      if (!isApiResponse(response.data) || !isRecord(response.data.data)) {
+        throw new Error('지도 콘텐츠 응답 계약이 올바르지 않습니다.')
+      }
+
+      const { items, has_more: hasMore } = response.data.data
+      if (!Array.isArray(items) || !items.every(isMapContentItem) || typeof hasMore !== 'boolean') {
+        throw new Error('지도 콘텐츠 응답 계약이 올바르지 않습니다.')
+      }
+
+      const result = { items, has_more: hasMore }
+      cacheResult(cacheKey, result)
+      return result
+    })
+    .finally(() => pendingMapContentRequests.delete(cacheKey))
+
+  pendingMapContentRequests.set(cacheKey, request)
+  return request
 }
