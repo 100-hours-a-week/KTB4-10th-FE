@@ -993,6 +993,12 @@ button:disabled {
   outline-offset: 2px;
 }
 
+.app-page-header__notification > img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
 .app-page-header__notification > span {
   position: absolute;
   top: -4px;

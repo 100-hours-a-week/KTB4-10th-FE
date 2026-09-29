@@ -25,7 +25,7 @@ const bounds: MapBounds = {
 const response = {
   data: {
     message: 'map_content_success',
-    data: { items: [], has_more: false },
+    data: { mode: 'CONTENT', clusters: [], items: [], has_more: false },
   },
 }
 

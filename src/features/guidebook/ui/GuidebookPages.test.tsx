@@ -96,6 +96,19 @@ describe('가이드북 화면', () => {
     await waitFor(() => expect(screen.queryByText('다음 여행')).not.toBeInTheDocument())
   })
 
+  it('목록 헤더의 생성 버튼으로 가이드북 생성 화면에 이동한다', async () => {
+    listBooks.mockResolvedValue({ items: [], next_cursor: null, has_more: false })
+    render(<MemoryRouter initialEntries={['/guidebooks']}><Routes>
+      <Route path="/guidebooks" element={<GuidebookListPage />} />
+      <Route path="/guidebooks/new" element={<p>가이드북 생성 화면</p>} />
+    </Routes></MemoryRouter>)
+
+    const createLink = await screen.findByRole('link', { name: '가이드북 만들기' })
+    expect(createLink).toHaveAttribute('href', '/guidebooks/new')
+    fireEvent.click(createLink)
+    expect(await screen.findByText('가이드북 생성 화면')).toBeInTheDocument()
+  })
+
   it('뷰어는 전체 화면에서 내부 스크립트와 탭 감지를 지원한다', async () => {
     const html = '<!doctype html><html><head><style>h1{color:red}</style></head><body><h1>여행</h1><table><tr><td>일정</td></tr></table></body></html>'
     getViewer.mockResolvedValue({ guidebook_id: 10, content_html: html, version: 1, updated_at: '2026-09-29T00:00:00Z' })
