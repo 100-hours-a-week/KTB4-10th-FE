@@ -66,14 +66,15 @@ describe('가이드북 화면', () => {
     await waitFor(() => expect(screen.queryByText('다음 여행')).not.toBeInTheDocument())
   })
 
-  it('뷰어는 서버 HTML을 변형하지 않고 전달하며 PDF는 준비 중 안내만 표시한다', async () => {
+  it('뷰어는 서버 HTML을 변형하지 않고 전체 화면으로 표시하며 탭하면 닫기 버튼을 보여준다', async () => {
     const html = '<!doctype html><html><head><style>h1{color:red}</style></head><body><h1>여행</h1><table><tr><td>일정</td></tr></table></body></html>'
     getViewer.mockResolvedValue({ guidebook_id: 10, content_html: html, version: 1, updated_at: '2026-09-29T00:00:00Z' })
     render(<MemoryRouter initialEntries={['/guidebooks/10/viewer']}><Routes><Route path="/guidebooks/:guidebookId/viewer" element={<GuidebookViewerPage />} /></Routes></MemoryRouter>)
     const viewer = await screen.findByTitle('가이드북 본문')
     expect(viewer).toHaveAttribute('srcdoc', html)
     expect(viewer).toHaveAttribute('sandbox', '')
-    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'PDF' })) })
-    expect(screen.getByRole('status')).toHaveTextContent('PDF 다운로드는 준비 중이에요')
+    expect(screen.queryByRole('link', { name: '가이드북 뷰어 닫기' })).not.toBeInTheDocument()
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: '뷰어 컨트롤 보이기' })) })
+    expect(screen.getByRole('link', { name: '가이드북 뷰어 닫기' })).toBeVisible()
   })
 })
