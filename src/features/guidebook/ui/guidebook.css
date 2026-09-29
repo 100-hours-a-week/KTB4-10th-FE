@@ -79,8 +79,15 @@
 .book-days ol { padding: 0; list-style: none; display: grid; gap: 12px; }
 .book-days li { display: flex; gap: 16px; font-size: 12px; }
 .book-days time { color: #81818a; flex-shrink: 0; }
-.book-viewer-page { height: 100dvh; display: flex; flex-direction: column; }
-.book-viewer { flex: 1; min-height: 0; width: 100%; border: 0; background: #fff; }
+.book-viewer-page { position: fixed; z-index: 20; inset: 0; display: flex; width: 100%; height: 100dvh; flex-direction: column; overflow: hidden; background: #fff; }
+.book-viewer-page > .book-state { min-height: 100%; place-content: center; }
+.book-viewer { display: block; width: 100%; height: 100%; min-height: 0; flex: 1; border: 0; background: #fff; }
+.book-viewer-reveal { position: absolute; z-index: 1; inset: 0; width: 100%; height: 100%; padding: 0; border: 0; background: transparent; cursor: default; }
+.book-viewer-controls { position: absolute; z-index: 2; inset: 0; pointer-events: none; opacity: 0; transition: opacity 180ms ease; }
+.book-viewer-controls.is-visible { opacity: 1; }
+.book-viewer-close { position: absolute; top: calc(16px + env(safe-area-inset-top)); left: calc(16px + env(safe-area-inset-left)); display: grid; width: 48px; height: 48px; place-items: center; border: 1px solid rgb(255 255 255 / 42%); border-radius: 50%; background: rgb(20 20 23 / 72%); color: #fff; box-shadow: 0 6px 24px rgb(0 0 0 / 22%); pointer-events: auto; -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+.book-viewer-close svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+.book-viewer-close:focus-visible { outline: 3px solid #ffd43b; outline-offset: 3px; }
 .notification-bell { position: fixed; z-index: 7; top: calc(16px + env(safe-area-inset-top)); right: max(16px, calc((100vw - 390px) / 2 + 16px)); display: grid; place-items: center; width: 36px; height: 36px; padding: 5px; border: 1px solid #ededf0; border-radius: 10px; background: #fff; cursor: pointer; }
 .notification-bell > span { position: absolute; top: -4px; right: -4px; min-width: 16px; height: 16px; padding: 0 3px; border-radius: 8px; background: #252529; color: white; font-size: 10px; line-height: 16px; }
 .notification-dialog { width: min(calc(100% - 36px), 350px); max-height: 75dvh; padding: 22px; border: 0; border-radius: 18px; color: #141417; }
@@ -94,4 +101,4 @@
 .notification-dialog p { font-size: 12px; color: #73737d; line-height: 1.7; }
 .notification-dialog .book-text-button { margin-left: auto; margin-right: 0; padding: 10px 0; }
 .notification-empty { padding: 40px 0; text-align: center; }
-@media (prefers-reduced-motion: reduce) { .book-spark--active { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .book-spark--active { animation: none; } .book-viewer-controls { transition: none; } }
