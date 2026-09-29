@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from 'react'
 import { BottomNavigation } from '../../../shared/ui/BottomNavigation.tsx'
 import { Toast } from '../../../shared/ui/Toast.tsx'
 import {
-  filterContentsWithinRadius,
+  filterContentsWithinBounds,
   getMapContents,
   type MapBounds,
   type MapContentItem,
@@ -16,7 +16,6 @@ import { PermissionModal } from './PermissionModal.tsx'
 const DEFAULT_CENTER = { latitude: 37.3952969470752, longitude: 127.110449292622 }
 const LOCATION_PROMPT_KEY = 'kgb.location-prompt-completed'
 const NOTIFICATION_PROMPT_KEY = 'kgb.notification-prompt-completed'
-const CONTENT_RADIUS_KILOMETERS = 3
 
 type PermissionStep = 'location' | 'notification' | null
 type SheetLevel = 'collapsed' | 'default' | 'expanded'
@@ -80,7 +79,7 @@ function MapContentCard({
 export function MapPage() {
   const mapRef = useRef<KakaoMap | null>(null)
   const [position, setPosition] = useState<{ latitude: number; longitude: number } | null>(null)
-  const contentCenterRef = useRef(DEFAULT_CENTER)
+  const latestContentRequestRef = useRef(0)
   const [items, setItems] = useState<MapContentItem[]>([])
   const [selectedItem, setSelectedItem] = useState<MapContentItem | null>(null)
   const [isContentsLoading, setIsContentsLoading] = useState(false)
@@ -96,27 +95,29 @@ export function MapPage() {
   const [favoritePendingId, setFavoritePendingId] = useState<string | null>(null)
 
   const requestContents = useCallback((bounds: MapBounds) => {
+    const requestId = latestContentRequestRef.current + 1
+    latestContentRequestRef.current = requestId
     setIsContentsLoading(true)
     setContentsError(false)
     getMapContents(bounds)
       .then((result) => {
-        const nearbyItems = filterContentsWithinRadius(
-          result.items,
-          contentCenterRef.current,
-          CONTENT_RADIUS_KILOMETERS,
-        )
-        setItems(nearbyItems)
+        if (requestId !== latestContentRequestRef.current) return
+        const visibleItems = filterContentsWithinBounds(result.items, bounds)
+        setItems(visibleItems)
         setSelectedItem((current) => (
-          current && nearbyItems.some((item) => item.content_id === current.content_id)
+          current && visibleItems.some((item) => item.content_id === current.content_id)
             ? current
             : null
         ))
       })
       .catch(() => {
+        if (requestId !== latestContentRequestRef.current) return
         setContentsError(true)
         setToast('주변 관광 정보를 불러오지 못했어요.')
       })
-      .finally(() => setIsContentsLoading(false))
+      .finally(() => {
+        if (requestId === latestContentRequestRef.current) setIsContentsLoading(false)
+      })
   }, [])
 
   const requestCurrentPosition = useCallback((afterRequest?: () => void) => {
@@ -128,7 +129,6 @@ export function MapPage() {
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
         const next = { latitude: coords.latitude, longitude: coords.longitude }
-        contentCenterRef.current = next
         setPosition(next)
         afterRequest?.()
       },

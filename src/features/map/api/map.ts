@@ -81,6 +81,18 @@ export function filterContentsWithinRadius(
   return items.filter((item) => distanceKilometers(center, item) <= radiusKilometers)
 }
 
+export function filterContentsWithinBounds(
+  items: MapContentItem[],
+  bounds: Pick<MapBounds, 'south' | 'west' | 'north' | 'east'>,
+): MapContentItem[] {
+  return items.filter((item) => (
+    item.latitude >= bounds.south &&
+    item.latitude <= bounds.north &&
+    item.longitude >= bounds.west &&
+    item.longitude <= bounds.east
+  ))
+}
+
 export async function getMapContents(bounds: MapBounds): Promise<MapContentResult> {
   const response = await http.get<unknown>(MAP_CONTENTS_PATH, { params: bounds })
   if (!isApiResponse(response.data) || !isRecord(response.data.data)) {
