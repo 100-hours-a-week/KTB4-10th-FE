@@ -101,7 +101,7 @@ describe('MapPage', () => {
     render(<MemoryRouter><MapPage /></MemoryRouter>)
 
     await user.click(screen.getByRole('button', { name: '지도 클릭' }))
-    expect(document.querySelector('.map-content-sheet--collapsed')).toBeInTheDocument()
+    expect(document.querySelector('.map-content-sheet--default')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: '지도 범위 조회' }))
 

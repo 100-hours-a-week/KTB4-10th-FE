@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { BottomNavigation } from '../../../shared/ui/BottomNavigation.tsx'
 import { Toast } from '../../../shared/ui/Toast.tsx'
 import {
@@ -25,6 +25,14 @@ type SheetLevel = 'collapsed' | 'default' | 'expanded'
 
 function initialPermissionStep(): PermissionStep {
   return localStorage.getItem(LOCATION_PROMPT_KEY) ? null : 'location'
+}
+
+function shouldRestoreCurrentPosition(): boolean {
+  return Boolean(
+    localStorage.getItem(LOCATION_PROMPT_KEY) &&
+    navigator.geolocation &&
+    navigator.permissions,
+  )
 }
 
 function eventPeriodText(item: MapContentItem): string | null {
@@ -82,6 +90,7 @@ function MapContentCard({
 export function MapPage() {
   const mapRef = useRef<KakaoMap | null>(null)
   const [position, setPosition] = useState<{ latitude: number; longitude: number } | null>(null)
+  const [isRestoringPosition, setIsRestoringPosition] = useState(shouldRestoreCurrentPosition)
   const latestContentRequestRef = useRef(0)
   const hasInitializedSheetRef = useRef(false)
   const [items, setItems] = useState<MapContentItem[]>([])
@@ -154,6 +163,38 @@ export function MapPage() {
       { enableHighAccuracy: true, timeout: 10_000, maximumAge: 60_000 },
     )
   }, [])
+
+  useEffect(() => {
+    if (!isRestoringPosition) return
+    let active = true
+
+    navigator.permissions.query({ name: 'geolocation' })
+      .then((permission) => {
+        if (!active) return
+        if (permission.state !== 'granted') {
+          setIsRestoringPosition(false)
+          return
+        }
+        navigator.geolocation.getCurrentPosition(
+          ({ coords }) => {
+            if (!active) return
+            setPosition({ latitude: coords.latitude, longitude: coords.longitude })
+            setIsRestoringPosition(false)
+          },
+          () => {
+            if (active) setIsRestoringPosition(false)
+          },
+          { enableHighAccuracy: true, timeout: 10_000, maximumAge: 60_000 },
+        )
+      })
+      .catch(() => {
+        if (active) setIsRestoringPosition(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [isRestoringPosition])
 
   const continueToNotification = () => {
     localStorage.setItem(LOCATION_PROMPT_KEY, 'true')
@@ -239,6 +280,7 @@ export function MapPage() {
   const visibleSheetItems = items.slice(0, visibleSheetItemCount)
   const clusteredContentCount = clusters.reduce((total, cluster) => total + cluster.count, 0)
   const handleMapClick = useCallback(() => {
+    if (!hasInitializedSheetRef.current) return
     setSelectedItem(null)
     setSheetLevel((current) => current === 'expanded' ? 'default' : 'collapsed')
     setSheetDragHeight(null)
@@ -276,21 +318,27 @@ export function MapPage() {
   return (
     <main className="app-shell map-page">
       <h1 className="visually-hidden">지도</h1>
-      <KakaoMapCanvas
-        center={position ?? DEFAULT_CENTER}
-        currentPosition={position}
-        items={responseMode === 'CONTENT' ? items : []}
-        clusters={clusters}
-        selectedContentId={selectedItem?.content_id ?? null}
-        mapRef={mapRef}
-        onBoundsChange={requestContents}
-        onError={setMapError}
-        onMapClick={handleMapClick}
-        onSelectItem={(item) => {
-          setSelectedItem(item)
-          setSheetLevel((current) => current === 'collapsed' ? 'default' : current)
-        }}
-      />
+      {isRestoringPosition ? (
+        <section className="map-state" role="status">
+          <strong>현재 위치를 확인하고 있어요</strong>
+        </section>
+      ) : (
+        <KakaoMapCanvas
+          center={position ?? DEFAULT_CENTER}
+          currentPosition={position}
+          items={responseMode === 'CONTENT' ? items : []}
+          clusters={clusters}
+          selectedContentId={selectedItem?.content_id ?? null}
+          mapRef={mapRef}
+          onBoundsChange={requestContents}
+          onError={setMapError}
+          onMapClick={handleMapClick}
+          onSelectItem={(item) => {
+            setSelectedItem(item)
+            setSheetLevel((current) => current === 'collapsed' ? 'default' : current)
+          }}
+        />
+      )}
 
       <div className="map-controls" aria-label="지도 조작">
         <button type="button" aria-label="확대" onClick={() => changeZoom(-1)}>
