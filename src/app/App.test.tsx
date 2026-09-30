@@ -230,6 +230,44 @@ describe('App', () => {
     ])
   })
 
+  it('보호 화면에서 세션이 만료되면 로그인 화면에서 재로그인을 안내한다', async () => {
+    getCurrentMemberMock.mockRejectedValue({
+      isAxiosError: true,
+      response: { status: 401 },
+    })
+
+    render(
+      <MemoryRouter initialEntries={['/map']}>
+        <App />
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByRole('button', { name: '카카오로 로그인' })).toBeInTheDocument()
+    expect(screen.getByRole('status', {
+      name: '로그인 세션이 만료되었어요. 다시 로그인해 주세요.',
+    })).toBeInTheDocument()
+  })
+
+  it('일시적인 회원 조회 오류는 로그아웃 처리하지 않고 다시 시도한다', async () => {
+    const user = userEvent.setup()
+    getCurrentMemberMock
+      .mockRejectedValueOnce({ isAxiosError: true, response: { status: 503 } })
+      .mockResolvedValue({ status: 'ACTIVE' })
+
+    render(
+      <MemoryRouter initialEntries={['/map']}>
+        <App />
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('로그인 상태를 확인하지 못했어요')
+    expect(screen.queryByRole('button', { name: '카카오로 로그인' })).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: '다시 시도' }))
+
+    expect(await screen.findByRole('heading', { name: '지도' })).toBeInTheDocument()
+  })
+
   it('카카오 로그인 취소 안내를 로그인 화면에 표시한다', () => {
     render(
       <MemoryRouter initialEntries={['/auth/error?code=OAUTH_ACCESS_DENIED']}>
