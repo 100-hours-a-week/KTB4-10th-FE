@@ -4,6 +4,7 @@ import {
   loadKakaoMaps,
   type KakaoMap,
   type KakaoCluster,
+  type KakaoCustomOverlay,
   type KakaoMaps,
   type KakaoMarkerClusterer,
   type KakaoMarker,
@@ -48,6 +49,27 @@ function markerImage(maps: KakaoMaps, color: string, selected: boolean) {
   })
 }
 
+function currentPositionOverlay(
+  maps: KakaoMaps,
+  map: KakaoMap,
+  position: Coordinate,
+): KakaoCustomOverlay {
+  const content = document.createElement('div')
+  content.className = 'map-current-position'
+  content.setAttribute('role', 'img')
+  content.setAttribute('aria-label', '현재 위치')
+  content.title = '현재 위치'
+  content.innerHTML = '<span class="map-current-position__pulse"></span><span class="map-current-position__dot"></span>'
+  return new maps.CustomOverlay({
+    map,
+    position: new maps.LatLng(position.latitude, position.longitude),
+    content,
+    xAnchor: 0.5,
+    yAnchor: 0.5,
+    zIndex: 5,
+  })
+}
+
 function clusterImage(maps: KakaoMaps, count: number, level: number) {
   const label = clusterLabel(count)
   const { size, fontSize, fillOpacity } = serverClusterStyle(level, count)
@@ -80,11 +102,13 @@ export function KakaoMapCanvas({
   mapRef,
 }: KakaoMapCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const initialCenterRef = useRef(center)
+  const initialCurrentPositionRef = useRef(currentPosition)
   const mapsRef = useRef<KakaoMaps | null>(null)
   const contentMarkersRef = useRef<KakaoMarker[]>([])
   const serverClusterMarkersRef = useRef<KakaoMarker[]>([])
   const clustererRef = useRef<KakaoMarkerClusterer | null>(null)
-  const currentMarkerRef = useRef<KakaoMarker | null>(null)
+  const currentPositionOverlayRef = useRef<KakaoCustomOverlay | null>(null)
 
   useEffect(() => {
     let disposed = false
@@ -95,18 +119,21 @@ export function KakaoMapCanvas({
         if (disposed || !containerRef.current) return
         mapsRef.current = maps
         const map = new maps.Map(containerRef.current, {
-          center: new maps.LatLng(center.latitude, center.longitude),
+          center: new maps.LatLng(
+            initialCenterRef.current.latitude,
+            initialCenterRef.current.longitude,
+          ),
           level: 5,
         })
         mapRef.current = map
         map.setMinLevel(1)
         map.setMaxLevel(16)
-        if (currentPosition) {
-          currentMarkerRef.current = new maps.Marker({
+        if (initialCurrentPositionRef.current) {
+          currentPositionOverlayRef.current = currentPositionOverlay(
+            maps,
             map,
-            position: new maps.LatLng(currentPosition.latitude, currentPosition.longitude),
-            title: '현재 위치',
-          })
+            initialCurrentPositionRef.current,
+          )
         }
         idleHandler = () => {
           const bounds = map.getBounds()
@@ -139,10 +166,10 @@ export function KakaoMapCanvas({
       clustererRef.current?.clear()
       contentMarkersRef.current.forEach((marker) => marker.setMap(null))
       serverClusterMarkersRef.current.forEach((marker) => marker.setMap(null))
-      currentMarkerRef.current?.setMap(null)
+      currentPositionOverlayRef.current?.setMap(null)
       mapRef.current = null
     }
-  }, [center.latitude, center.longitude, currentPosition, mapRef, onBoundsChange, onError, onMapClick])
+  }, [mapRef, onBoundsChange, onError, onMapClick])
 
   useEffect(() => {
     const maps = mapsRef.current
@@ -234,12 +261,8 @@ export function KakaoMapCanvas({
     const map = mapRef.current
     if (!maps || !map || !currentPosition) return
 
-    currentMarkerRef.current?.setMap(null)
-    currentMarkerRef.current = new maps.Marker({
-      map,
-      position: new maps.LatLng(currentPosition.latitude, currentPosition.longitude),
-      title: '현재 위치',
-    })
+    currentPositionOverlayRef.current?.setMap(null)
+    currentPositionOverlayRef.current = currentPositionOverlay(maps, map, currentPosition)
     const nextCenter = new maps.LatLng(currentPosition.latitude, currentPosition.longitude)
     map.panTo(nextCenter)
   }, [currentPosition, mapRef])
