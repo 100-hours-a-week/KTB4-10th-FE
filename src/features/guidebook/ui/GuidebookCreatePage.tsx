@@ -109,12 +109,8 @@ export function GuidebookCreatePage() {
   return <main className="app-shell book-page">
     <BookHeader title="가이드 생성" />
     <form className="book-form" onSubmit={(event) => void submit(event)}>
-      <div className="book-credit" role="status" aria-label="남은 생성권">
-        <span>잔여 생성권</span>
-        <strong>{wallet ? `${wallet.credit_balance}개` : walletError ? '조회 불가' : '조회 중…'}</strong>
-        {walletError && <button type="button" onClick={() => { setWalletError(false); setWalletRevision((value) => value + 1) }}>다시 조회</button>}
-      </div>
       <p className="book-form-intro">다음 여행은<br /><strong>어디로 떠나시나요?</strong></p>
+      {walletError && <p className="book-hint">생성권을 확인하지 못했어요. <button className="book-inline-button" type="button" onClick={() => { setWalletError(false); setWalletRevision((value) => value + 1) }}>다시 조회</button></p>}
       {creditBlocked && <p className="book-hint">{wallet?.credit_balance === 0 ? '사용 가능한 생성권이 없어요.' : '현재 가이드북을 새로 생성할 수 없어요. 진행 중인 작업과 취향 설정을 확인해 주세요.'}</p>}
       {isRunning(job) && <p className="book-notice">이미 만들고 있는 가이드북이 있어요. <Link to={`/guidebooks/generating/${job!.job_id}`}>진행 상황 보기</Link></p>}
       <fieldset disabled={submitting || uncertain || isRunning(job)}>

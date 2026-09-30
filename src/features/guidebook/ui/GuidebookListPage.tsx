@@ -6,6 +6,7 @@ import { companions, message } from '../model/conditions.ts'
 import { isRunning, useGeneration } from '../model/generation.ts'
 import { BookCover, State } from './GuidebookLayout.tsx'
 import { PageHeader } from '../../../shared/ui/PageHeader.tsx'
+import { getCreditWallet } from '../api/credits.ts'
 
 export function GuidebookListPage() {
   const { job, error: jobError, refresh, dismiss } = useGeneration()
@@ -22,6 +23,15 @@ export function GuidebookListPage() {
   const deleteLock = useRef(false)
   const failedCursor = useRef<string | undefined>(undefined)
   const completedId = job?.status === 'COMPLETED' ? job.guidebook_id : null
+  const [creditBalance, setCreditBalance] = useState<number | null>(null)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    void getCreditWallet(controller.signal)
+      .then((wallet) => { if (!controller.signal.aborted) setCreditBalance(wallet.credit_balance) })
+      .catch(() => { if (!controller.signal.aborted) setCreditBalance(null) })
+    return () => controller.abort()
+  }, [completedId])
 
   useEffect(() => {
     request.current?.abort()
@@ -66,7 +76,7 @@ export function GuidebookListPage() {
   }
 
   return <main className="app-shell book-page book-list-page">
-    <PageHeader title="가이드북">
+    <PageHeader title="가이드북" leading={<span className="book-credit-balance" role="status" aria-label="잔여 생성권">잔여 생성권<br /><strong>{creditBalance === null ? '—' : `${creditBalance}개`}</strong></span>}>
       <Link className="book-create-link" to="/guidebooks/new" aria-label="가이드북 만들기">생성</Link>
     </PageHeader>
     <div className="book-content">

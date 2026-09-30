@@ -25,18 +25,17 @@ describe('가이드북 화면', () => {
     getPreferenceOptions.mockResolvedValue([{ preference_type: 'THEME', code: 'NATURE', label: '자연', parent_code: null, sort_order: 1 }])
   })
 
-  it('생성권 잔액을 표시하고 0개이면 새 생성을 막는다', async () => {
+  it('생성권이 0개이면 안내하고 새 생성을 막는다', async () => {
     getCreditWallet.mockResolvedValue({ credit_balance: 0, active_job_id: null, can_generate: false })
     render(<MemoryRouter><GuidebookCreatePage /></MemoryRouter>)
 
-    expect(await screen.findByText('0개')).toBeInTheDocument()
+    expect(await screen.findByText('사용 가능한 생성권이 없어요.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '생성' })).toBeDisabled()
   })
 
-  it('상단에 잔여 생성권을 표시하고 안내 영역에 저장된 대분류 취향을 표시한다', async () => {
+  it('안내 영역에 저장된 대분류 취향을 배지로 표시한다', async () => {
     render(<MemoryRouter><GuidebookCreatePage /></MemoryRouter>)
 
-    expect(await screen.findByRole('status', { name: '남은 생성권' })).toHaveTextContent('잔여 생성권3개')
     expect(await screen.findByLabelText('저장된 여행 취향')).toHaveTextContent('자연')
     expect(screen.getByRole('link', { name: '취향 수정하기' })).toBeInTheDocument()
   })
@@ -45,9 +44,10 @@ describe('가이드북 화면', () => {
     getCreditWallet.mockRejectedValueOnce(new Error('404'))
     render(<MemoryRouter><GuidebookCreatePage /></MemoryRouter>)
 
-    expect(await screen.findByText('조회 불가')).toBeInTheDocument()
+    expect(await screen.findByText(/생성권을 확인하지 못했어요/)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: '다시 조회' }))
-    expect(await screen.findByText('3개')).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByText(/생성권을 확인하지 못했어요/)).not.toBeInTheDocument())
+    expect(getCreditWallet).toHaveBeenCalledTimes(2)
   })
   it('접수 응답 유실 시 같은 멱등 키와 입력으로 다시 요청한다', async () => {
     createBook.mockRejectedValueOnce(new Error('응답 유실')).mockResolvedValue({ job_id: 31, status: 'PENDING', guidebook_id: null })
@@ -114,7 +114,8 @@ describe('가이드북 화면', () => {
       <Route path="/guidebooks/new" element={<p>가이드북 생성 화면</p>} />
     </Routes></MemoryRouter>)
 
-    const createLink = await screen.findByRole('link', { name: '가이드북 만들기' })
+    expect(await screen.findByRole('status', { name: '잔여 생성권' })).toHaveTextContent('잔여 생성권3개')
+    const createLink = screen.getAllByRole('link', { name: '가이드북 만들기' })[0]
     expect(createLink).toHaveAttribute('href', '/guidebooks/new')
     fireEvent.click(createLink)
     expect(await screen.findByText('가이드북 생성 화면')).toBeInTheDocument()
