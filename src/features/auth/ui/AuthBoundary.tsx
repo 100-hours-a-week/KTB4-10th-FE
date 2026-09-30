@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 import { routes } from '../../../shared/config/routes.ts'
 import { getMemberPreferences } from '../../preference/api/preferences.ts'
 import { getCurrentMember, type CurrentMember } from '../api/auth.ts'
@@ -36,19 +36,26 @@ export function AuthBoundary({ children, allowOnboarding = false }: {
   children: ReactNode
   allowOnboarding?: boolean
 }) {
-  const [member, setMember] = useState<CurrentMember | null>(null)
-  const [checking, setChecking] = useState(true)
+  const { pathname } = useLocation()
+  const [authState, setAuthState] = useState<{
+    pathname: string
+    member: CurrentMember | null
+  } | null>(null)
 
   useEffect(() => {
     let active = true
     getCurrentMember()
-      .then((next) => { if (active) setMember(next) })
-      .catch(() => { if (active) setMember(null) })
-      .finally(() => { if (active) setChecking(false) })
+      .then((member) => {
+        if (active) setAuthState({ pathname, member })
+      })
+      .catch(() => {
+        if (active) setAuthState({ pathname, member: null })
+      })
     return () => { active = false }
-  }, [])
+  }, [pathname])
 
-  if (checking) return <AuthLoadingView />
+  if (!authState || authState.pathname !== pathname) return <AuthLoadingView />
+  const { member } = authState
   if (!member) return <Navigate to={routes.home} replace />
   if (!allowOnboarding && member.status === 'ONBOARDING') {
     return <Navigate to={routes.preferences} replace />

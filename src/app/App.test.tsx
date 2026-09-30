@@ -4,12 +4,20 @@ import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App.tsx'
 
-const { getCurrentMemberMock, getMemberPreferencesMock, getPolicyMock, getPreferenceOptionsMock, startKakaoLoginMock } = vi.hoisted(
+const {
+  getCurrentMemberMock,
+  getMemberPreferencesMock,
+  getPolicyMock,
+  getPreferenceOptionsMock,
+  replaceMemberPreferencesMock,
+  startKakaoLoginMock,
+} = vi.hoisted(
   () => ({
     getCurrentMemberMock: vi.fn(),
     getMemberPreferencesMock: vi.fn(),
     getPolicyMock: vi.fn(),
     getPreferenceOptionsMock: vi.fn(),
+    replaceMemberPreferencesMock: vi.fn(),
     startKakaoLoginMock: vi.fn(),
   }),
 )
@@ -30,14 +38,32 @@ vi.mock('../features/policy/api/policy.ts', () => ({
 vi.mock('../features/preference/api/preferences.ts', () => ({
   getMemberPreferences: getMemberPreferencesMock,
   getPreferenceOptions: getPreferenceOptionsMock,
-  replaceMemberPreferences: vi.fn(),
+  replaceMemberPreferences: replaceMemberPreferencesMock,
 }))
+
+const preferenceOptions = [
+  {
+    preference_type: 'THEME',
+    code: 'NATURE',
+    label: '자연',
+    parent_code: null,
+    sort_order: 10,
+  },
+  {
+    preference_type: 'DETAIL',
+    code: 'NATURE_MOUNTAIN',
+    label: '산',
+    parent_code: 'NATURE',
+    sort_order: 10,
+  },
+]
 
 describe('App', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     getMemberPreferencesMock.mockResolvedValue([])
     getPreferenceOptionsMock.mockResolvedValue([])
+    replaceMemberPreferencesMock.mockResolvedValue({ status: 'ACTIVE', selections: [] })
     getCurrentMemberMock.mockRejectedValue(new Error('unauthorized'))
   })
 
@@ -173,6 +199,35 @@ describe('App', () => {
     expect(
       await screen.findByRole('heading', { name: '취향 선택' }),
     ).toBeInTheDocument()
+  })
+
+  it('ONBOARDING 회원이 최초 취향을 저장하면 최신 ACTIVE 상태를 확인하고 지도로 이동한다', async () => {
+    const user = userEvent.setup()
+    let memberStatus = 'ONBOARDING'
+    getCurrentMemberMock.mockImplementation(() => Promise.resolve({ status: memberStatus }))
+    getPreferenceOptionsMock.mockResolvedValue(preferenceOptions)
+    replaceMemberPreferencesMock.mockImplementation(() => {
+      memberStatus = 'ACTIVE'
+      return Promise.resolve({ status: 'ACTIVE', selections: [] })
+    })
+
+    render(
+      <MemoryRouter initialEntries={['/preferences']}>
+        <App />
+      </MemoryRouter>,
+    )
+
+    await user.click(await screen.findByRole('button', { name: '자연' }))
+    await user.click(screen.getByRole('button', { name: '산' }))
+    const memberRequestCountBeforeSubmit = getCurrentMemberMock.mock.calls.length
+    await user.click(screen.getByRole('button', { name: '다음' }))
+
+    expect(await screen.findByRole('heading', { name: '지도' })).toBeInTheDocument()
+    expect(getCurrentMemberMock.mock.calls.length).toBeGreaterThan(memberRequestCountBeforeSubmit)
+    expect(replaceMemberPreferencesMock).toHaveBeenCalledWith([
+      { preference_type: 'THEME', preference_code: 'NATURE' },
+      { preference_type: 'DETAIL', preference_code: 'NATURE_MOUNTAIN' },
+    ])
   })
 
   it('카카오 로그인 취소 안내를 로그인 화면에 표시한다', () => {
