@@ -35,9 +35,11 @@ vi.mock('./KakaoMapCanvas.tsx', () => ({
   KakaoMapCanvas: ({
     onBoundsChange,
     onMapClick,
+    onSelectItem,
   }: {
     onBoundsChange: (bounds: object) => void
     onMapClick: () => void
+    onSelectItem: (item: object) => void
   }) => (
     <div>
       <button type="button" onClick={() => onBoundsChange({
@@ -50,6 +52,18 @@ vi.mock('./KakaoMapCanvas.tsx', () => ({
         지도 범위 조회
       </button>
       <button type="button" onClick={onMapClick}>지도 클릭</button>
+      <button type="button" onClick={() => onSelectItem({
+        content_id: 'place-1',
+        title: '서울숲',
+        content_type: 'PLACE',
+        address: '서울 성동구',
+        latitude: 37.5444,
+        longitude: 127.0374,
+        thumbnail_url: null,
+        event_period: null,
+        is_favorite: false,
+        is_in_guidebook: false,
+      })}>지도 핀 선택</button>
     </div>
   ),
 }))
@@ -78,7 +92,7 @@ describe('MapPage', () => {
     expect(localStorage.getItem('kgb.location-prompt-completed')).toBe('true')
   })
 
-  it('첫 지도 조회가 완료되면 바텀시트를 1단계로 열어 콘텐츠 하나를 표시한다', async () => {
+  it('첫 진입은 0단계로 유지하고 핀을 선택하면 1단계로 열린다', async () => {
     const user = userEvent.setup()
     localStorage.setItem('kgb.location-prompt-completed', 'true')
     getMapContentsMock.mockResolvedValue({
@@ -100,14 +114,12 @@ describe('MapPage', () => {
     })
     render(<MemoryRouter><MapPage /></MemoryRouter>)
 
-    await user.click(screen.getByRole('button', { name: '지도 클릭' }))
-    expect(document.querySelector('.map-content-sheet--default')).toBeInTheDocument()
-
     await user.click(screen.getByRole('button', { name: '지도 범위 조회' }))
+    expect(document.querySelector('.map-content-sheet--collapsed')).toBeInTheDocument()
 
+    await user.click(screen.getByRole('button', { name: '지도 핀 선택' }))
     expect(await screen.findByText('서울숲')).toBeInTheDocument()
     expect(document.querySelector('.map-content-sheet--default')).toBeInTheDocument()
-    expect(document.querySelector('.map-content-sheet--collapsed')).not.toBeInTheDocument()
   })
 
   it('지도 화면 영역이 바뀌면 백엔드 콘텐츠를 조회한다', async () => {

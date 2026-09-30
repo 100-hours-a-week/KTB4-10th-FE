@@ -92,7 +92,6 @@ export function MapPage() {
   const [position, setPosition] = useState<{ latitude: number; longitude: number } | null>(null)
   const [isRestoringPosition, setIsRestoringPosition] = useState(shouldRestoreCurrentPosition)
   const latestContentRequestRef = useRef(0)
-  const hasInitializedSheetRef = useRef(false)
   const [items, setItems] = useState<MapContentItem[]>([])
   const [clusters, setClusters] = useState<MapCluster[]>([])
   const [responseMode, setResponseMode] = useState<'CONTENT' | 'CLUSTER'>('CONTENT')
@@ -100,7 +99,7 @@ export function MapPage() {
   const [selectedItem, setSelectedItem] = useState<MapContentItem | null>(null)
   const [isContentsLoading, setIsContentsLoading] = useState(false)
   const [contentsError, setContentsError] = useState(false)
-  const [sheetLevel, setSheetLevel] = useState<SheetLevel>('default')
+  const [sheetLevel, setSheetLevel] = useState<SheetLevel>('collapsed')
   const [sheetDragHeight, setSheetDragHeight] = useState<number | null>(null)
   const sheetRef = useRef<HTMLElement>(null)
   const sheetDragStart = useRef<{ pointerY: number; height: number } | null>(null)
@@ -123,11 +122,6 @@ export function MapPage() {
         setClusters(result.clusters)
         setResponseMode(result.mode)
         setVisibleSheetItemCount(SHEET_PAGE_SIZE)
-        if (!hasInitializedSheetRef.current) {
-          hasInitializedSheetRef.current = true
-          setSheetLevel('default')
-          setSheetDragHeight(null)
-        }
         setSelectedItem((current) => (
           current && visibleItems.some((item) => item.content_id === current.content_id)
             ? current
@@ -280,7 +274,6 @@ export function MapPage() {
   const visibleSheetItems = items.slice(0, visibleSheetItemCount)
   const clusteredContentCount = clusters.reduce((total, cluster) => total + cluster.count, 0)
   const handleMapClick = useCallback(() => {
-    if (!hasInitializedSheetRef.current) return
     setSelectedItem(null)
     setSheetLevel((current) => current === 'expanded' ? 'default' : 'collapsed')
     setSheetDragHeight(null)
