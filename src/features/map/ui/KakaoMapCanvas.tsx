@@ -80,6 +80,7 @@ export function KakaoMapCanvas({
   mapRef,
 }: KakaoMapCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const initialCenterRef = useRef(center)
   const mapsRef = useRef<KakaoMaps | null>(null)
   const contentMarkersRef = useRef<KakaoMarker[]>([])
   const serverClusterMarkersRef = useRef<KakaoMarker[]>([])
@@ -95,19 +96,15 @@ export function KakaoMapCanvas({
         if (disposed || !containerRef.current) return
         mapsRef.current = maps
         const map = new maps.Map(containerRef.current, {
-          center: new maps.LatLng(center.latitude, center.longitude),
+          center: new maps.LatLng(
+            initialCenterRef.current.latitude,
+            initialCenterRef.current.longitude,
+          ),
           level: 5,
         })
         mapRef.current = map
         map.setMinLevel(1)
         map.setMaxLevel(16)
-        if (currentPosition) {
-          currentMarkerRef.current = new maps.Marker({
-            map,
-            position: new maps.LatLng(currentPosition.latitude, currentPosition.longitude),
-            title: '현재 위치',
-          })
-        }
         idleHandler = () => {
           const bounds = map.getBounds()
           const southWest = bounds.getSouthWest()
@@ -142,7 +139,7 @@ export function KakaoMapCanvas({
       currentMarkerRef.current?.setMap(null)
       mapRef.current = null
     }
-  }, [center.latitude, center.longitude, currentPosition, mapRef, onBoundsChange, onError, onMapClick])
+  }, [mapRef, onBoundsChange, onError, onMapClick])
 
   useEffect(() => {
     const maps = mapsRef.current

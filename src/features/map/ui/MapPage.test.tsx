@@ -78,6 +78,14 @@ describe('MapPage', () => {
     expect(localStorage.getItem('kgb.location-prompt-completed')).toBe('true')
   })
 
+  it('첫 진입 시 바텀시트를 1단계로 표시한다', () => {
+    localStorage.setItem('kgb.location-prompt-completed', 'true')
+    render(<MemoryRouter><MapPage /></MemoryRouter>)
+
+    expect(document.querySelector('.map-content-sheet--default')).toBeInTheDocument()
+    expect(document.querySelector('.map-content-sheet--collapsed')).not.toBeInTheDocument()
+  })
+
   it('지도 화면 영역이 바뀌면 백엔드 콘텐츠를 조회한다', async () => {
     const user = userEvent.setup()
     localStorage.setItem('kgb.location-prompt-completed', 'true')
