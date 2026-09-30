@@ -81,6 +81,8 @@
 .book-generation h2 { font-size: 19px; margin: 0 0 12px; letter-spacing: -.03em; }
 .book-generation p { font-size: 13px; color: #73737d; line-height: 1.8; white-space: pre-line; }
 .book-generation .book-error { color: #b42318; }
+.book-retry-count { margin: 24px 0 14px; color: #61616b; }
+.book-retry-count strong { color: #242428; }
 .book-generation-steps { list-style: none; display: grid; gap: 22px; margin: 32px 0; padding: 24px; border: 1px solid #ededf0; border-radius: 12px; text-align: left; color: #92929b; font-size: 12px; }
 .book-generation-steps li::before { content: '○'; margin-right: 12px; }
 .book-generation-steps .is-done::before { content: '✓'; }
