@@ -22,6 +22,7 @@ const SHEET_PAGE_SIZE = 20
 
 type PermissionStep = 'location' | 'notification' | null
 type SheetLevel = 'collapsed' | 'default' | 'expanded'
+type MapFocusTarget = typeof DEFAULT_CENTER & { requestId: number }
 
 function initialPermissionStep(): PermissionStep {
   return localStorage.getItem(LOCATION_PROMPT_KEY) ? null : 'location'
@@ -89,7 +90,9 @@ function MapContentCard({
 
 export function MapPage() {
   const mapRef = useRef<KakaoMap | null>(null)
+  const focusRequestIdRef = useRef(0)
   const [position, setPosition] = useState<{ latitude: number; longitude: number } | null>(null)
+  const [focusTarget, setFocusTarget] = useState<MapFocusTarget | null>(null)
   const [isRestoringPosition, setIsRestoringPosition] = useState(shouldRestoreCurrentPosition)
   const latestContentRequestRef = useRef(0)
   const [items, setItems] = useState<MapContentItem[]>([])
@@ -138,9 +141,15 @@ export function MapPage() {
       })
   }, [])
 
+  const focusKakaoHeadquarters = useCallback(() => {
+    focusRequestIdRef.current += 1
+    setFocusTarget({ ...DEFAULT_CENTER, requestId: focusRequestIdRef.current })
+  }, [])
+
   const requestCurrentPosition = useCallback((afterRequest?: () => void) => {
     if (!navigator.geolocation) {
-      setToast('이 브라우저에서는 위치 기능을 사용할 수 없어요.')
+      focusKakaoHeadquarters()
+      setToast('위치 권한이 없어 카카오 본사 인근을 보여드릴게요.')
       afterRequest?.()
       return
     }
@@ -151,12 +160,13 @@ export function MapPage() {
         afterRequest?.()
       },
       () => {
-        setToast('위치 권한이 없어 서울시청 주변을 보여드려요.')
+        focusKakaoHeadquarters()
+        setToast('위치 권한이 없어 카카오 본사 인근을 보여드릴게요.')
         afterRequest?.()
       },
       { enableHighAccuracy: true, timeout: 10_000, maximumAge: 60_000 },
     )
-  }, [])
+  }, [focusKakaoHeadquarters])
 
   useEffect(() => {
     if (!isRestoringPosition) return
@@ -206,7 +216,8 @@ export function MapPage() {
   const allowLocation = () => requestCurrentPosition(continueToNotification)
 
   const skipLocation = () => {
-    setToast('서울시청 주변 지도를 먼저 보여드려요.')
+    focusKakaoHeadquarters()
+    setToast('위치 권한이 없어 카카오 본사 인근을 보여드릴게요.')
     continueToNotification()
   }
 
@@ -319,6 +330,7 @@ export function MapPage() {
         <KakaoMapCanvas
           center={position ?? DEFAULT_CENTER}
           currentPosition={position}
+          focusTarget={focusTarget}
           items={responseMode === 'CONTENT' ? items : []}
           clusters={clusters}
           selectedContentId={selectedItem?.content_id ?? null}
