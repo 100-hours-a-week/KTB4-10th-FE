@@ -13,8 +13,9 @@ export function HomeEntry() {
 
   useEffect(() => {
     let active = true
-    Promise.all([getCurrentMember(), getMemberPreferences()])
-      .then(([nextMember, preferences]) => {
+    void getCurrentMember()
+      .then(async (nextMember) => {
+        const preferences = await getMemberPreferences()
         if (!active) return
         setMember(nextMember)
         setHasPreferences(preferences.length > 0)

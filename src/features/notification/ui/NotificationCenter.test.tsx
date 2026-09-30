@@ -1,4 +1,4 @@
-import { act, render, screen } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { NOTIFICATIONS_UPDATED_EVENT } from '../model/events.ts'
@@ -24,7 +24,7 @@ describe('생성 완료 알림', () => {
     expect(screen.queryByRole('button', { name: /알림/ })).not.toBeInTheDocument()
   })
 
-  it('완료되면 서버 알림을 다시 읽고 갱신 이벤트와 알림 메시지를 표시한다', async () => {
+  it('완료되면 토스트 없이 서버 알림을 다시 읽고 갱신 이벤트를 보낸다', async () => {
     const updated = vi.fn()
     window.addEventListener(NOTIFICATIONS_UPDATED_EVENT, updated)
     const view = render(<MemoryRouter initialEntries={['/map']}><NotificationCenter /></MemoryRouter>)
@@ -35,11 +35,11 @@ describe('생성 완료 알림', () => {
     })
     state.job = { job_id: 31, status: 'COMPLETED', guidebook_id: 10 }
     view.rerender(<MemoryRouter initialEntries={['/map']}><NotificationCenter /></MemoryRouter>)
-    expect(await screen.findByRole('status')).toHaveTextContent('가이드북 생성 완료')
+    await waitFor(() => expect(getNotifications).toHaveBeenCalledTimes(1))
     expect(updated).toHaveBeenCalledTimes(1)
     expect((updated.mock.calls[0][0] as CustomEvent).detail).toEqual({ unreadCount: 1 })
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /알림/ })).not.toBeInTheDocument()
-    expect(getNotifications).toHaveBeenCalledTimes(1)
     window.removeEventListener(NOTIFICATIONS_UPDATED_EVENT, updated)
   })
 })

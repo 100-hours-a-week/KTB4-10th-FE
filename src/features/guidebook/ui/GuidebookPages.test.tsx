@@ -6,11 +6,12 @@ import { GuidebookListPage } from './GuidebookListPage.tsx'
 import { GuidebookViewerPage } from './GuidebookViewerPage.tsx'
 import { today, dayOffset } from '../model/conditions.ts'
 
-const { createBook, listBooks, deleteBook, getViewer, track, getCreditWallet } = vi.hoisted(() => ({
-  createBook: vi.fn(), listBooks: vi.fn(), deleteBook: vi.fn(), getViewer: vi.fn(), track: vi.fn(), getCreditWallet: vi.fn(),
+const { createBook, listBooks, deleteBook, getViewer, track, getCreditWallet, getMemberPreferences, getPreferenceOptions } = vi.hoisted(() => ({
+  createBook: vi.fn(), listBooks: vi.fn(), deleteBook: vi.fn(), getViewer: vi.fn(), track: vi.fn(), getCreditWallet: vi.fn(), getMemberPreferences: vi.fn(), getPreferenceOptions: vi.fn(),
 }))
 vi.mock('../api/credits.ts', () => ({ getCreditWallet }))
 vi.mock('../api/guidebooks.ts', () => ({ createBook, listBooks, deleteBook, getViewer }))
+vi.mock('../../preference/api/preferences.ts', () => ({ getMemberPreferences, getPreferenceOptions }))
 vi.mock('../model/generation.ts', () => ({
   isRunning: () => false,
   useGeneration: () => ({ track, job: null, error: '', dismiss: vi.fn(), refresh: vi.fn() }),
@@ -20,6 +21,8 @@ describe('가이드북 화면', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     getCreditWallet.mockResolvedValue({ credit_balance: 3, active_job_id: null, can_generate: true })
+    getMemberPreferences.mockResolvedValue([{ preference_type: 'THEME', preference_code: 'NATURE' }])
+    getPreferenceOptions.mockResolvedValue([{ preference_type: 'THEME', code: 'NATURE', label: '자연', parent_code: null, sort_order: 1 }])
   })
 
   it('생성권 잔액을 표시하고 0개이면 새 생성을 막는다', async () => {
@@ -28,6 +31,14 @@ describe('가이드북 화면', () => {
 
     expect(await screen.findByText('0개')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '생성' })).toBeDisabled()
+  })
+
+  it('상단에 잔여 생성권을 표시하고 안내 영역에 저장된 대분류 취향을 표시한다', async () => {
+    render(<MemoryRouter><GuidebookCreatePage /></MemoryRouter>)
+
+    expect(await screen.findByRole('status', { name: '남은 생성권' })).toHaveTextContent('잔여 생성권3개')
+    expect(await screen.findByLabelText('저장된 여행 취향')).toHaveTextContent('자연')
+    expect(screen.getByRole('link', { name: '취향 수정하기' })).toBeInTheDocument()
   })
 
   it('생성권 조회 실패를 0개로 표시하지 않고 재시도한다', async () => {

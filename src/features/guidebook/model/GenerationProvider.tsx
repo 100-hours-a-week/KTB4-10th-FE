@@ -51,7 +51,9 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!member || !enabled) return
     try {
-      if (job) localStorage.setItem(jobStorageKey(member.member_id), JSON.stringify({ job_id: job.job_id }))
+      if (job && job.status !== 'COMPLETED') {
+        localStorage.setItem(jobStorageKey(member.member_id), JSON.stringify({ job_id: job.job_id }))
+      }
       else localStorage.removeItem(jobStorageKey(member.member_id))
     } catch { /* 저장소 차단 시 현재 앱에서의 생성과 폴링은 유지합니다. */ }
   }, [job, member, enabled])
