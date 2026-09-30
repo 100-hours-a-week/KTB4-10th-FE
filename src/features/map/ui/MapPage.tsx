@@ -83,6 +83,7 @@ export function MapPage() {
   const mapRef = useRef<KakaoMap | null>(null)
   const [position, setPosition] = useState<{ latitude: number; longitude: number } | null>(null)
   const latestContentRequestRef = useRef(0)
+  const hasInitializedSheetRef = useRef(false)
   const [items, setItems] = useState<MapContentItem[]>([])
   const [clusters, setClusters] = useState<MapCluster[]>([])
   const [responseMode, setResponseMode] = useState<'CONTENT' | 'CLUSTER'>('CONTENT')
@@ -113,6 +114,11 @@ export function MapPage() {
         setClusters(result.clusters)
         setResponseMode(result.mode)
         setVisibleSheetItemCount(SHEET_PAGE_SIZE)
+        if (!hasInitializedSheetRef.current) {
+          hasInitializedSheetRef.current = true
+          setSheetLevel('default')
+          setSheetDragHeight(null)
+        }
         setSelectedItem((current) => (
           current && visibleItems.some((item) => item.content_id === current.content_id)
             ? current
