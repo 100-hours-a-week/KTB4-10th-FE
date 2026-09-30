@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { MapContentItem } from '../api/map.ts'
-import { clusterLabel, pinColor } from '../lib/mapMarkers.ts'
+import { clusterLabel, pinColor, serverClusterStyle } from '../lib/mapMarkers.ts'
 
 function item(
   contentType: MapContentItem['content_type'],
@@ -43,5 +43,28 @@ describe('지도 클러스터 표기', () => {
     expect(clusterLabel(10)).toBe('9+')
     expect(clusterLabel(99)).toBe('9+')
     expect(clusterLabel(100)).toBe('99+')
+  })
+
+  it('광역 줌일수록 클러스터를 작고 투명하게 표시한다', () => {
+    expect(serverClusterStyle(13, 200)).toEqual({
+      size: 28,
+      fontSize: 11,
+      fillOpacity: 0.7,
+    })
+    expect(serverClusterStyle(10, 200)).toEqual({
+      size: 32,
+      fontSize: 13,
+      fillOpacity: 0.8,
+    })
+    expect(serverClusterStyle(8, 200)).toEqual({
+      size: 38,
+      fontSize: 13,
+      fillOpacity: 0.9,
+    })
+  })
+
+  it('콘텐츠가 적은 클러스터는 지역 줌에서도 더 작게 표시한다', () => {
+    expect(serverClusterStyle(8, 4).size).toBe(24)
+    expect(serverClusterStyle(8, 40).size).toBe(30)
   })
 })
