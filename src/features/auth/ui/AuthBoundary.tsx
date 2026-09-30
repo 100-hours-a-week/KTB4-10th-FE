@@ -61,7 +61,10 @@ export function AuthBoundary({ children, allowOnboarding = false }: {
     return () => { active = false }
   }, [pathname, retryRevision])
 
-  if (!authState || authState.pathname !== pathname) return <AuthLoadingView />
+  if (!authState) return <AuthLoadingView />
+  if (authState.pathname !== pathname) {
+    return authState.member?.status === 'ACTIVE' ? children : <AuthLoadingView />
+  }
   const { failure, member } = authState
   if (failure === 'UNAUTHORIZED') {
     return <Navigate

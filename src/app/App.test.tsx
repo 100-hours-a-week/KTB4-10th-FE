@@ -244,7 +244,7 @@ describe('App', () => {
 
     expect(await screen.findByRole('button', { name: '카카오로 로그인' })).toBeInTheDocument()
     expect(screen.getByRole('status', {
-      name: '로그인 세션이 만료되었어요. 다시 로그인해 주세요.',
+      name: '다시 로그인해 주세요.',
     })).toBeInTheDocument()
   })
 
