@@ -21,6 +21,27 @@ export function AuthLoadingView() {
   )
 }
 
+export function SessionCheckLoadingView() {
+  return (
+    <main
+      className="app-shell auth-result-page"
+      aria-busy="true"
+      aria-label="화면을 준비하고 있어요."
+    >
+      <div className="brand-mark auth-brand-position" aria-label="KGB 임시 로고">
+        KGB
+      </div>
+      <div className="auth-result-page__status">
+        <img
+          className="loading-indicator"
+          src="/assets/loading-indicator.svg"
+          alt=""
+        />
+      </div>
+    </main>
+  )
+}
+
 export function AuthCheckErrorView({ onRetry }: { onRetry: () => void }) {
   return (
     <main className="app-shell auth-result-page">

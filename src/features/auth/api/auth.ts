@@ -1,3 +1,4 @@
+import axios from 'axios'
 import { http } from '../../../shared/api/http.ts'
 import { isApiResponse } from '../../../shared/api/types.ts'
 
@@ -14,6 +15,20 @@ export type CurrentMember = {
   language_code: string
   status: MemberStatus
   unread_count: number
+}
+
+let cachedCurrentMember: CurrentMember | null = null
+
+export function getCachedCurrentMember(): CurrentMember | null {
+  return cachedCurrentMember
+}
+
+export function updateCachedCurrentMemberStatus(status: MemberStatus): void {
+  if (cachedCurrentMember) cachedCurrentMember = { ...cachedCurrentMember, status }
+}
+
+export function clearCachedCurrentMember(): void {
+  cachedCurrentMember = null
 }
 
 function isCurrentMember(value: unknown): value is CurrentMember {
@@ -41,9 +56,17 @@ export function startKakaoLogin(): void {
 }
 
 export async function getCurrentMember(): Promise<CurrentMember> {
-  const response = await http.get<unknown>(MEMBER_ME_PATH)
-  if (!isApiResponse(response.data) || !isCurrentMember(response.data.data)) {
-    throw new Error('회원 정보 응답 계약이 올바르지 않습니다.')
+  try {
+    const response = await http.get<unknown>(MEMBER_ME_PATH)
+    if (!isApiResponse(response.data) || !isCurrentMember(response.data.data)) {
+      throw new Error('회원 정보 응답 계약이 올바르지 않습니다.')
+    }
+    cachedCurrentMember = response.data.data
+    return response.data.data
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      clearCachedCurrentMember()
+    }
+    throw error
   }
-  return response.data.data
 }

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { routes } from '../../../shared/config/routes.ts'
 import { Toast } from '../../../shared/ui/Toast.tsx'
+import { updateCachedCurrentMemberStatus } from '../../auth/api/auth.ts'
 import {
   getMemberPreferences,
   getPreferenceOptions,
@@ -221,7 +222,8 @@ export function PreferenceSelectionPage() {
     setIsSubmitting(true)
     setSubmitError(null)
     try {
-      await replaceMemberPreferences(currentSelections)
+      const result = await replaceMemberPreferences(currentSelections)
+      updateCachedCurrentMemberStatus(result.status)
       navigate(isEditMode ? returnTo : routes.map, {
         replace: true,
         state: isEditMode ? returnState : undefined,

@@ -3,8 +3,12 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { routes } from '../../../shared/config/routes.ts'
 import { getMemberPreferences } from '../../preference/api/preferences.ts'
-import { getCurrentMember, type CurrentMember } from '../api/auth.ts'
-import { AuthCheckErrorView, AuthLoadingView } from './AuthLoadingView.tsx'
+import {
+  getCachedCurrentMember,
+  getCurrentMember,
+  type CurrentMember,
+} from '../api/auth.ts'
+import { AuthCheckErrorView, SessionCheckLoadingView } from './AuthLoadingView.tsx'
 import { LoginPage } from './LoginPage.tsx'
 
 export function HomeEntry() {
@@ -26,7 +30,7 @@ export function HomeEntry() {
   }, [])
 
   if (anonymous) return <LoginPage />
-  if (!member || hasPreferences === null) return <AuthLoadingView />
+  if (!member || hasPreferences === null) return <SessionCheckLoadingView />
   return <Navigate
     to={member.status === 'ONBOARDING' || !hasPreferences ? routes.preferences : routes.map}
     replace
@@ -42,7 +46,10 @@ export function AuthBoundary({ children, allowOnboarding = false }: {
     pathname: string
     member: CurrentMember | null
     failure: 'UNAUTHORIZED' | 'TEMPORARY' | null
-  } | null>(null)
+  } | null>(() => {
+    const member = getCachedCurrentMember()
+    return member ? { pathname, member, failure: null } : null
+  })
   const [retryRevision, setRetryRevision] = useState(0)
 
   useEffect(() => {
@@ -61,7 +68,10 @@ export function AuthBoundary({ children, allowOnboarding = false }: {
     return () => { active = false }
   }, [pathname, retryRevision])
 
-  if (!authState || authState.pathname !== pathname) return <AuthLoadingView />
+  if (!authState) return <SessionCheckLoadingView />
+  if (authState.pathname !== pathname) {
+    return authState.member?.status === 'ACTIVE' ? children : <SessionCheckLoadingView />
+  }
   const { failure, member } = authState
   if (failure === 'UNAUTHORIZED') {
     return <Navigate
