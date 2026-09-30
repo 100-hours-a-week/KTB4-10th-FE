@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { getMemberPreferences, getPreferenceOptions } from '../../preference/api/preferences.ts'
 import { createBook, type Companion, type GenerationRequest } from '../api/guidebooks.ts'
 import { getCreditWallet, type CreditWallet } from '../api/credits.ts'
 import { companions, dayOffset, message, today, yearLimit } from '../model/conditions.ts'
@@ -20,6 +21,8 @@ export function GuidebookCreatePage() {
   const [wallet, setWallet] = useState<CreditWallet | null>(null)
   const [walletError, setWalletError] = useState(false)
   const [walletRevision, setWalletRevision] = useState(0)
+  const [preferenceLabels, setPreferenceLabels] = useState<string[]>([])
+  const [preferencesLoading, setPreferencesLoading] = useState(true)
   const completedId = job?.status === 'COMPLETED' ? job.guidebook_id : null
   useEffect(() => {
     const controller = new AbortController()
@@ -30,6 +33,31 @@ export function GuidebookCreatePage() {
     })
     return () => controller.abort()
   }, [completedId, walletRevision])
+  useEffect(() => {
+    let active = true
+    void Promise.all([getMemberPreferences(), getPreferenceOptions()])
+      .then(([selections, options]) => {
+        if (!active) return
+        const selectedThemes = new Set(
+          selections
+            .filter((selection) => selection.preference_type === 'THEME')
+            .map((selection) => selection.preference_code),
+        )
+        setPreferenceLabels(
+          options
+            .filter((option) => option.preference_type === 'THEME' && selectedThemes.has(option.code))
+            .sort((a, b) => a.sort_order - b.sort_order)
+            .map((option) => option.label),
+        )
+      })
+      .catch(() => {
+        if (active) setPreferenceLabels([])
+      })
+      .finally(() => {
+        if (active) setPreferencesLoading(false)
+      })
+    return () => { active = false }
+  }, [])
   const creditBlocked = !uncertain && wallet !== null && (wallet.credit_balance === 0 || !wallet.can_generate)
   const submission = useRef<{ key: string; body: GenerationRequest } | null>(null)
   const locked = useRef(false)
@@ -81,12 +109,12 @@ export function GuidebookCreatePage() {
   return <main className="app-shell book-page">
     <BookHeader title="가이드 생성" />
     <form className="book-form" onSubmit={(event) => void submit(event)}>
-      <p className="book-form-intro">다음 여행은<br /><strong>어디로 떠나시나요?</strong></p>
       <div className="book-credit" role="status" aria-label="남은 생성권">
-        <span>남은 가이드북 생성권</span>
+        <span>잔여 생성권</span>
         <strong>{wallet ? `${wallet.credit_balance}개` : walletError ? '조회 불가' : '조회 중…'}</strong>
         {walletError && <button type="button" onClick={() => { setWalletError(false); setWalletRevision((value) => value + 1) }}>다시 조회</button>}
       </div>
+      <p className="book-form-intro">다음 여행은<br /><strong>어디로 떠나시나요?</strong></p>
       {creditBlocked && <p className="book-hint">{wallet?.credit_balance === 0 ? '사용 가능한 생성권이 없어요.' : '현재 가이드북을 새로 생성할 수 없어요. 진행 중인 작업과 취향 설정을 확인해 주세요.'}</p>}
       {isRunning(job) && <p className="book-notice">이미 만들고 있는 가이드북이 있어요. <Link to={`/guidebooks/generating/${job!.job_id}`}>진행 상황 보기</Link></p>}
       <fieldset disabled={submitting || uncertain || isRunning(job)}>
@@ -104,8 +132,17 @@ export function GuidebookCreatePage() {
           <label><span>인원</span><select aria-label="인원" value={form.people_count} onChange={(event) => update('people_count', Number(event.target.value))}>{Array.from({ length: rule[2] - rule[1] + 1 }, (_, i) => rule[1] + i).map((count) => <option value={count} key={count}>{count}명</option>)}</select></label>
         </div><small>본인을 포함한 인원을 선택해 주세요.</small></section>
       </fieldset>
-      <div className="book-notice">저장한 취향을 바탕으로 여행을 구성해요.<br />생성권은 가이드북이 완성되면 1개 사용돼요.<br />
-        <Link to="/preferences" state={{ returnTo: '/guidebooks/new', guidebookDraft: form }}>취향 수정하기</Link>
+      <div className="book-notice">저장한 취향을 바탕으로 여행을 구성해요.<br />생성권은 가이드북이 완성되면 1개 사용돼요.
+        <div className="book-preference-row">
+          <div className="book-preference-list" aria-label="저장된 여행 취향">
+            {preferencesLoading
+              ? <span className="book-preference-empty">취향 불러오는 중…</span>
+              : preferenceLabels.length > 0
+                ? preferenceLabels.map((label) => <span className="book-preference-chip" key={label}>{label}</span>)
+                : <span className="book-preference-empty">저장된 취향 없음</span>}
+          </div>
+          <Link to="/preferences" state={{ returnTo: '/guidebooks/new', guidebookDraft: form }}>취향 수정하기</Link>
+        </div>
       </div>
       {error && <p className="book-error" role="alert">{error}</p>}
       {uncertain && <p className="book-hint">같은 여행 조건으로 접수 결과를 다시 확인해요.</p>}
