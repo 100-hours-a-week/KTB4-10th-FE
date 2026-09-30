@@ -8,7 +8,7 @@ import {
   type KakaoMarkerClusterer,
   type KakaoMarker,
 } from '../lib/kakaoMaps.ts'
-import { clusterLabel, pinColor } from '../lib/mapMarkers.ts'
+import { clusterLabel, pinColor, serverClusterStyle } from '../lib/mapMarkers.ts'
 
 type Coordinate = {
   latitude: number
@@ -48,17 +48,22 @@ function markerImage(maps: KakaoMaps, color: string, selected: boolean) {
   })
 }
 
-function clusterImage(maps: KakaoMaps, count: number) {
+function clusterImage(maps: KakaoMaps, count: number, level: number) {
   const label = clusterLabel(count)
+  const { size, fontSize, fillOpacity } = serverClusterStyle(level, count)
+  const center = size / 2
+  const radius = center - 1.5
   const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="42" height="42" viewBox="0 0 42 42">
-      <circle cx="21" cy="21" r="19" fill="#242428" stroke="white" stroke-width="2"/>
-      <text x="21" y="22" fill="white" font-size="13" font-weight="700"
+    <svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+      <circle cx="${center}" cy="${center}" r="${radius}"
+        fill="#242428" fill-opacity="${fillOpacity}"
+        stroke="white" stroke-opacity="0.88" stroke-width="1.5"/>
+      <text x="${center}" y="${center + 1}" fill="white" font-size="${fontSize}" font-weight="700"
         text-anchor="middle" dominant-baseline="middle">${label}</text>
     </svg>`
   const source = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`
-  return new maps.MarkerImage(source, new maps.Size(42, 42), {
-    offset: new maps.Point(21, 21),
+  return new maps.MarkerImage(source, new maps.Size(size, size), {
+    offset: new maps.Point(center, center),
   })
 }
 
@@ -203,11 +208,12 @@ export function KakaoMapCanvas({
     if (!maps || !map) return
 
     serverClusterMarkersRef.current.forEach((marker) => marker.setMap(null))
+    const level = map.getLevel()
     serverClusterMarkersRef.current = clusters.map((cluster) => {
       const position = new maps.LatLng(cluster.latitude, cluster.longitude)
       const marker = new maps.Marker({
         map,
-        image: clusterImage(maps, cluster.count),
+        image: clusterImage(maps, cluster.count, level),
         position,
         title: `콘텐츠 ${cluster.count}개`,
       })
