@@ -48,6 +48,7 @@ describe('전역 생성 작업', () => {
     getJob.mockResolvedValue({ job_id: 31, status: 'COMPLETED', guidebook_id: 10, attempt_count: 0 })
     await act(async () => { vi.advanceTimersByTime(2000) })
     expect(screen.getByTestId('job')).toHaveTextContent('COMPLETED')
+    expect(localStorage.getItem(jobStorageKey(1))).toBeNull()
     await act(async () => { vi.advanceTimersByTime(20000) })
     expect(getJob).toHaveBeenCalledTimes(3)
     expect(retryJob).not.toHaveBeenCalled()

@@ -63,6 +63,7 @@ describe('App', () => {
       screen.queryByRole('heading', { name: '로그인' }),
     ).not.toBeInTheDocument()
     expect(screen.getByLabelText('KGB 임시 로고')).toBeInTheDocument()
+    expect(getMemberPreferencesMock).not.toHaveBeenCalled()
     await user.click(screen.getByRole('button', { name: '카카오로 로그인' }))
     expect(
       screen.getByRole('heading', { name: '로그인 정보를 확인하고 있어요' }),
