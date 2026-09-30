@@ -50,10 +50,9 @@
 .book-dialog-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .book-dialog-actions button { min-height: 44px; }
 .book-form { padding: 24px 22px; }
-.book-form-intro { margin: 24px 0 28px; font-size: 22px; line-height: 1.55; letter-spacing: -.03em; }
-.book-credit { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 6px; padding: 7px 10px; border: 1px solid #e2e2e7; border-radius: 999px; background: #fff; color: #61616b; font-size: 11px; }
-.book-credit strong { color: #242428; font-size: 12px; }
-.book-credit button { padding: 4px 0; border: 0; background: none; color: #73737d; font: inherit; font-size: 12px; text-decoration: underline; cursor: pointer; }
+.book-form-intro { margin: 0 0 28px; font-size: 22px; line-height: 1.55; letter-spacing: -.03em; }
+.book-credit-balance { color: #73737d; font-size: 10px; line-height: 1.35; white-space: nowrap; }
+.book-credit-balance strong { color: #242428; font-size: 12px; }
 .book-form fieldset { padding: 0; margin: 0; border: 0; min-width: 0; }
 .book-form legend { position: absolute; clip-path: inset(50%); width: 1px; height: 1px; overflow: hidden; }
 .book-form section { margin-bottom: 28px; }
@@ -73,6 +72,7 @@
 .book-preference-empty { color: #81818a; font-size: 11px; }
 .book-preference-row > a { flex-shrink: 0; }
 .book-hint { font-size: 13px; color: #73737d; line-height: 1.6; }
+.book-inline-button { padding: 0; border: 0; background: none; color: inherit; font: inherit; text-decoration: underline; cursor: pointer; }
 .book-text-button { display: block; padding: 14px; margin: 0 auto; border: 0; background: none; color: #73737d; font-size: 12px; text-align: center; text-decoration: none; cursor: pointer; }
 .book-generation { padding: 15dvh 26px 30px; text-align: center; }
 .book-spark { display: grid; place-items: center; width: 88px; height: 88px; margin: 0 auto 30px; border: 1px solid #ededf0; border-radius: 24px; background: #fff; font-size: 35px; color: #777781; }

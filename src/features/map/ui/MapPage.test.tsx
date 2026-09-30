@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MapPage } from './MapPage.tsx'
 
 const {
@@ -36,12 +36,19 @@ vi.mock('./KakaoMapCanvas.tsx', () => ({
     onBoundsChange,
     onMapClick,
     onSelectItem,
+    focusTarget,
   }: {
     onBoundsChange: (bounds: object) => void
     onMapClick: () => void
     onSelectItem: (item: object) => void
+    focusTarget: { latitude: number; longitude: number; requestId: number } | null
   }) => (
     <div>
+      <output aria-label="지도 이동 요청">
+        {focusTarget
+          ? `${focusTarget.latitude},${focusTarget.longitude},${focusTarget.requestId}`
+          : '없음'}
+      </output>
       <button type="button" onClick={() => onBoundsChange({
         south: 37.5,
         west: 126.9,
@@ -78,6 +85,29 @@ describe('MapPage', () => {
     removeFavoriteMock.mockResolvedValue(undefined)
     saveFavoriteMock.mockResolvedValue({ content_id: 'place-1', is_favorite: true })
     updatePushEnabledMock.mockResolvedValue({ language_code: 'ko', push_enabled: false })
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('위치 조회가 거절되면 카카오 본사로 중심 이동을 요청한다', async () => {
+    const user = userEvent.setup()
+    localStorage.setItem('kgb.location-prompt-completed', 'true')
+    vi.stubGlobal('navigator', {
+      geolocation: {
+        getCurrentPosition: vi.fn((_, onError: PositionErrorCallback) => onError({} as GeolocationPositionError)),
+      },
+    })
+    render(<MemoryRouter><MapPage /></MemoryRouter>)
+
+    await user.click(screen.getByRole('button', { name: '현재 위치로 이동' }))
+
+    expect(screen.getByLabelText('지도 이동 요청'))
+      .toHaveTextContent('37.3952969470752,127.110449292622,1')
+    expect(screen.getByRole('status', {
+      name: '위치 권한이 없어 카카오 본사 인근을 보여드릴게요.',
+    })).toBeInTheDocument()
   })
 
   it('첫 진입 시 위치 안내를 표시하고 거절해도 지도를 이용할 수 있다', async () => {
