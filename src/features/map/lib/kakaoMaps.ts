@@ -23,6 +23,10 @@ export type KakaoMarker = {
   setMap: (map: KakaoMap | null) => void
 }
 
+export type KakaoCustomOverlay = {
+  setMap: (map: KakaoMap | null) => void
+}
+
 export type KakaoCluster = {
   getCenter: () => KakaoLatLng
   getSize: () => number
@@ -54,6 +58,14 @@ export type KakaoMaps = {
     position: KakaoLatLng
     title?: string
   }) => KakaoMarker
+  CustomOverlay: new (options: {
+    content: HTMLElement
+    map?: KakaoMap
+    position: KakaoLatLng
+    xAnchor?: number
+    yAnchor?: number
+    zIndex?: number
+  }) => KakaoCustomOverlay
   MarkerClusterer: new (options: {
     map: KakaoMap
     markers?: KakaoMarker[]
