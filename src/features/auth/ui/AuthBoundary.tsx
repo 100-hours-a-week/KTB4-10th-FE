@@ -1,9 +1,10 @@
+import axios from 'axios'
 import { useEffect, useState, type ReactNode } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 import { routes } from '../../../shared/config/routes.ts'
 import { getMemberPreferences } from '../../preference/api/preferences.ts'
 import { getCurrentMember, type CurrentMember } from '../api/auth.ts'
-import { AuthLoadingView } from './AuthLoadingView.tsx'
+import { AuthCheckErrorView, AuthLoadingView } from './AuthLoadingView.tsx'
 import { LoginPage } from './LoginPage.tsx'
 
 export function HomeEntry() {
@@ -36,19 +37,45 @@ export function AuthBoundary({ children, allowOnboarding = false }: {
   children: ReactNode
   allowOnboarding?: boolean
 }) {
-  const [member, setMember] = useState<CurrentMember | null>(null)
-  const [checking, setChecking] = useState(true)
+  const { pathname } = useLocation()
+  const [authState, setAuthState] = useState<{
+    pathname: string
+    member: CurrentMember | null
+    failure: 'UNAUTHORIZED' | 'TEMPORARY' | null
+  } | null>(null)
+  const [retryRevision, setRetryRevision] = useState(0)
 
   useEffect(() => {
     let active = true
     getCurrentMember()
-      .then((next) => { if (active) setMember(next) })
-      .catch(() => { if (active) setMember(null) })
-      .finally(() => { if (active) setChecking(false) })
+      .then((member) => {
+        if (active) setAuthState({ pathname, member, failure: null })
+      })
+      .catch((error: unknown) => {
+        if (!active) return
+        const failure = axios.isAxiosError(error) && error.response?.status === 401
+          ? 'UNAUTHORIZED'
+          : 'TEMPORARY'
+        setAuthState({ pathname, member: null, failure })
+      })
     return () => { active = false }
-  }, [])
+  }, [pathname, retryRevision])
 
-  if (checking) return <AuthLoadingView />
+  if (!authState || authState.pathname !== pathname) return <AuthLoadingView />
+  const { failure, member } = authState
+  if (failure === 'UNAUTHORIZED') {
+    return <Navigate
+      to={routes.home}
+      replace
+      state={{ authNotice: 'SESSION_EXPIRED' }}
+    />
+  }
+  if (failure === 'TEMPORARY') {
+    return <AuthCheckErrorView onRetry={() => {
+      setAuthState(null)
+      setRetryRevision((current) => current + 1)
+    }} />
+  }
   if (!member) return <Navigate to={routes.home} replace />
   if (!allowOnboarding && member.status === 'ONBOARDING') {
     return <Navigate to={routes.preferences} replace />

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useLocation, useSearchParams } from 'react-router-dom'
 import { Toast } from '../../../shared/ui/Toast.tsx'
 import type { PolicyType } from '../../policy/api/policy.ts'
 import { PolicyModal } from '../../policy/ui/PolicyModal.tsx'
@@ -8,10 +8,15 @@ import { getOauthErrorMessage } from '../model/oauthError.ts'
 import { AuthLoadingView } from './AuthLoadingView.tsx'
 
 export function LoginPage() {
+  const location = useLocation()
   const [searchParams] = useSearchParams()
   const [policyType, setPolicyType] = useState<PolicyType | null>(null)
   const [isStartingLogin, setIsStartingLogin] = useState(false)
-  const errorMessage = getOauthErrorMessage(searchParams.get('code'))
+  const navigationState = location.state as { authNotice?: string } | null
+  const sessionExpiredMessage = navigationState?.authNotice === 'SESSION_EXPIRED'
+    ? '로그인 세션이 만료되었어요. 다시 로그인해 주세요.'
+    : null
+  const errorMessage = sessionExpiredMessage ?? getOauthErrorMessage(searchParams.get('code'))
   const [visibleErrorMessage, setVisibleErrorMessage] = useState(errorMessage)
 
   const handleKakaoLogin = () => {
