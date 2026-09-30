@@ -14,7 +14,7 @@ export function LoginPage() {
   const [isStartingLogin, setIsStartingLogin] = useState(false)
   const navigationState = location.state as { authNotice?: string } | null
   const sessionExpiredMessage = navigationState?.authNotice === 'SESSION_EXPIRED'
-    ? '로그인 세션이 만료되었어요. 다시 로그인해 주세요.'
+    ? '다시 로그인해 주세요.'
     : null
   const errorMessage = sessionExpiredMessage ?? getOauthErrorMessage(searchParams.get('code'))
   const [visibleErrorMessage, setVisibleErrorMessage] = useState(errorMessage)
