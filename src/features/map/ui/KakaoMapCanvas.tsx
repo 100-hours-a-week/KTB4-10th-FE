@@ -10,15 +10,16 @@ import {
   type KakaoMarker,
 } from '../lib/kakaoMaps.ts'
 import { clusterLabel, pinColor, serverClusterStyle } from '../lib/mapMarkers.ts'
+import { panMapToCoordinate, type Coordinate } from '../lib/mapViewport.ts'
 
-type Coordinate = {
-  latitude: number
-  longitude: number
+type MapFocusTarget = Coordinate & {
+  requestId: number
 }
 
 type KakaoMapCanvasProps = {
   center: Coordinate
   currentPosition: Coordinate | null
+  focusTarget: MapFocusTarget | null
   items: MapContentItem[]
   clusters: MapCluster[]
   selectedContentId: string | null
@@ -92,6 +93,7 @@ function clusterImage(maps: KakaoMaps, count: number, level: number) {
 export function KakaoMapCanvas({
   center,
   currentPosition,
+  focusTarget,
   items,
   clusters,
   selectedContentId,
@@ -109,6 +111,12 @@ export function KakaoMapCanvas({
   const serverClusterMarkersRef = useRef<KakaoMarker[]>([])
   const clustererRef = useRef<KakaoMarkerClusterer | null>(null)
   const currentPositionOverlayRef = useRef<KakaoCustomOverlay | null>(null)
+  const lastFocusRequestIdRef = useRef(0)
+  const focusTargetRef = useRef(focusTarget)
+
+  useEffect(() => {
+    focusTargetRef.current = focusTarget
+  }, [focusTarget])
 
   useEffect(() => {
     let disposed = false
@@ -128,6 +136,10 @@ export function KakaoMapCanvas({
         mapRef.current = map
         map.setMinLevel(1)
         map.setMaxLevel(16)
+        if (focusTargetRef.current) {
+          lastFocusRequestIdRef.current = focusTargetRef.current.requestId
+          panMapToCoordinate(maps, map, focusTargetRef.current)
+        }
         if (initialCurrentPositionRef.current) {
           currentPositionOverlayRef.current = currentPositionOverlay(
             maps,
@@ -263,9 +275,19 @@ export function KakaoMapCanvas({
 
     currentPositionOverlayRef.current?.setMap(null)
     currentPositionOverlayRef.current = currentPositionOverlay(maps, map, currentPosition)
-    const nextCenter = new maps.LatLng(currentPosition.latitude, currentPosition.longitude)
-    map.panTo(nextCenter)
+    panMapToCoordinate(maps, map, currentPosition)
   }, [currentPosition, mapRef])
+
+  useEffect(() => {
+    const maps = mapsRef.current
+    const map = mapRef.current
+    if (!maps || !map || !focusTarget || focusTarget.requestId === lastFocusRequestIdRef.current) {
+      return
+    }
+
+    lastFocusRequestIdRef.current = focusTarget.requestId
+    panMapToCoordinate(maps, map, focusTarget)
+  }, [focusTarget, mapRef])
 
   return <div className="map-canvas" ref={containerRef} aria-label="현재 위치 주변 관광 지도" />
 }

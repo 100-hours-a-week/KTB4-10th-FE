@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { MapContentItem } from '../api/map.ts'
 import { clusterLabel, pinColor, serverClusterStyle } from '../lib/mapMarkers.ts'
+import { panMapToCoordinate } from '../lib/mapViewport.ts'
 
 function item(
   contentType: MapContentItem['content_type'],
@@ -66,5 +67,20 @@ describe('지도 클러스터 표기', () => {
   it('콘텐츠가 적은 클러스터는 지역 줌에서도 더 작게 표시한다', () => {
     expect(serverClusterStyle(8, 4).size).toBe(24)
     expect(serverClusterStyle(8, 40).size).toBe(30)
+  })
+})
+
+describe('지도 중심 이동', () => {
+  it('현재 줌 레벨을 변경하지 않고 지정 좌표로 이동한다', () => {
+    const position = { latitude: 37.3952969470752, longitude: 127.110449292622 }
+    const latLng = { position }
+    const maps = { LatLng: vi.fn(function LatLng() { return latLng }) }
+    const map = { panTo: vi.fn(), setLevel: vi.fn() }
+
+    panMapToCoordinate(maps as never, map, position)
+
+    expect(maps.LatLng).toHaveBeenCalledWith(position.latitude, position.longitude)
+    expect(map.panTo).toHaveBeenCalledWith(latLng)
+    expect(map.setLevel).not.toHaveBeenCalled()
   })
 })
