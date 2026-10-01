@@ -1,0 +1,42 @@
+name: 기능
+description: 새로운 화면·기능 또는 기존 기능 개선을 등록합니다.
+title: "[feature][domain] "
+labels: [feature]
+body:
+  - type: dropdown
+    id: domain
+    attributes: {label: 영역, options: [회원, 관광 콘텐츠, 가이드북, 평가, 생성권, 공통, 인프라]}
+    validations: {required: true}
+  - type: textarea
+    id: purpose
+    attributes: {label: 작업 목적, description: 사용자 문제와 필요한 이유를 작성해 주세요.}
+    validations: {required: true}
+  - type: textarea
+    id: scope
+    attributes:
+      label: 작업 범위
+      description: 구현할 내용과 제외할 내용을 작성해 주세요.
+      value: |
+        - [ ] 정상 흐름 구현
+        - [ ] 로딩·빈 상태·실패·경계 흐름 처리
+        - [ ] 테스트 작성
+        - [ ] 관련 문서 갱신
+    validations: {required: true}
+  - type: textarea
+    id: exceptions
+    attributes: {label: 고려할 예외, description: 인증·권한, 중복 동작, API 실패, 브라우저 권한과 화면 크기를 작성해 주세요.}
+  - type: textarea
+    id: acceptance-criteria
+    attributes: {label: 완료 조건, description: 화면과 사용자 행동으로 검증 가능한 결과를 작성해 주세요.}
+    validations: {required: true}
+  - type: input
+    id: requirement-ids
+    attributes: {label: 관련 요구사항 ID, description: 없으면 '해당 없음'으로 작성해 주세요.}
+    validations: {required: true}
+  - type: textarea
+    id: references
+    attributes: {label: 관련 자료, description: Figma 화면, API, 설계 문서와 Issue를 연결해 주세요.}
+  - type: textarea
+    id: impact
+    attributes: {label: 영향 범위, description: API 연동, 사용자 흐름, 브라우저 저장소·쿠키, 문서 영향을 작성해 주세요.}
+    validations: {required: true}
