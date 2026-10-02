@@ -6,9 +6,10 @@ import { GuidebookListPage } from './GuidebookListPage.tsx'
 import { GuidebookViewerPage } from './GuidebookViewerPage.tsx'
 import { today, dayOffset } from '../model/conditions.ts'
 
-const { createBook, listBooks, deleteBook, getViewer, track, getCreditWallet, getMemberPreferences, getPreferenceOptions } = vi.hoisted(() => ({
-  createBook: vi.fn(), listBooks: vi.fn(), deleteBook: vi.fn(), getViewer: vi.fn(), track: vi.fn(), getCreditWallet: vi.fn(), getMemberPreferences: vi.fn(), getPreferenceOptions: vi.fn(),
+const { createBook, listBooks, deleteBook, getViewer, track, trackEvent, getCreditWallet, getMemberPreferences, getPreferenceOptions } = vi.hoisted(() => ({
+  createBook: vi.fn(), listBooks: vi.fn(), deleteBook: vi.fn(), getViewer: vi.fn(), track: vi.fn(), trackEvent: vi.fn(), getCreditWallet: vi.fn(), getMemberPreferences: vi.fn(), getPreferenceOptions: vi.fn(),
 }))
+vi.mock('../../../shared/lib/analytics.ts', () => ({ trackEvent }))
 vi.mock('../api/credits.ts', () => ({ getCreditWallet }))
 vi.mock('../api/guidebooks.ts', () => ({ createBook, listBooks, deleteBook, getViewer }))
 vi.mock('../../preference/api/preferences.ts', () => ({ getMemberPreferences, getPreferenceOptions }))
@@ -64,7 +65,14 @@ describe('가이드북 화면', () => {
     expect(await screen.findByText('생성 진행 화면')).toBeInTheDocument()
     expect(createBook).toHaveBeenCalledTimes(2)
     expect(createBook.mock.calls[0]).toEqual(createBook.mock.calls[1])
-    expect(track).toHaveBeenCalledWith({ job_id: 31, status: 'PENDING', guidebook_id: null })
+    expect(track).toHaveBeenCalledWith(
+      { job_id: 31, status: 'PENDING', guidebook_id: null },
+      expect.any(Number),
+    )
+    expect(trackEvent.mock.calls).toEqual([
+      ['guidebook_generate_start'],
+      ['guidebook_generate_accepted'],
+    ])
   })
 
   it('혼자는 1명, 연인은 2명만 선택하며 시도 변경 시 시군구를 비운다', () => {

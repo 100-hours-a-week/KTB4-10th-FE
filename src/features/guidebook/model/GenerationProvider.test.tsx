@@ -4,18 +4,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { GenerationProvider } from './GenerationProvider.tsx'
 import { jobStorageKey, useGeneration } from './generation.ts'
 
-const { getCurrentMember, getJob, retryJob } = vi.hoisted(() => ({
-  getCurrentMember: vi.fn(), getJob: vi.fn(), retryJob: vi.fn(),
+const { getCurrentMember, getJob, retryJob, trackEvent } = vi.hoisted(() => ({
+  getCurrentMember: vi.fn(), getJob: vi.fn(), retryJob: vi.fn(), trackEvent: vi.fn(),
 }))
 vi.mock('../../auth/api/auth.ts', () => ({ getCurrentMember }))
 vi.mock('../api/guidebooks.ts', () => ({ getJob, retryJob }))
+vi.mock('../../../shared/lib/analytics.ts', () => ({ trackEvent }))
 
 function Consumer() {
   const { job, track, retry, error, refresh } = useGeneration()
   const { pathname } = useLocation()
   return <><div data-testid="job">{job?.status ?? 'none'}</div><div>{pathname}</div>
     <div>{error}</div>
-    <button onClick={() => track({ job_id: 31, status: 'PENDING', guidebook_id: null })}>생성 접수</button>
+    <button onClick={() => track({ job_id: 31, status: 'PENDING', guidebook_id: null }, Date.now())}>생성 접수</button>
     <button onClick={() => void retry()}>재시도</button>
     <button onClick={refresh}>조회 재개</button>
     <Link to="/map">지도 이동</Link><Link to="/preferences">취향 이동</Link><Link to="/">로그아웃 이동</Link>
@@ -49,8 +50,12 @@ describe('전역 생성 작업', () => {
     await act(async () => { vi.advanceTimersByTime(2000) })
     expect(screen.getByTestId('job')).toHaveTextContent('COMPLETED')
     expect(localStorage.getItem(jobStorageKey(1))).toBeNull()
+    expect(trackEvent).toHaveBeenCalledWith('guidebook_generate_success', {
+      generation_time_ms: expect.any(Number),
+    })
     await act(async () => { vi.advanceTimersByTime(20000) })
     expect(getJob).toHaveBeenCalledTimes(3)
+    expect(trackEvent).toHaveBeenCalledTimes(1)
     expect(retryJob).not.toHaveBeenCalled()
   })
 
