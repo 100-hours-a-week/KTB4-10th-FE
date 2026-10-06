@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { BottomNavigation } from '../../../shared/ui/BottomNavigation.tsx'
 import { deleteBook, listBooks, type BookList, type Book } from '../api/guidebooks.ts'
 import { companions, message } from '../model/conditions.ts'
@@ -9,6 +9,8 @@ import { PageHeader } from '../../../shared/ui/PageHeader.tsx'
 import { getCreditWallet } from '../api/credits.ts'
 
 export function GuidebookListPage() {
+  const location = useLocation()
+  const navigate = useNavigate()
   const { job, error: jobError, refresh, dismiss } = useGeneration()
   const [data, setData] = useState<BookList | null>(null)
   const [error, setError] = useState('')
@@ -24,6 +26,10 @@ export function GuidebookListPage() {
   const failedCursor = useRef<string | undefined>(undefined)
   const completedId = job?.status === 'COMPLETED' ? job.guidebook_id : null
   const [creditBalance, setCreditBalance] = useState<number | null>(null)
+  const cardElements = useRef(new Map<number, HTMLLIElement>())
+  const requestedHighlightId = Number(
+    (location.state as { highlightGuidebookId?: unknown } | null)?.highlightGuidebookId,
+  )
 
   useEffect(() => {
     const controller = new AbortController()
@@ -49,6 +55,20 @@ export function GuidebookListPage() {
     if (target) modal.current?.showModal()
     else modal.current?.close()
   }, [target])
+
+  useEffect(() => {
+    if (!Number.isSafeInteger(requestedHighlightId) || requestedHighlightId < 1) return undefined
+    if (!data?.items.some(({ guidebook_id }) => guidebook_id === requestedHighlightId)) return undefined
+
+    cardElements.current.get(requestedHighlightId)?.scrollIntoView?.({
+      behavior: 'smooth',
+      block: 'center',
+    })
+    const timer = window.setTimeout(() => {
+      navigate(location.pathname, { replace: true, state: null })
+    }, 1800)
+    return () => window.clearTimeout(timer)
+  }, [data?.items, location.pathname, navigate, requestedHighlightId])
 
   async function more() {
     if (!data?.next_cursor || loadLock.current) return
@@ -87,7 +107,14 @@ export function GuidebookListPage() {
       {jobError && <State error onRetry={job ? refresh : undefined}>{jobError}</State>}
       {error && <State error onRetry={() => failedCursor.current ? void more() : setRevision((value) => value + 1)}>{error}</State>}
       {data?.items.length === 0 && !loading && !error && <div className="book-empty"><BookCover /><h2>아직 가이드북이 없어요</h2><p>여행할 곳을 고르고<br />나만의 여행을 만들어 보세요.</p><Link className="primary-button book-button" to="/guidebooks/new">가이드북 만들기</Link></div>}
-      <ul className="book-list">{data?.items.map((book) => <li className="book-card" key={book.guidebook_id}>
+      <ul className="book-list">{data?.items.map((book) => <li
+        className={`book-card${requestedHighlightId === book.guidebook_id ? ' book-card--highlighted' : ''}`}
+        key={book.guidebook_id}
+        ref={(element) => {
+          if (element) cardElements.current.set(book.guidebook_id, element)
+          else cardElements.current.delete(book.guidebook_id)
+        }}
+      >
         <Link to={`/guidebooks/${book.guidebook_id}/viewer`} className="book-card-main"><BookCover /><div><h2>{book.title}</h2><p>{book.start_date.replaceAll('-', '.')} – {book.end_date.replaceAll('-', '.')}</p><span>{companions[book.companion]?.[0]}</span></div></Link>
         <button className="book-delete" onClick={() => { setDeleteError(''); setTarget(book) }} aria-label={`${book.title} 삭제`}>삭제</button>
       </li>)}</ul>

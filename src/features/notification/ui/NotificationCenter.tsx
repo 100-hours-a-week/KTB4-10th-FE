@@ -1,23 +1,175 @@
-import { useEffect } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { routes } from '../../../shared/config/routes.ts'
+import { Toast } from '../../../shared/ui/Toast.tsx'
 import { useGeneration } from '../../guidebook/model/generation.ts'
-import { getNotifications } from '../api/notifications.ts'
-import { notifyNotificationsUpdated } from '../model/events.ts'
+import { getMemberSettings } from '../../member/api/memberSettings.ts'
+import {
+  closeNotificationStream,
+  deleteNotification,
+  getNotifications,
+  openNotificationStream,
+  parseNotificationEvent,
+  type Notification,
+} from '../api/notifications.ts'
+import {
+  notifyNotificationsUpdated,
+  REALTIME_NOTIFICATION_SETTING_CHANGED_EVENT,
+  type RealtimeNotificationSettingChangedDetail,
+} from '../model/events.ts'
+
+const NOTIFICATION_EVENT_NAME = 'notification'
+const CONNECTED_EVENT_NAME = 'connected'
+
+type GuidebookNavigationState = {
+  highlightGuidebookId: number
+}
+
+function guidebookId(notification: Notification): number | null {
+  if (notification.reference_type !== 'GUIDEBOOK') return null
+  const value = Number(notification.reference_id)
+  return Number.isSafeInteger(value) && value > 0 ? value : null
+}
 
 export function NotificationCenter() {
+  const navigate = useNavigate()
   const { member, job } = useGeneration()
+  const [realtimeEnabled, setRealtimeEnabled] = useState<boolean | null>(null)
+  const [pendingNotifications, setPendingNotifications] = useState<Notification[]>([])
+  const [feedback, setFeedback] = useState<string | null>(null)
+  const [actingNotificationId, setActingNotificationId] = useState<string | null>(null)
+  const seenNotificationIds = useRef(new Set<string>())
+  const settingsRequestRevision = useRef(0)
   const completedId = job?.status === 'COMPLETED' ? job.guidebook_id : null
+  const currentNotification = pendingNotifications[0] ?? null
+
+  const syncNotifications = useCallback(async (signal?: AbortSignal) => {
+    const next = await getNotifications(signal)
+    if (!signal?.aborted) notifyNotificationsUpdated(next.unread_count)
+  }, [])
 
   useEffect(() => {
-    if (member?.status !== 'ACTIVE' || !completedId) return
+    const handleSettingChanged = (event: Event) => {
+      const { enabled } = (event as CustomEvent<RealtimeNotificationSettingChangedDetail>).detail
+      settingsRequestRevision.current += 1
+      setRealtimeEnabled(enabled)
+      if (!enabled) closeNotificationStream()
+    }
+    window.addEventListener(
+      REALTIME_NOTIFICATION_SETTING_CHANGED_EVENT,
+      handleSettingChanged,
+    )
+    return () => window.removeEventListener(
+      REALTIME_NOTIFICATION_SETTING_CHANGED_EVENT,
+      handleSettingChanged,
+    )
+  }, [])
+
+  useEffect(() => {
+    seenNotificationIds.current.clear()
+    // 회원 경계가 바뀌면 이전 회원의 토스트·수신 설정을 즉시 폐기합니다.
+    // oxlint-disable-next-line react/set-state-in-effect
+    setPendingNotifications([])
+    setFeedback(null)
+    setRealtimeEnabled(null)
+    const revision = settingsRequestRevision.current + 1
+    settingsRequestRevision.current = revision
+
+    if (member?.status !== 'ACTIVE') {
+      closeNotificationStream()
+      return undefined
+    }
+
     const controller = new AbortController()
-    void getNotifications(controller.signal).then((next) => {
-      if (controller.signal.aborted) return
-      notifyNotificationsUpdated(next.unread_count)
+    void getMemberSettings(controller.signal).then((settings) => {
+      if (!controller.signal.aborted && settingsRequestRevision.current === revision) {
+        setRealtimeEnabled(settings.push_enabled)
+      }
     }).catch(() => {
-      // 생성 결과 화면은 유지하고 알림 페이지에서 다시 조회할 수 있게 둡니다.
+      if (!controller.signal.aborted && settingsRequestRevision.current === revision) {
+        // 수신 설정을 확인하지 못한 상태에서 실시간 연결을 임의로 열지 않습니다.
+        setRealtimeEnabled(false)
+      }
     })
     return () => controller.abort()
-  }, [member?.member_id, member?.status, completedId])
+  }, [member?.member_id, member?.status])
 
-  return null
+  useEffect(() => {
+    if (member?.status !== 'ACTIVE' || realtimeEnabled !== true) return undefined
+
+    const controller = new AbortController()
+    const stream = openNotificationStream()
+    const handleConnected = () => {
+      // connected는 사용자 알림이 아니며, 재연결 중 누락된 DB 알림만 복구합니다.
+      void syncNotifications(controller.signal).catch(() => undefined)
+    }
+    const handleNotification = (event: Event) => {
+      const notification = parseNotificationEvent((event as MessageEvent<string>).data)
+      if (!notification || seenNotificationIds.current.has(notification.notification_id)) return
+      seenNotificationIds.current.add(notification.notification_id)
+      setPendingNotifications((current) => [...current, notification])
+      void syncNotifications(controller.signal).catch(() => undefined)
+    }
+
+    stream.addEventListener(CONNECTED_EVENT_NAME, handleConnected)
+    stream.addEventListener(NOTIFICATION_EVENT_NAME, handleNotification)
+    return () => {
+      controller.abort()
+      stream.removeEventListener(CONNECTED_EVENT_NAME, handleConnected)
+      stream.removeEventListener(NOTIFICATION_EVENT_NAME, handleNotification)
+      closeNotificationStream(stream)
+    }
+  }, [member?.member_id, member?.status, realtimeEnabled, syncNotifications])
+
+  useEffect(() => {
+    if (member?.status !== 'ACTIVE' || !completedId) return undefined
+    const controller = new AbortController()
+    // 실시간 수신을 꺼 둔 회원도 생성 상태 폴링 완료 시 배지는 목록 기준으로 복구합니다.
+    void syncNotifications(controller.signal).catch(() => undefined)
+    return () => controller.abort()
+  }, [member?.member_id, member?.status, completedId, syncNotifications])
+
+  const dismissCurrentNotification = useCallback(() => {
+    setPendingNotifications((current) => current.slice(1))
+  }, [])
+
+  const openCurrentGuidebook = async () => {
+    if (!currentNotification || actingNotificationId) return
+    const targetGuidebookId = guidebookId(currentNotification)
+    if (!targetGuidebookId) return
+
+    setActingNotificationId(currentNotification.notification_id)
+    try {
+      await deleteNotification(currentNotification.notification_id)
+      dismissCurrentNotification()
+      void syncNotifications().catch(() => undefined)
+      navigate(routes.guidebooks, {
+        state: { highlightGuidebookId: targetGuidebookId } satisfies GuidebookNavigationState,
+      })
+    } catch {
+      setFeedback('읽음 처리에 실패했습니다. 다시 시도해주세요.')
+    } finally {
+      setActingNotificationId(null)
+    }
+  }
+
+  if (feedback) {
+    return <Toast key="notification-feedback" message={feedback} onDismiss={() => setFeedback(null)} />
+  }
+
+  if (!currentNotification) return null
+  const targetGuidebookId = guidebookId(currentNotification)
+  const toastMessage = `${currentNotification.title} ${currentNotification.body}`
+
+  return (
+    <Toast
+      key={currentNotification.notification_id}
+      message={toastMessage}
+      duration={5000}
+      onDismiss={dismissCurrentNotification}
+      onAction={targetGuidebookId ? () => void openCurrentGuidebook() : undefined}
+      actionLabel={targetGuidebookId ? '가이드북 보기' : undefined}
+      actionDisabled={actingNotificationId === currentNotification.notification_id}
+    />
+  )
 }

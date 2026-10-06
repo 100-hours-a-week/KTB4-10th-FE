@@ -470,6 +470,32 @@ button:disabled {
   animation: toast-rise 180ms ease-out forwards;
 }
 
+.app-toast:has(button) {
+  grid-template-columns: minmax(0, 1fr) auto;
+  justify-items: start;
+  gap: 12px;
+  text-align: left;
+}
+
+.app-toast button {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid rgb(255 255 255 / 48%);
+  border-radius: 7px;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.app-toast button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
 .app-toast--closing {
   animation: toast-drop 180ms ease-in forwards;
 }
