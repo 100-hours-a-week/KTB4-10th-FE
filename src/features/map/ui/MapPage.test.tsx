@@ -22,7 +22,7 @@ vi.mock('../api/map.ts', () => ({
   filterContentsWithinBounds: (items: unknown[]) => items,
 }))
 
-vi.mock('../api/settings.ts', () => ({
+vi.mock('../../member/api/memberSettings.ts', () => ({
   updatePushEnabled: updatePushEnabledMock,
 }))
 

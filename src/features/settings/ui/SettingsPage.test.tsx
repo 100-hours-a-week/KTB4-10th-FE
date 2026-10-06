@@ -4,14 +4,30 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { SettingsPage } from './SettingsPage.tsx'
 
-const { logoutMock, withdrawMemberMock } = vi.hoisted(() => ({
+const {
+  getMemberSettingsMock,
+  logoutMock,
+  notifyRealtimeNotificationSettingChangedMock,
+  updatePushEnabledMock,
+  withdrawMemberMock,
+} = vi.hoisted(() => ({
+  getMemberSettingsMock: vi.fn(),
   logoutMock: vi.fn(),
+  notifyRealtimeNotificationSettingChangedMock: vi.fn(),
+  updatePushEnabledMock: vi.fn(),
   withdrawMemberMock: vi.fn(),
 }))
 
 vi.mock('../api/settings.ts', () => ({
   logout: logoutMock,
   withdrawMember: withdrawMemberMock,
+}))
+vi.mock('../../member/api/memberSettings.ts', () => ({
+  getMemberSettings: getMemberSettingsMock,
+  updatePushEnabled: updatePushEnabledMock,
+}))
+vi.mock('../../notification/model/events.ts', () => ({
+  notifyRealtimeNotificationSettingChanged: notifyRealtimeNotificationSettingChangedMock,
 }))
 
 function renderPage() {
@@ -31,13 +47,47 @@ describe('SettingsPage', () => {
     vi.clearAllMocks()
     logoutMock.mockResolvedValue(undefined)
     withdrawMemberMock.mockResolvedValue(undefined)
+    getMemberSettingsMock.mockResolvedValue({ language_code: 'ko', push_enabled: false })
+    updatePushEnabledMock.mockResolvedValue({ language_code: 'ko', push_enabled: true })
   })
 
-  it('V1에서 푸시 알림 토글을 준비 중 상태로 비활성화한다', () => {
+  it('저장된 실시간 알림 설정을 조회해 알림 받기 토글에 반영한다', async () => {
+    getMemberSettingsMock.mockResolvedValue({ language_code: 'ko', push_enabled: true })
     renderPage()
 
-    expect(screen.getByRole('checkbox', { name: '푸시 알림 준비 중' })).toBeDisabled()
-    expect(screen.getByText('서비스 준비 중이에요.')).toBeInTheDocument()
+    const toggle = await screen.findByRole('checkbox', { name: '알림 받기' })
+    expect(toggle).toBeChecked()
+    expect(toggle.closest('label')).not.toHaveClass('settings-toggle--interactive')
+    expect(screen.queryByText('서비스 준비 중이에요.')).not.toBeInTheDocument()
+  })
+
+  it('알림 받기 토글 변경을 저장하고 전역 SSE 연결 설정에 반영한다', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    const toggle = await screen.findByRole('checkbox', { name: '알림 받기' })
+    await waitFor(() => expect(toggle).toBeEnabled())
+
+    await user.click(toggle)
+
+    await waitFor(() => expect(updatePushEnabledMock).toHaveBeenCalledWith(true))
+    expect(toggle.closest('label')).toHaveClass('settings-toggle--interactive')
+    expect(notifyRealtimeNotificationSettingChangedMock).toHaveBeenCalledWith(true)
+    expect(toggle).toBeChecked()
+  })
+
+  it('알림 받기를 끄면 저장값과 전역 SSE 연결 설정을 함께 해제한다', async () => {
+    const user = userEvent.setup()
+    getMemberSettingsMock.mockResolvedValue({ language_code: 'ko', push_enabled: true })
+    updatePushEnabledMock.mockResolvedValue({ language_code: 'ko', push_enabled: false })
+    renderPage()
+    const toggle = await screen.findByRole('checkbox', { name: '알림 받기' })
+    await waitFor(() => expect(toggle).toBeEnabled())
+
+    await user.click(toggle)
+
+    await waitFor(() => expect(updatePushEnabledMock).toHaveBeenCalledWith(false))
+    expect(notifyRealtimeNotificationSettingChangedMock).toHaveBeenCalledWith(false)
+    expect(toggle).not.toBeChecked()
   })
 
   it('로그아웃을 확인하면 API를 호출하고 로그인 화면으로 이동한다', async () => {

@@ -30,7 +30,8 @@
 | 현재 지도 영역의 콘텐츠를 본다 | GET | `/map/contents` | `/map` | bounds·zoom·limit로 콘텐츠/클러스터를 요청하고 마커·바텀시트로 표시한다. | `map.test.ts`, `MapPage.test.tsx` |
 | 장소를 관심 목록에 추가한다 | PUT | `/members/me/favorites/{contentId}` | 지도 바텀시트 | CSRF 요청 후 현재 카드와 마커의 관심 상태를 갱신한다. | `favorites.test.ts` |
 | 장소 관심을 해제한다 | DELETE | `/members/me/favorites/{contentId}` | 지도 바텀시트 | CSRF 요청 후 관심 상태를 해제한다. | `favorites.test.ts` |
-| 푸시 수신 의사를 변경한다 | PATCH | `/members/me/settings` | 지도 알림 권한 안내 | Web Push 자체가 아니라 회원의 `push_enabled` 설정만 저장한다. | `MapPage.test.tsx` |
+| 실시간 알림 수신 의사를 변경한다 | PATCH | `/members/me/settings` | 지도 알림 권한 안내·설정 페이지 | `push_enabled` 변경 직후 전역 SSE 연결을 열거나 닫는다. DB 알림 저장은 유지한다. | `MapPage.test.tsx`, `SettingsPage.test.tsx` |
+| 실시간 알림 수신 설정을 확인한다 | GET | `/members/me/settings` | 전역 `NotificationCenter` | `push_enabled=true`인 ACTIVE 회원만 SSE 연결을 연다. | `memberSettings.test.ts` |
 
 지도 조회는 동일한 bounds·zoom 요청을 탭 메모리에서 5분간 최대 30개 보관하고, 진행 중인 같은 요청을 합친다. 서버 상태 캐시 라이브러리는 사용하지 않는다.
 
@@ -54,12 +55,20 @@
 | --- | --- | --- | --- | --- | --- |
 | 프로필과 미읽은 알림 수를 본다 | GET | `/members/me` | `/mypage` | 프로필, 이메일과 알림 badge를 표시한다. | `MyPage.test.tsx` |
 | 알림 목록을 본다 | GET | `/notifications?page=1&size=20` | `/mypage/notifications`, 전역 완료 감지 | 최신 20개와 미읽음 수를 표시·동기화한다. | `NotificationPage.test.tsx`, `NotificationCenter.test.tsx` |
+| 열린 웹앱에서 새 알림을 받는다 | GET (SSE) | `/notifications/stream` | 전역 `NotificationCenter` | 앱에서 하나의 EventSource만 유지한다. `connected`와 재연결은 목록·배지만 복구하고, 새 `notification` 이벤트에만 토스트를 표시한다. | `NotificationCenter.test.tsx`, `notifications.test.ts` |
 | 알림 하나를 삭제한다 | DELETE | `/notifications/{notificationId}` | 알림 swipe 동작 | 요청 중 중복 조작을 막고 성공 시 목록에서 제거한다. | `NotificationPage.test.tsx` |
 | 알림을 모두 삭제한다 | DELETE | `/notifications` | 알림 화면 | 요청 중 버튼을 비활성화하고 성공 시 빈 상태로 전환한다. | `NotificationPage.test.tsx` |
 | 약관·개인정보 처리방침을 본다 | GET | `/policies/{terms|privacy}` | 로그인 화면 정책 modal | Markdown 전문을 modal에 표시한다. | `App.test.tsx` |
 
+### 실시간 알림 복구 원칙
+
+- SSE는 새 알림을 즉시 알려 주는 보조 채널이며 알림의 원본은 서버 목록 API다.
+- EventSource의 자동 재연결 뒤 과거 알림 토스트를 재생하지 않고 목록을 조회해 배지를 복구한다.
+- 가이드북 완료 토스트를 선택하면 읽음 처리 후 가이드북 목록으로 이동하고 대상 카드를 강조한다.
+- `push_enabled=false`, 로그아웃, 탈퇴와 세션 종료에서는 연결을 닫는다.
+
 ## 현재 연동하지 않는 V1 서버 기능
 
-- 정책 목록 API와 회원 설정 조회 API는 현재 FE가 직접 호출하지 않는다.
-- 평가·랭킹 API와 실시간 Web Push/SSE는 V1 현재 화면에 연결하지 않았다.
+- 정책 목록 API는 현재 FE가 직접 호출하지 않는다.
+- 평가·랭킹 API와 닫힌 웹앱용 Web Push는 V1 현재 화면에 연결하지 않았다.
 - DB 테이블과 migration은 FE 구현 문서 범위가 아니며 BE 저장소 문서를 따른다.

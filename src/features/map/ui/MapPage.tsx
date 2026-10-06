@@ -10,7 +10,8 @@ import {
   type MapContentItem,
 } from '../api/map.ts'
 import { removeFavorite, saveFavorite } from '../api/favorites.ts'
-import { updatePushEnabled } from '../api/settings.ts'
+import { updatePushEnabled } from '../../member/api/memberSettings.ts'
+import { notifyRealtimeNotificationSettingChanged } from '../../notification/model/events.ts'
 import type { KakaoMap } from '../lib/kakaoMaps.ts'
 import { KakaoMapCanvas } from './KakaoMapCanvas.tsx'
 import { PermissionModal } from './PermissionModal.tsx'
@@ -230,7 +231,8 @@ export function MapPage() {
       enabled = (await Notification.requestPermission()) === 'granted'
     }
     try {
-      await updatePushEnabled(enabled)
+      const settings = await updatePushEnabled(enabled)
+      notifyRealtimeNotificationSettingChanged(settings.push_enabled)
     } catch {
       setToast('알림 설정은 마이페이지에서 다시 변경할 수 있어요.')
     }

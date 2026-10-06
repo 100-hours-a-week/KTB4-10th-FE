@@ -96,6 +96,7 @@
   height: 26px;
   border-radius: 999px;
   background: #d7d7dc;
+  cursor: pointer;
 }
 
 .settings-toggle > span::after {
@@ -110,7 +111,28 @@
   content: '';
 }
 
-.settings-toggle--disabled {
+.settings-toggle--interactive > span {
+  transition: background-color 160ms ease;
+}
+
+.settings-toggle--interactive > span::after {
+  transition: transform 160ms ease;
+}
+
+.settings-toggle input:checked + span {
+  background: #242427;
+}
+
+.settings-toggle input:checked + span::after {
+  transform: translateX(20px);
+}
+
+.settings-toggle input:focus-visible + span {
+  outline: 2px solid #242427;
+  outline-offset: 3px;
+}
+
+.settings-toggle input:disabled + span {
   cursor: not-allowed;
   opacity: 0.58;
 }

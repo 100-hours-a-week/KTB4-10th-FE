@@ -22,6 +22,14 @@
 .book-list-page .bottom-navigation { position: fixed; width: min(100%, 390px); margin: auto; }
 .book-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 12px; }
 .book-card { display: flex; gap: 8px; align-items: center; padding: 16px 12px; border: 1px solid #ededf0; border-radius: 14px; background: #fff; }
+.book-card--highlighted { border-color: #b76e42; animation: book-card-highlight 320ms ease-in-out; }
+@keyframes book-card-highlight {
+  0%, 100% { transform: translateX(0); box-shadow: none; }
+  20% { transform: translateX(-4px); box-shadow: 0 0 0 3px rgb(183 110 66 / 18%); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(3px); }
+}
 .book-card-main { display: flex; gap: 13px; align-items: center; color: inherit; text-decoration: none; flex: 1; min-width: 0; }
 .book-card-main > div { min-width: 0; }
 .book-cover { display: grid; place-items: center; width: 58px; height: 70px; flex-shrink: 0; border-radius: 9px; background: #f5f5f7; color: #a2a2aa; border: 1px solid #ededf0; }
@@ -112,4 +120,4 @@
 .book-viewer-controls.is-visible .book-viewer-close { pointer-events: auto; }
 .book-viewer-close svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
 .book-viewer-close:focus-visible { outline: 3px solid #ffd43b; outline-offset: 3px; }
-@media (prefers-reduced-motion: reduce) { .book-spark--active { animation: none; } .book-viewer-controls { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .book-spark--active, .book-card--highlighted { animation: none; } .book-viewer-controls { transition: none; } }
