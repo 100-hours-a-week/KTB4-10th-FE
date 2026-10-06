@@ -18,12 +18,30 @@ html,
 body,
 #root {
   min-width: 320px;
-  min-height: 100%;
   margin: 0;
 }
 
+html {
+  height: 100%;
+  background: #ececef;
+}
+
 body {
+  min-height: 100%;
+  overflow-x: hidden;
+  overscroll-behavior-y: none;
+  background: #ececef;
+}
+
+#root {
   min-height: 100vh;
+  min-height: 100svh;
+}
+
+@supports (min-height: 100dvh) {
+  #root {
+    min-height: 100dvh;
+  }
 }
 
 button {
@@ -48,14 +66,20 @@ button:disabled {
   position: relative;
   width: min(100%, 390px);
   min-height: 100vh;
+  min-height: 100svh;
   margin: 0 auto;
   overflow: hidden;
   background: #fbfbfc;
 }
 
+@supports (min-height: 100dvh) {
+  .app-shell {
+    min-height: 100dvh;
+  }
+}
+
 .login-page {
   display: flex;
-  min-height: 100dvh;
   flex-direction: column;
 }
 
@@ -206,7 +230,6 @@ button:disabled {
 
 .auth-result-page {
   position: relative;
-  min-height: 100dvh;
   padding: 24px;
 }
 
@@ -253,7 +276,6 @@ button:disabled {
 }
 
 .preference-page {
-  min-height: 100dvh;
   padding-bottom: calc(env(safe-area-inset-bottom) + 96px);
 }
 
@@ -514,7 +536,6 @@ button:disabled {
 }
 
 .setup-page {
-  min-height: 100vh;
   display: grid;
   place-items: center;
   padding: 24px;
@@ -552,8 +573,16 @@ button:disabled {
 }
 
 .map-page {
-  min-height: 100dvh;
+  height: 100vh;
+  height: 100svh;
+  min-height: 0;
   background: #e4e4e7;
+}
+
+@supports (height: 100dvh) {
+  .map-page {
+    height: 100dvh;
+  }
 }
 
 .map-canvas {
@@ -904,11 +933,13 @@ button:disabled {
 }
 
 .bottom-navigation {
-  position: absolute;
+  position: fixed;
   z-index: 6;
   right: 0;
   bottom: 0;
   left: 0;
+  width: min(100%, 390px);
+  margin: 0 auto;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   min-height: calc(env(safe-area-inset-bottom) + 76px);
@@ -1001,7 +1032,6 @@ button:disabled {
 }
 
 .mypage-page {
-  min-height: 100dvh;
   padding-bottom: calc(env(safe-area-inset-bottom) + 92px);
   background: #f7f7f9;
 }
@@ -1290,7 +1320,6 @@ button:disabled {
 
 .main-tab-placeholder {
   display: grid;
-  min-height: 100dvh;
   place-items: center;
   padding: 24px 24px calc(env(safe-area-inset-bottom) + 100px);
 }
@@ -1306,12 +1335,6 @@ button:disabled {
 .main-tab-placeholder section p:last-child {
   color: #6b6b73;
   font-size: 13px;
-}
-
-@media (min-width: 391px) {
-  .app-shell {
-    min-height: 100vh;
-  }
 }
 
 @media (max-height: 720px) {
