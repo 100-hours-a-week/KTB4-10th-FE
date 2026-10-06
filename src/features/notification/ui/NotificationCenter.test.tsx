@@ -131,8 +131,10 @@ describe('전역 SSE 알림 센터', () => {
     fireEvent.click(await screen.findByRole('button', { name: '가이드북 보기' }))
 
     await waitFor(() => expect(deleteNotification).toHaveBeenCalledWith('51'))
-    expect(screen.getByRole('status', { name: '현재 경로' }))
-      .toHaveTextContent('/guidebooks:{"highlightGuidebookId":10}')
+    await waitFor(() => {
+      expect(screen.getByRole('status', { name: '현재 경로' }))
+        .toHaveTextContent('/guidebooks:{"highlightGuidebookId":10}')
+    })
   })
 
   it('실시간 알림 설정이 꺼지면 연결을 닫고 다시 만들지 않는다', async () => {
