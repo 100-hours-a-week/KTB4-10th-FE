@@ -46,7 +46,7 @@ vi.mock('../../guidebook/model/generation.ts', () => ({ useGeneration: () => sta
 const notification = {
   notification_id: '51',
   title: '가이드북 생성 완료',
-  body: '경주 여행이 완성됐어요.',
+  body: "'경주 여행 가이드북' 가이드북이 완성되었습니다.",
   type: 'GUIDEBOOK_COMPLETED',
   reference_type: 'GUIDEBOOK',
   reference_id: '10',
@@ -116,7 +116,7 @@ describe('전역 SSE 알림 센터', () => {
     })))
 
     expect(await screen.findByRole('status', {
-      name: '가이드북 생성 완료 경주 여행이 완성됐어요.',
+      name: "'경주' 여행 가이드북 생성 완료!",
     })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '가이드북 보기' })).toBeInTheDocument()
   })

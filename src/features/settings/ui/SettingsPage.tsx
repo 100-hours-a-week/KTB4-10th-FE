@@ -1,7 +1,12 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { routes } from '../../../shared/config/routes.ts'
 import { Toast } from '../../../shared/ui/Toast.tsx'
+import {
+  getMemberSettings,
+  updatePushEnabled,
+} from '../../member/api/memberSettings.ts'
+import { notifyRealtimeNotificationSettingChanged } from '../../notification/model/events.ts'
 import { logout, withdrawMember } from '../api/settings.ts'
 import './settings-page.css'
 
@@ -16,6 +21,40 @@ export function SettingsPage() {
   const [withdrawalInput, setWithdrawalInput] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
+  const [pushEnabled, setPushEnabled] = useState(false)
+  const [isNotificationSettingLoading, setIsNotificationSettingLoading] = useState(true)
+  const [isNotificationSettingSaving, setIsNotificationSettingSaving] = useState(false)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    void getMemberSettings(controller.signal)
+      .then((settings) => setPushEnabled(settings.push_enabled))
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          setToast('알림 설정을 불러오지 못했습니다.')
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setIsNotificationSettingLoading(false)
+        }
+      })
+    return () => controller.abort()
+  }, [])
+
+  const handleNotificationSettingChange = async (enabled: boolean) => {
+    if (isNotificationSettingLoading || isNotificationSettingSaving) return
+    setIsNotificationSettingSaving(true)
+    try {
+      const settings = await updatePushEnabled(enabled)
+      setPushEnabled(settings.push_enabled)
+      notifyRealtimeNotificationSettingChanged(settings.push_enabled)
+    } catch {
+      setToast('알림 설정을 변경하지 못했습니다. 다시 시도해주세요.')
+    } finally {
+      setIsNotificationSettingSaving(false)
+    }
+  }
 
   const closeModal = () => {
     if (isSubmitting) return
@@ -67,11 +106,16 @@ export function SettingsPage() {
           <h2 id="notification-settings-title">알림 설정</h2>
           <div className="settings-row">
             <div>
-              <strong>푸시 알림</strong>
-              <small>서비스 준비 중이에요.</small>
+              <strong>알림 받기</strong>
             </div>
-            <label className="settings-toggle settings-toggle--disabled">
-              <input type="checkbox" disabled aria-label="푸시 알림 준비 중" />
+            <label className="settings-toggle">
+              <input
+                type="checkbox"
+                checked={pushEnabled}
+                disabled={isNotificationSettingLoading || isNotificationSettingSaving}
+                aria-label="알림 받기"
+                onChange={(event) => void handleNotificationSettingChange(event.target.checked)}
+              />
               <span aria-hidden="true" />
             </label>
           </div>

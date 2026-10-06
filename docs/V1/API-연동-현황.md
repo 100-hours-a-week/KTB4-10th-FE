@@ -30,7 +30,7 @@
 | 현재 지도 영역의 콘텐츠를 본다 | GET | `/map/contents` | `/map` | bounds·zoom·limit로 콘텐츠/클러스터를 요청하고 마커·바텀시트로 표시한다. | `map.test.ts`, `MapPage.test.tsx` |
 | 장소를 관심 목록에 추가한다 | PUT | `/members/me/favorites/{contentId}` | 지도 바텀시트 | CSRF 요청 후 현재 카드와 마커의 관심 상태를 갱신한다. | `favorites.test.ts` |
 | 장소 관심을 해제한다 | DELETE | `/members/me/favorites/{contentId}` | 지도 바텀시트 | CSRF 요청 후 관심 상태를 해제한다. | `favorites.test.ts` |
-| 푸시 수신 의사를 변경한다 | PATCH | `/members/me/settings` | 지도 알림 권한 안내 | Web Push 자체가 아니라 회원의 `push_enabled` 설정만 저장한다. | `MapPage.test.tsx` |
+| 실시간 알림 수신 의사를 변경한다 | PATCH | `/members/me/settings` | 지도 알림 권한 안내·설정 페이지 | `push_enabled` 변경 직후 전역 SSE 연결을 열거나 닫는다. DB 알림 저장은 유지한다. | `MapPage.test.tsx`, `SettingsPage.test.tsx` |
 | 실시간 알림 수신 설정을 확인한다 | GET | `/members/me/settings` | 전역 `NotificationCenter` | `push_enabled=true`인 ACTIVE 회원만 SSE 연결을 연다. | `memberSettings.test.ts` |
 
 지도 조회는 동일한 bounds·zoom 요청을 탭 메모리에서 5분간 최대 30개 보관하고, 진행 중인 같은 요청을 합친다. 서버 상태 캐시 라이브러리는 사용하지 않는다.

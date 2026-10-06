@@ -31,6 +31,22 @@ function guidebookId(notification: Notification): number | null {
   return Number.isSafeInteger(value) && value > 0 ? value : null
 }
 
+function notificationToastMessage(notification: Notification): string {
+  if (notification.type !== 'GUIDEBOOK_COMPLETED') {
+    return `${notification.title} ${notification.body}`
+  }
+
+  const quotedGuidebookTitle = notification.body.match(/'([^']+)'/)?.[1]?.trim()
+  const destinationName = quotedGuidebookTitle
+    ?.replace(/\s*여행\s*가이드북$/, '')
+    .replace(/\s*가이드북$/, '')
+    .trim()
+
+  return destinationName
+    ? `'${destinationName}' 여행 가이드북 생성 완료!`
+    : '여행 가이드북 생성 완료!'
+}
+
 export function NotificationCenter() {
   const navigate = useNavigate()
   const { member, job } = useGeneration()
@@ -159,7 +175,7 @@ export function NotificationCenter() {
 
   if (!currentNotification) return null
   const targetGuidebookId = guidebookId(currentNotification)
-  const toastMessage = `${currentNotification.title} ${currentNotification.body}`
+  const toastMessage = notificationToastMessage(currentNotification)
 
   return (
     <Toast
