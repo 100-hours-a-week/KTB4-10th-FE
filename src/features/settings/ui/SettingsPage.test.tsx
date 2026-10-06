@@ -55,7 +55,9 @@ describe('SettingsPage', () => {
     getMemberSettingsMock.mockResolvedValue({ language_code: 'ko', push_enabled: true })
     renderPage()
 
-    expect(await screen.findByRole('checkbox', { name: '알림 받기' })).toBeChecked()
+    const toggle = await screen.findByRole('checkbox', { name: '알림 받기' })
+    expect(toggle).toBeChecked()
+    expect(toggle.closest('label')).not.toHaveClass('settings-toggle--interactive')
     expect(screen.queryByText('서비스 준비 중이에요.')).not.toBeInTheDocument()
   })
 
@@ -68,6 +70,7 @@ describe('SettingsPage', () => {
     await user.click(toggle)
 
     await waitFor(() => expect(updatePushEnabledMock).toHaveBeenCalledWith(true))
+    expect(toggle.closest('label')).toHaveClass('settings-toggle--interactive')
     expect(notifyRealtimeNotificationSettingChangedMock).toHaveBeenCalledWith(true)
     expect(toggle).toBeChecked()
   })

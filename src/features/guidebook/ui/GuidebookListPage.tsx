@@ -66,7 +66,7 @@ export function GuidebookListPage() {
     })
     const timer = window.setTimeout(() => {
       navigate(location.pathname, { replace: true, state: null })
-    }, 1800)
+    }, 320)
     return () => window.clearTimeout(timer)
   }, [data?.items, location.pathname, navigate, requestedHighlightId])
 

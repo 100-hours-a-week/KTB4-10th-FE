@@ -116,7 +116,7 @@ describe('전역 SSE 알림 센터', () => {
     })))
 
     expect(await screen.findByRole('status', {
-      name: "'경주' 여행 가이드북 생성 완료!",
+      name: '경주 여행 가이드북 생성 완료!',
     })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '가이드북 보기' })).toBeInTheDocument()
   })

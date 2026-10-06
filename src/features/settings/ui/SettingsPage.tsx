@@ -24,6 +24,8 @@ export function SettingsPage() {
   const [pushEnabled, setPushEnabled] = useState(false)
   const [isNotificationSettingLoading, setIsNotificationSettingLoading] = useState(true)
   const [isNotificationSettingSaving, setIsNotificationSettingSaving] = useState(false)
+  const [hasInteractedWithNotificationSetting, setHasInteractedWithNotificationSetting] =
+    useState(false)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -108,13 +110,20 @@ export function SettingsPage() {
             <div>
               <strong>알림 받기</strong>
             </div>
-            <label className="settings-toggle">
+            <label
+              className={`settings-toggle${hasInteractedWithNotificationSetting
+                ? ' settings-toggle--interactive'
+                : ''}`}
+            >
               <input
                 type="checkbox"
                 checked={pushEnabled}
                 disabled={isNotificationSettingLoading || isNotificationSettingSaving}
                 aria-label="알림 받기"
-                onChange={(event) => void handleNotificationSettingChange(event.target.checked)}
+                onChange={(event) => {
+                  setHasInteractedWithNotificationSetting(true)
+                  void handleNotificationSettingChange(event.target.checked)
+                }}
               />
               <span aria-hidden="true" />
             </label>

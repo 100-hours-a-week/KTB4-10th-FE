@@ -43,7 +43,7 @@ function notificationToastMessage(notification: Notification): string {
     .trim()
 
   return destinationName
-    ? `'${destinationName}' 여행 가이드북 생성 완료!`
+    ? `${destinationName} 여행 가이드북 생성 완료!`
     : '여행 가이드북 생성 완료!'
 }
 

@@ -97,7 +97,6 @@
   border-radius: 999px;
   background: #d7d7dc;
   cursor: pointer;
-  transition: background-color 160ms ease;
 }
 
 .settings-toggle > span::after {
@@ -110,6 +109,13 @@
   background: #fff;
   box-shadow: 0 1px 4px rgb(0 0 0 / 18%);
   content: '';
+}
+
+.settings-toggle--interactive > span {
+  transition: background-color 160ms ease;
+}
+
+.settings-toggle--interactive > span::after {
   transition: transform 160ms ease;
 }
 
