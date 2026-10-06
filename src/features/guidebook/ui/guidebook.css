@@ -1,4 +1,4 @@
-.book-page { min-height: 100dvh; padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
+.book-page { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
 .book-back { display: grid; place-items: center; width: 26px; height: 36px; font-size: 30px; text-decoration: none; color: inherit; }
 .book-create-link {
   display: grid;
@@ -19,7 +19,6 @@
 .book-create-link:focus-visible { outline: 3px solid #b8b8bd; outline-offset: 2px; }
 .book-content { padding: 20px 16px; }
 .book-list-page { padding-bottom: calc(98px + env(safe-area-inset-bottom)); }
-.book-list-page .bottom-navigation { position: fixed; width: min(100%, 390px); margin: auto; }
 .book-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 12px; }
 .book-card { display: flex; gap: 8px; align-items: center; padding: 16px 12px; border: 1px solid #ededf0; border-radius: 14px; background: #fff; }
 .book-card--highlighted { border-color: #b76e42; animation: book-card-highlight 320ms ease-in-out; }
