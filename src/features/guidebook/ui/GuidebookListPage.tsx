@@ -27,8 +27,10 @@ export function GuidebookListPage() {
   const completedId = job?.status === 'COMPLETED' ? job.guidebook_id : null
   const [creditBalance, setCreditBalance] = useState<number | null>(null)
   const cardElements = useRef(new Map<number, HTMLLIElement>())
+  const stateHighlightId = (location.state as { highlightGuidebookId?: unknown } | null)
+    ?.highlightGuidebookId
   const requestedHighlightId = Number(
-    (location.state as { highlightGuidebookId?: unknown } | null)?.highlightGuidebookId,
+    stateHighlightId ?? new URLSearchParams(location.search).get('highlightGuidebookId'),
   )
 
   useEffect(() => {
@@ -65,10 +67,15 @@ export function GuidebookListPage() {
       block: 'center',
     })
     const timer = window.setTimeout(() => {
-      navigate(location.pathname, { replace: true, state: null })
+      const query = new URLSearchParams(location.search)
+      query.delete('highlightGuidebookId')
+      navigate({
+        pathname: location.pathname,
+        search: query.size > 0 ? `?${query.toString()}` : '',
+      }, { replace: true, state: null })
     }, 320)
     return () => window.clearTimeout(timer)
-  }, [data?.items, location.pathname, navigate, requestedHighlightId])
+  }, [data?.items, location.pathname, location.search, navigate, requestedHighlightId])
 
   async function more() {
     if (!data?.next_cursor || loadLock.current) return
