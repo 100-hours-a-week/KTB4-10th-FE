@@ -145,6 +145,19 @@ describe('가이드북 화면', () => {
       .toHaveClass('book-card--highlighted')
   })
 
+  it('Web Push로 이동하면 query의 대상 가이드북 카드를 잠시 강조한다', async () => {
+    const book = { guidebook_id: 10, title: '경주 여행', start_date: '2026-10-01', end_date: '2026-10-03', companion: 'FRIEND' }
+    listBooks.mockResolvedValue({ items: [book], next_cursor: null, has_more: false })
+    render(
+      <MemoryRouter initialEntries={['/guidebooks?highlightGuidebookId=10']}>
+        <GuidebookListPage />
+      </MemoryRouter>,
+    )
+
+    expect((await screen.findByText('경주 여행')).closest('li'))
+      .toHaveClass('book-card--highlighted')
+  })
+
   it('뷰어는 전체 화면에서 내부 스크립트와 탭 감지를 지원한다', async () => {
     const html = '<!doctype html><html><head><style>h1{color:red}</style></head><body><h1>여행</h1><table><tr><td>일정</td></tr></table></body></html>'
     getViewer.mockResolvedValue({ guidebook_id: 10, content_html: html, version: 1, updated_at: '2026-09-29T00:00:00Z' })
