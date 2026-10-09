@@ -10,12 +10,14 @@ const {
   notifyRealtimeNotificationSettingChangedMock,
   updatePushEnabledMock,
   withdrawMemberMock,
+  enableWebPushMock,
 } = vi.hoisted(() => ({
   getMemberSettingsMock: vi.fn(),
   logoutMock: vi.fn(),
   notifyRealtimeNotificationSettingChangedMock: vi.fn(),
   updatePushEnabledMock: vi.fn(),
   withdrawMemberMock: vi.fn(),
+  enableWebPushMock: vi.fn(),
 }))
 
 vi.mock('../api/settings.ts', () => ({
@@ -28,6 +30,10 @@ vi.mock('../../member/api/memberSettings.ts', () => ({
 }))
 vi.mock('../../notification/model/events.ts', () => ({
   notifyRealtimeNotificationSettingChanged: notifyRealtimeNotificationSettingChangedMock,
+}))
+vi.mock('../../notification/model/webPush.ts', () => ({
+  enableWebPush: enableWebPushMock,
+  webPushErrorMessage: (error: unknown) => error instanceof Error ? error.message : '알림 오류',
 }))
 
 function renderPage() {
@@ -49,6 +55,7 @@ describe('SettingsPage', () => {
     withdrawMemberMock.mockResolvedValue(undefined)
     getMemberSettingsMock.mockResolvedValue({ language_code: 'ko', push_enabled: false })
     updatePushEnabledMock.mockResolvedValue({ language_code: 'ko', push_enabled: true })
+    enableWebPushMock.mockResolvedValue(undefined)
   })
 
   it('저장된 실시간 알림 설정을 조회해 알림 받기 토글에 반영한다', async () => {
@@ -70,6 +77,7 @@ describe('SettingsPage', () => {
     await user.click(toggle)
 
     await waitFor(() => expect(updatePushEnabledMock).toHaveBeenCalledWith(true))
+    expect(enableWebPushMock).toHaveBeenCalledOnce()
     expect(toggle.closest('label')).toHaveClass('settings-toggle--interactive')
     expect(notifyRealtimeNotificationSettingChangedMock).toHaveBeenCalledWith(true)
     expect(toggle).toBeChecked()

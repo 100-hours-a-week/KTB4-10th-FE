@@ -20,8 +20,8 @@
 | 선택 가능한 취향을 본다 | GET | `/preference-options` | `/preferences` | 유형·부모 코드·정렬 순서로 선택지를 구성한다. | `PreferenceSelectionPage.test.tsx` |
 | 저장한 취향을 본다 | GET | `/members/me/preferences` | 첫 진입 판단, 취향 수정 | 선택값 유무로 온보딩/수정 흐름을 구분한다. | `PreferenceSelectionPage.test.tsx` |
 | 취향을 전체 저장한다 | PUT | `/members/me/preferences` | `/preferences` | 전체 선택을 저장하고 응답 상태가 `ACTIVE`면 지도 또는 복귀 경로로 이동한다. | `App.test.tsx`, `PreferenceSelectionPage.test.tsx` |
-| 로그아웃한다 | POST | `/auth/logout` | `/mypage/settings` | 세션·CSRF·회원 메모리 상태를 비우고 로그인 화면으로 이동한다. | `SettingsPage.test.tsx` |
-| 회원을 탈퇴한다 | DELETE | `/members/me` | `/mypage/settings` | 확인 문구 검증 후 탈퇴하고 클라이언트 인증 상태를 비운다. | `SettingsPage.test.tsx` |
+| 로그아웃한다 | POST | `/auth/logout` | `/mypage/settings` | 현재 브라우저의 Web Push 구독을 해제한 뒤 세션·CSRF·회원 메모리 상태를 비우고 로그인 화면으로 이동한다. | `settings.test.ts`, `SettingsPage.test.tsx` |
+| 회원을 탈퇴한다 | DELETE | `/members/me` | `/mypage/settings` | 현재 브라우저의 Web Push 구독을 해제하고 확인 문구 검증 후 탈퇴한다. | `SettingsPage.test.tsx` |
 
 ## 2. 지도·관심 장소·설정
 
@@ -30,8 +30,11 @@
 | 현재 지도 영역의 콘텐츠를 본다 | GET | `/map/contents` | `/map` | bounds·zoom·limit로 콘텐츠/클러스터를 요청하고 마커·바텀시트로 표시한다. | `map.test.ts`, `MapPage.test.tsx` |
 | 장소를 관심 목록에 추가한다 | PUT | `/members/me/favorites/{contentId}` | 지도 바텀시트 | CSRF 요청 후 현재 카드와 마커의 관심 상태를 갱신한다. | `favorites.test.ts` |
 | 장소 관심을 해제한다 | DELETE | `/members/me/favorites/{contentId}` | 지도 바텀시트 | CSRF 요청 후 관심 상태를 해제한다. | `favorites.test.ts` |
-| 실시간 알림 수신 의사를 변경한다 | PATCH | `/members/me/settings` | 지도 알림 권한 안내·설정 페이지 | `push_enabled` 변경 직후 전역 SSE 연결을 열거나 닫는다. DB 알림 저장은 유지한다. | `MapPage.test.tsx`, `SettingsPage.test.tsx` |
-| 실시간 알림 수신 설정을 확인한다 | GET | `/members/me/settings` | 전역 `NotificationCenter` | `push_enabled=true`인 ACTIVE 회원만 SSE 연결을 연다. | `memberSettings.test.ts` |
+| 실시간 알림 수신 의사를 변경한다 | PATCH | `/members/me/settings` | 지도 알림 권한 안내·설정 페이지 | ON이면 사용자 동의로 Web Push 구독을 등록한 뒤 SSE를 열고, OFF이면 능동 전달을 닫는다. DB 알림 저장은 유지한다. | `MapPage.test.tsx`, `SettingsPage.test.tsx`, `webPush.test.ts` |
+| 실시간 알림 수신 설정을 확인한다 | GET | `/members/me/settings` | 전역 `NotificationCenter` | `push_enabled=true`인 ACTIVE 회원만 SSE를 열고, 이미 허용된 브라우저 구독을 현재 회원으로 복구한다. 자동 권한 요청은 하지 않는다. | `memberSettings.test.ts`, `NotificationCenter.test.tsx` |
+| VAPID 공개키를 조회한다 | GET | `/push/vapid-public-key` | Web Push 구독 모듈 | 새 브라우저 구독을 만들 때만 공개키를 조회한다. 개인키는 FE에서 취급하지 않는다. | `pushSubscriptions.test.ts`, `webPush.test.ts` |
+| 현재 브라우저 Push 구독을 등록한다 | PUT | `/members/me/push-subscriptions` | Web Push 구독 모듈 | endpoint·expiration time·p256dh·auth를 CSRF 보호 요청으로 저장하고 기존 구독은 재사용한다. | `pushSubscriptions.test.ts`, `webPush.test.ts` |
+| 현재 브라우저 Push 구독을 해제한다 | DELETE | `/members/me/push-subscriptions/{subscriptionId}` | 로그아웃·탈퇴 | 서비스 세션 종료 전에 서버 구독을 해제하고 브라우저에서도 unsubscribe한다. | `pushSubscriptions.test.ts`, `webPush.test.ts`, `settings.test.ts` |
 
 지도 조회는 동일한 bounds·zoom 요청을 탭 메모리에서 5분간 최대 30개 보관하고, 진행 중인 같은 요청을 합친다. 서버 상태 캐시 라이브러리는 사용하지 않는다.
 
@@ -70,5 +73,6 @@
 ## 현재 연동하지 않는 V1 서버 기능
 
 - 정책 목록 API는 현재 FE가 직접 호출하지 않는다.
-- 평가·랭킹 API와 닫힌 웹앱용 Web Push는 V1 현재 화면에 연결하지 않았다.
+- 평가·랭킹 API는 V1 현재 화면에 연결하지 않았다.
+- Web Push 구독·수신 기반은 연결했으며 실제 알림 수신 E2E는 BE 발송 구현과 VAPID 배포 설정 후 확인한다.
 - DB 테이블과 migration은 FE 구현 문서 범위가 아니며 BE 저장소 문서를 따른다.

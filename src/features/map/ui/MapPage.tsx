@@ -12,6 +12,7 @@ import {
 import { removeFavorite, saveFavorite } from '../api/favorites.ts'
 import { updatePushEnabled } from '../../member/api/memberSettings.ts'
 import { notifyRealtimeNotificationSettingChanged } from '../../notification/model/events.ts'
+import { enableWebPush, webPushErrorMessage } from '../../notification/model/webPush.ts'
 import type { KakaoMap } from '../lib/kakaoMaps.ts'
 import { KakaoMapCanvas } from './KakaoMapCanvas.tsx'
 import { PermissionModal } from './PermissionModal.tsx'
@@ -226,15 +227,14 @@ export function MapPage() {
     localStorage.setItem(NOTIFICATION_PROMPT_KEY, 'true')
     setPermissionStep(null)
 
-    let enabled = false
-    if (allow && 'Notification' in window) {
-      enabled = (await Notification.requestPermission()) === 'granted'
-    }
     try {
-      const settings = await updatePushEnabled(enabled)
+      if (allow) await enableWebPush()
+      const settings = await updatePushEnabled(allow)
       notifyRealtimeNotificationSettingChanged(settings.push_enabled)
-    } catch {
-      setToast('알림 설정은 마이페이지에서 다시 변경할 수 있어요.')
+    } catch (error) {
+      setToast(allow
+        ? webPushErrorMessage(error)
+        : '알림 설정은 마이페이지에서 다시 변경할 수 있어요.')
     }
   }
 
@@ -487,7 +487,7 @@ export function MapPage() {
       {permissionStep === 'notification' && (
         <PermissionModal
           title="여행 알림을 받아볼까요?"
-          description="가이드북 생성 완료와 여행 일정 안내를 받을 수 있어요. 실제 웹 푸시 발송은 후속 버전에서 연결됩니다."
+          description="가이드북 생성 완료와 여행 일정 안내를 받을 수 있어요."
           confirmLabel="알림 허용"
           cancelLabel="허용 안 함"
           onConfirm={() => void finishNotification(true)}

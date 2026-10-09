@@ -9,11 +9,13 @@ const {
   removeFavoriteMock,
   saveFavoriteMock,
   updatePushEnabledMock,
+  enableWebPushMock,
 } = vi.hoisted(() => ({
   getMapContentsMock: vi.fn(),
   removeFavoriteMock: vi.fn(),
   saveFavoriteMock: vi.fn(),
   updatePushEnabledMock: vi.fn(),
+  enableWebPushMock: vi.fn(),
 }))
 
 vi.mock('../api/map.ts', () => ({
@@ -24,6 +26,11 @@ vi.mock('../api/map.ts', () => ({
 
 vi.mock('../../member/api/memberSettings.ts', () => ({
   updatePushEnabled: updatePushEnabledMock,
+}))
+
+vi.mock('../../notification/model/webPush.ts', () => ({
+  enableWebPush: enableWebPushMock,
+  webPushErrorMessage: (error: unknown) => error instanceof Error ? error.message : '알림 오류',
 }))
 
 vi.mock('../api/favorites.ts', () => ({
@@ -85,6 +92,7 @@ describe('MapPage', () => {
     removeFavoriteMock.mockResolvedValue(undefined)
     saveFavoriteMock.mockResolvedValue({ content_id: 'place-1', is_favorite: true })
     updatePushEnabledMock.mockResolvedValue({ language_code: 'ko', push_enabled: false })
+    enableWebPushMock.mockResolvedValue(undefined)
   })
 
   afterEach(() => {
