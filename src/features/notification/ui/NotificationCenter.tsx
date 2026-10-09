@@ -17,6 +17,7 @@ import {
   REALTIME_NOTIFICATION_SETTING_CHANGED_EVENT,
   type RealtimeNotificationSettingChangedDetail,
 } from '../model/events.ts'
+import { restoreWebPushSubscription } from '../model/webPush.ts'
 
 const NOTIFICATION_EVENT_NAME = 'notification'
 const CONNECTED_EVENT_NAME = 'connected'
@@ -100,6 +101,10 @@ export function NotificationCenter() {
     void getMemberSettings(controller.signal).then((settings) => {
       if (!controller.signal.aborted && settingsRequestRevision.current === revision) {
         setRealtimeEnabled(settings.push_enabled)
+        if (settings.push_enabled) {
+          // 이미 허용된 브라우저만 현재 회원으로 재등록하며 권한 창은 자동으로 열지 않습니다.
+          void restoreWebPushSubscription().catch(() => undefined)
+        }
       }
     }).catch(() => {
       if (!controller.signal.aborted && settingsRequestRevision.current === revision) {

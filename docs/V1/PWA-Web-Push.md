@@ -9,6 +9,8 @@ V1 FE는 표준 Web Push를 받을 수 있는 최소 PWA 기반을 구성한다.
 - HTTPS 또는 localhost에서 Service Worker 등록
 - Push 이벤트를 시스템 알림으로 표시
 - 가이드북 생성 완료 알림 클릭 시 목록으로 이동하고 대상 카드 강조
+- 사용자 동의 시 브라우저 Push 구독을 생성하고 현재 회원·세션으로 등록
+- 로그아웃·탈퇴 시 현재 브라우저 구독 해제
 
 이 단계에서 Service Worker는 `fetch` 이벤트를 사용하거나 정적 파일을 캐시하지 않는다. 따라서 기존 S3·CloudFront 배포와 브라우저 캐시 전략을 가로채지 않는다.
 
@@ -52,9 +54,19 @@ Service Worker는 다음 필드를 사용한다.
 - 기타 알림은 `/mypage/notifications`로 이동한다.
 - 이동 경로는 현재 origin 안으로 제한해 외부 URL 주입을 막는다.
 
-BE의 실제 Push 발송 payload는 발송 구현 Issue에서 이 계약과 맞춘다. FE의 VAPID 공개키 조회·`PushManager.subscribe()`·구독 등록 API 연동은 BE PR #181 병합 후 후속 작업으로 진행한다.
+BE의 실제 Push 발송 payload는 발송 구현 Issue에서 이 계약과 맞춘다.
 
-## 5. iOS·iPadOS 사용 조건
+## 5. 권한과 구독 수명주기
+
+- 페이지 진입만으로 권한을 요청하지 않는다. 지도 최초 안내의 **알림 허용** 또는 설정의 **알림 받기**를 사용자가 직접 선택한 시점에만 요청한다.
+- FE는 `GET /push/vapid-public-key`로 공개키만 조회한다. VAPID 개인키는 BE 배포 Secret에만 두며 FE 환경변수·번들·저장소에 넣지 않는다.
+- 기존 `PushSubscription`이 있으면 재사용하고, 없을 때만 `pushManager.subscribe()`를 호출한다.
+- 구독 정보는 `PUT /members/me/push-subscriptions`로 현재 회원·세션에 등록한다. 서버가 반환한 구독 ID만 로그아웃 정리를 위해 브라우저 저장소에 보관하고 endpoint·암호화 키는 별도로 복제하지 않는다.
+- `push_enabled=false`는 SSE와 Web Push 발송을 중단하지만 DB 알림 저장과 브라우저 권한은 유지한다.
+- 로그아웃·탈퇴 전에 현재 브라우저의 서버 구독을 해제하고 `PushSubscription.unsubscribe()`를 호출한다. 서버 로그아웃도 현재 세션 구독을 폐기해 FE 정리 실패를 보완한다.
+- 재로그인 시 `push_enabled=true`이고 브라우저 권한이 이미 `granted`이면 권한 창 없이 현재 회원으로 다시 등록한다. `default` 또는 `denied`이면 자동 요청하지 않는다.
+
+## 6. iOS·iPadOS 사용 조건
 
 iOS·iPadOS 16.4 이상에서 Web Push를 받으려면 사용자가 KGB를 홈 화면에 추가한 뒤 홈 화면 아이콘으로 실행해야 한다. 브라우저 탭에서만 접속한 상태와 동작이 다르다.
 
@@ -65,7 +77,7 @@ iOS·iPadOS 16.4 이상에서 Web Push를 받으려면 사용자가 KGB를 홈 �
 
 권한이 거절된 경우 매번 재요청하지 않고 iOS `설정 → 알림 → KGB`에서 변경하도록 안내한다. Apple의 UserNotifications 문서가 Apple 개발자 사이트에 있어도 이 웹 앱 구성은 Swift를 사용하지 않고 Manifest·Push API·Notifications API·Service Worker 표준으로 구현한다.
 
-## 6. 배포 확인
+## 7. 배포 확인
 
 - `/manifest.webmanifest` 응답의 Content-Type과 200 상태
 - `/service-worker.js` 응답의 JavaScript Content-Type, 200 상태와 `/` scope
@@ -73,3 +85,6 @@ iOS·iPadOS 16.4 이상에서 Web Push를 받으려면 사용자가 KGB를 홈 �
 - Chrome Application 패널의 Manifest·Service Workers 상태
 - iOS 홈 화면 아이콘 실행 시 standalone 표시
 - 일반 브라우저와 Service Worker 비지원 환경에서 기존 기능 회귀 확인
+- Chrome·Edge의 권한 허용 → 구독 등록 → 로그아웃 구독 해제
+- macOS Safari와 iOS 16.4+ 홈 화면 앱의 구독·수신 확인
+- 실제 Push 수신은 BE 발송 구현과 VAPID 배포 설정을 포함해 확인

@@ -16,6 +16,7 @@ const {
   parseNotificationEvent,
   state,
   stream,
+  restoreWebPushSubscription,
 } = vi.hoisted(() => {
   const eventTarget = new EventTarget() as EventSource
   return {
@@ -30,6 +31,7 @@ const {
       job: { job_id: 31, status: 'PROCESSING', guidebook_id: null as number | null },
     },
     stream: eventTarget,
+    restoreWebPushSubscription: vi.fn(),
   }
 })
 
@@ -41,6 +43,7 @@ vi.mock('../api/notifications.ts', () => ({
   parseNotificationEvent,
 }))
 vi.mock('../../member/api/memberSettings.ts', () => ({ getMemberSettings }))
+vi.mock('../model/webPush.ts', () => ({ restoreWebPushSubscription }))
 vi.mock('../../guidebook/model/generation.ts', () => ({ useGeneration: () => state }))
 
 const notification = {
@@ -75,6 +78,7 @@ describe('전역 SSE 알림 센터', () => {
     getMemberSettings.mockResolvedValue({ language_code: 'ko', push_enabled: true })
     getNotifications.mockResolvedValue({ items: [], unread_count: 0 })
     deleteNotification.mockResolvedValue(undefined)
+    restoreWebPushSubscription.mockResolvedValue(true)
   })
 
   it('앱 전역에서 실시간 알림 설정이 켜진 ACTIVE 회원만 한 번 연결한다', async () => {
@@ -82,6 +86,7 @@ describe('전역 SSE 알림 센터', () => {
 
     await waitFor(() => expect(openNotificationStream).toHaveBeenCalledOnce())
     expect(getMemberSettings).toHaveBeenCalledOnce()
+    expect(restoreWebPushSubscription).toHaveBeenCalledOnce()
   })
 
   it('실시간 알림 설정이 꺼진 회원은 새 연결을 만들지 않는다', async () => {

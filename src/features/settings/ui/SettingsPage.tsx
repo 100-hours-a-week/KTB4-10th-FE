@@ -7,6 +7,7 @@ import {
   updatePushEnabled,
 } from '../../member/api/memberSettings.ts'
 import { notifyRealtimeNotificationSettingChanged } from '../../notification/model/events.ts'
+import { enableWebPush, webPushErrorMessage } from '../../notification/model/webPush.ts'
 import { logout, withdrawMember } from '../api/settings.ts'
 import './settings-page.css'
 
@@ -48,11 +49,12 @@ export function SettingsPage() {
     if (isNotificationSettingLoading || isNotificationSettingSaving) return
     setIsNotificationSettingSaving(true)
     try {
+      if (enabled) await enableWebPush()
       const settings = await updatePushEnabled(enabled)
       setPushEnabled(settings.push_enabled)
       notifyRealtimeNotificationSettingChanged(settings.push_enabled)
-    } catch {
-      setToast('알림 설정을 변경하지 못했습니다. 다시 시도해주세요.')
+    } catch (error) {
+      setToast(webPushErrorMessage(error))
     } finally {
       setIsNotificationSettingSaving(false)
     }
