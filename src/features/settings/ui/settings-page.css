@@ -76,6 +76,52 @@
   font-size: 11px;
 }
 
+.settings-row > .settings-notification-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.settings-notification-help-button {
+  display: inline-grid;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  place-items: center;
+  margin: -7px 0;
+  padding: 7px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+
+.settings-notification-help-button img {
+  display: block;
+  width: 18px;
+  height: 18px;
+  opacity: 0.62;
+}
+
+.settings-notification-help-button:hover,
+.settings-notification-help-button:focus-visible {
+  background: #f0f0f3;
+}
+
+.settings-notification-help-button:hover img,
+.settings-notification-help-button:focus-visible img {
+  opacity: 0.9;
+}
+
+.settings-notification-help-button:focus-visible {
+  outline: 2px solid #242427;
+  outline-offset: 1px;
+}
+
+.settings-notification-help-button:active {
+  transform: scale(0.92);
+}
+
 .settings-toggle {
   position: relative;
   display: inline-flex;
@@ -195,6 +241,59 @@
   text-align: left;
 }
 
+.settings-modal--notification-help {
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
+  text-align: left;
+}
+
+.settings-modal--notification-help h2 {
+  padding-bottom: 16px;
+  text-align: center;
+}
+
+.settings-notification-guide {
+  display: grid;
+  gap: 18px;
+  padding: 0 22px 24px;
+  color: #56565d;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.settings-notification-guide > p {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #f5f5f7;
+}
+
+.settings-notification-guide section {
+  display: grid;
+  gap: 6px;
+}
+
+.settings-notification-guide h3,
+.settings-notification-guide ol {
+  margin: 0;
+}
+
+.settings-notification-guide h3 {
+  color: #242427;
+  font-size: 14px;
+}
+
+.settings-notification-guide ol {
+  display: grid;
+  gap: 5px;
+  padding-left: 20px;
+}
+
+.settings-notification-guide strong {
+  color: #343439;
+  font-weight: 700;
+}
+
 .settings-modal--withdrawal h2 {
   padding-bottom: 12px;
   text-align: center;
@@ -302,4 +401,16 @@
 
 .settings-modal__actions .settings-modal__danger:not(:disabled) {
   color: #a53c35;
+}
+
+.settings-modal__actions--confirm {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 12px;
+}
+
+.settings-modal__actions--confirm button {
+  min-width: 72px;
+  border: 0;
+  color: #242427;
 }

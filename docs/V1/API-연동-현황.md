@@ -59,6 +59,7 @@
 | 프로필과 미읽은 알림 수를 본다 | GET | `/members/me` | `/mypage` | 프로필, 이메일과 알림 badge를 표시한다. | `MyPage.test.tsx` |
 | 알림 목록을 본다 | GET | `/notifications?page=1&size=20` | `/mypage/notifications`, 전역 완료 감지 | 최신 20개와 미읽음 수를 표시·동기화한다. | `NotificationPage.test.tsx`, `NotificationCenter.test.tsx` |
 | 열린 웹앱에서 새 알림을 받는다 | GET (SSE) | `/notifications/stream` | 전역 `NotificationCenter` | 앱에서 하나의 EventSource만 유지한다. `connected`와 재연결은 목록·배지만 복구하고, 새 `notification` 이벤트에만 토스트를 표시한다. | `NotificationCenter.test.tsx`, `notifications.test.ts` |
+| 백그라운드·종료 상태에서 가이드북 완료 알림을 받는다 | Web Push | BE 내부 전송 | Service Worker | 최소 payload를 검증해 시스템 알림을 표시하고 클릭 시 기존 창 또는 새 창으로 가이드북 목록의 대상 카드를 연다. | `serviceWorkerScript.test.ts` |
 | 알림 하나를 삭제한다 | DELETE | `/notifications/{notificationId}` | 알림 swipe 동작 | 요청 중 중복 조작을 막고 성공 시 목록에서 제거한다. | `NotificationPage.test.tsx` |
 | 알림을 모두 삭제한다 | DELETE | `/notifications` | 알림 화면 | 요청 중 버튼을 비활성화하고 성공 시 빈 상태로 전환한다. | `NotificationPage.test.tsx` |
 | 약관·개인정보 처리방침을 본다 | GET | `/policies/{terms|privacy}` | 로그인 화면 정책 modal | Markdown 전문을 modal에 표시한다. | `App.test.tsx` |
@@ -68,11 +69,12 @@
 - SSE는 새 알림을 즉시 알려 주는 보조 채널이며 알림의 원본은 서버 목록 API다.
 - EventSource의 자동 재연결 뒤 과거 알림 토스트를 재생하지 않고 목록을 조회해 배지를 복구한다.
 - 가이드북 완료 토스트를 선택하면 읽음 처리 후 가이드북 목록으로 이동하고 대상 카드를 강조한다.
+- SSE와 Web Push는 `notification_id`를 공통 중복 기준으로 사용한다. SSE 성공 시 BE가 Push를 생략하고, FE도 채널 경합 시 같은 ID를 한 번만 표시한다.
 - `push_enabled=false`, 로그아웃, 탈퇴와 세션 종료에서는 연결을 닫는다.
 
 ## 현재 연동하지 않는 V1 서버 기능
 
 - 정책 목록 API는 현재 FE가 직접 호출하지 않는다.
 - 평가·랭킹 API는 V1 현재 화면에 연결하지 않았다.
-- Web Push 구독·수신 기반은 연결했으며 실제 알림 수신 E2E는 BE 발송 구현과 VAPID 배포 설정 후 확인한다.
+- Web Push 구독·표시·클릭 흐름은 연결했으며 실제 브라우저 수신 E2E는 배포 VAPID 설정과 함께 확인한다.
 - DB 테이블과 migration은 FE 구현 문서 범위가 아니며 BE 저장소 문서를 따른다.

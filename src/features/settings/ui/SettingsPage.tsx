@@ -11,7 +11,12 @@ import { enableWebPush, webPushErrorMessage } from '../../notification/model/web
 import { logout, withdrawMember } from '../api/settings.ts'
 import './settings-page.css'
 
-type SettingsModal = 'logout' | 'withdrawal-notice' | 'withdrawal-confirm' | null
+type SettingsModal =
+  | 'notification-help'
+  | 'logout'
+  | 'withdrawal-notice'
+  | 'withdrawal-confirm'
+  | null
 
 const WITHDRAWAL_CONFIRM_TEXT = '회원 탈퇴'
 
@@ -109,8 +114,16 @@ export function SettingsPage() {
         <section className="settings-section" aria-labelledby="notification-settings-title">
           <h2 id="notification-settings-title">알림 설정</h2>
           <div className="settings-row">
-            <div>
+            <div className="settings-notification-label">
               <strong>알림 받기</strong>
+              <button
+                className="settings-notification-help-button"
+                type="button"
+                aria-label="알림 설정 방법 보기"
+                onClick={() => setModal('notification-help')}
+              >
+                <img src="/assets/settings/info.png" alt="" aria-hidden="true" />
+              </button>
             </div>
             <label
               className={`settings-toggle${hasInteractedWithNotificationSetting
@@ -142,6 +155,42 @@ export function SettingsPage() {
           </div>
         </section>
       </div>
+
+      {modal === 'notification-help' && (
+        <div className="settings-modal-backdrop" role="presentation">
+          <section
+            className="settings-modal settings-modal--notification-help"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="notification-help-title"
+          >
+            <h2 id="notification-help-title">알림 설정 방법</h2>
+            <div className="settings-notification-guide">
+              <p>
+                브라우저의 사이트 알림 권한과 기기의 알림 권한을 모두 허용해야
+                알림을 받을 수 있어요.
+              </p>
+              <section aria-labelledby="ios-notification-guide-title">
+                <h3 id="ios-notification-guide-title">iOS</h3>
+                <ol>
+                  <li>KGB를 홈 화면에 추가해 웹 앱으로 실행해 주세요.</li>
+                  <li><strong>설정 → 알림 → KGB → 알림 허용</strong>을 켜 주세요.</li>
+                </ol>
+              </section>
+              <section aria-labelledby="android-notification-guide-title">
+                <h3 id="android-notification-guide-title">Android</h3>
+                <ol>
+                  <li><strong>설정 → 알림 → 앱 알림</strong>으로 이동해 주세요.</li>
+                  <li>사용하는 브라우저 또는 설치된 KGB 웹 앱의 알림을 허용해 주세요.</li>
+                </ol>
+              </section>
+            </div>
+            <div className="settings-modal__actions settings-modal__actions--confirm">
+              <button type="button" autoFocus onClick={closeModal}>확인</button>
+            </div>
+          </section>
+        </div>
+      )}
 
       {modal === 'logout' && (
         <div className="settings-modal-backdrop" role="presentation">

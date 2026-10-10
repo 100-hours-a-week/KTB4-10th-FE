@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, useLocation } from 'react-router-dom'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   notifyRealtimeNotificationSettingChanged,
   NOTIFICATIONS_UPDATED_EVENT,
@@ -81,6 +81,8 @@ describe('전역 SSE 알림 센터', () => {
     restoreWebPushSubscription.mockResolvedValue(true)
   })
 
+  afterEach(() => vi.unstubAllGlobals())
+
   it('앱 전역에서 실시간 알림 설정이 켜진 ACTIVE 회원만 한 번 연결한다', async () => {
     renderCenter()
 
@@ -124,6 +126,26 @@ describe('전역 SSE 알림 센터', () => {
       name: '경주 여행 가이드북 생성 완료!',
     })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '가이드북 보기' })).toBeInTheDocument()
+  })
+
+  it('Web Push로 먼저 받은 같은 알림 ID의 SSE 토스트는 중복 표시하지 않는다', async () => {
+    const serviceWorker = new EventTarget() as EventTarget & {
+      controller: { postMessage: ReturnType<typeof vi.fn> }
+    }
+    serviceWorker.controller = { postMessage: vi.fn() }
+    vi.stubGlobal('navigator', { serviceWorker })
+    renderCenter()
+    await waitFor(() => expect(openNotificationStream).toHaveBeenCalledOnce())
+
+    act(() => serviceWorker.dispatchEvent(new MessageEvent('message', {
+      data: { type: 'KGB_WEB_PUSH_RECEIVED', notificationId: '51' },
+    })))
+    act(() => stream.dispatchEvent(new MessageEvent('notification', {
+      data: JSON.stringify(notification),
+    })))
+
+    expect(screen.queryByRole('button', { name: '가이드북 보기' })).not.toBeInTheDocument()
+    await waitFor(() => expect(getNotifications).toHaveBeenCalledOnce())
   })
 
   it('토스트를 선택하면 읽음 처리 후 대상 가이드북 정보를 담아 목록으로 이동한다', async () => {
