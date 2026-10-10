@@ -76,36 +76,50 @@
   font-size: 11px;
 }
 
-.settings-notification-help {
+.settings-row > .settings-notification-label {
   display: inline-flex;
-  min-height: 40px;
   align-items: center;
-  gap: 2px;
-  margin: -4px 0 -8px -6px;
-  padding: 4px 6px;
+  gap: 6px;
+}
+
+.settings-notification-help-button {
+  display: inline-grid;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  place-items: center;
+  margin: -7px 0;
+  padding: 7px;
   border: 0;
+  border-radius: 50%;
   background: transparent;
-  color: #6c6c73;
   cursor: pointer;
-  font: inherit;
-  font-size: 13px;
-  text-align: left;
 }
 
-.settings-notification-help:hover,
-.settings-notification-help:focus-visible {
-  color: #242427;
-  text-decoration: underline;
+.settings-notification-help-button img {
+  display: block;
+  width: 18px;
+  height: 18px;
+  opacity: 0.62;
 }
 
-.settings-notification-help:focus-visible {
-  border-radius: 6px;
+.settings-notification-help-button:hover,
+.settings-notification-help-button:focus-visible {
+  background: #f0f0f3;
+}
+
+.settings-notification-help-button:hover img,
+.settings-notification-help-button:focus-visible img {
+  opacity: 0.9;
+}
+
+.settings-notification-help-button:focus-visible {
   outline: 2px solid #242427;
   outline-offset: 1px;
 }
 
-.settings-notification-help:active {
-  opacity: 0.58;
+.settings-notification-help-button:active {
+  transform: scale(0.92);
 }
 
 .settings-toggle {

@@ -103,7 +103,7 @@ describe('SettingsPage', () => {
     renderPage()
 
     await user.click(screen.getByRole('button', {
-      name: '알림을 켰지만 수신되지 않나요?',
+      name: '알림 설정 방법 보기',
     }))
 
     const dialog = screen.getByRole('dialog', { name: '알림 설정 방법' })

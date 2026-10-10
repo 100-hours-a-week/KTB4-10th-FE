@@ -114,15 +114,15 @@ export function SettingsPage() {
         <section className="settings-section" aria-labelledby="notification-settings-title">
           <h2 id="notification-settings-title">알림 설정</h2>
           <div className="settings-row">
-            <div>
+            <div className="settings-notification-label">
               <strong>알림 받기</strong>
               <button
-                className="settings-notification-help"
+                className="settings-notification-help-button"
                 type="button"
+                aria-label="알림 설정 방법 보기"
                 onClick={() => setModal('notification-help')}
               >
-                <span>알림을 켰지만 수신되지 않나요?</span>
-                <span aria-hidden="true">〉</span>
+                <img src="/assets/settings/info.png" alt="" aria-hidden="true" />
               </button>
             </div>
             <label
