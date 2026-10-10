@@ -119,4 +119,8 @@
 .book-viewer-controls.is-visible .book-viewer-close { pointer-events: auto; }
 .book-viewer-close svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
 .book-viewer-close:focus-visible { outline: 3px solid #ffd43b; outline-offset: 3px; }
-@media (prefers-reduced-motion: reduce) { .book-spark--active, .book-card--highlighted { animation: none; } .book-viewer-controls { transition: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .book-spark--active, .book-card--highlighted { animation: none; }
+  .book-card--highlighted { box-shadow: 0 0 0 3px rgb(183 110 66 / 18%); }
+  .book-viewer-controls { transition: none; }
+}

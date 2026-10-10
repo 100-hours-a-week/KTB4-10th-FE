@@ -18,6 +18,10 @@ import {
   type RealtimeNotificationSettingChangedDetail,
 } from '../model/events.ts'
 import { restoreWebPushSubscription } from '../model/webPush.ts'
+import {
+  markServiceWorkerNotificationSeen,
+  parseWebPushReceivedMessage,
+} from '../model/webPushMessages.ts'
 
 const NOTIFICATION_EVENT_NAME = 'notification'
 const CONNECTED_EVENT_NAME = 'connected'
@@ -64,6 +68,22 @@ export function NotificationCenter() {
     const next = await getNotifications(signal)
     if (!signal?.aborted) notifyNotificationsUpdated(next.unread_count)
   }, [])
+
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return undefined
+    const serviceWorker = navigator.serviceWorker
+    const handleWebPushMessage = (event: MessageEvent<unknown>) => {
+      const message = parseWebPushReceivedMessage(event.data)
+      if (!message) return
+      seenNotificationIds.current.add(message.notificationId)
+      setPendingNotifications((current) => current.filter(
+        ({ notification_id: notificationId }) => notificationId !== message.notificationId,
+      ))
+      void syncNotifications().catch(() => undefined)
+    }
+    serviceWorker.addEventListener('message', handleWebPushMessage)
+    return () => serviceWorker.removeEventListener('message', handleWebPushMessage)
+  }, [syncNotifications])
 
   useEffect(() => {
     const handleSettingChanged = (event: Event) => {
@@ -128,6 +148,7 @@ export function NotificationCenter() {
       const notification = parseNotificationEvent((event as MessageEvent<string>).data)
       if (!notification || seenNotificationIds.current.has(notification.notification_id)) return
       seenNotificationIds.current.add(notification.notification_id)
+      markServiceWorkerNotificationSeen(notification.notification_id)
       setPendingNotifications((current) => [...current, notification])
       void syncNotifications(controller.signal).catch(() => undefined)
     }

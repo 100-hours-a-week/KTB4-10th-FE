@@ -41,20 +41,23 @@ Service Worker는 다음 필드를 사용한다.
 
 ```json
 {
-  "notification_id": 101,
-  "title": "KGB",
-  "body": "경주 여행 가이드북 생성 완료!",
+  "notification_id": "301",
+  "type": "GUIDEBOOK_COMPLETED",
   "reference_type": "GUIDEBOOK",
-  "reference_id": 10
+  "reference_id": "101"
 }
 ```
 
+- BE는 식별 필드만 전송하고 Service Worker가 `가이드북 생성 완료` 제목과 최소 안내 문구를 구성한다. 알림 원문이나 구독 키를 Push payload에 복제하지 않는다.
+- 네 필드가 모두 유효한 `GUIDEBOOK_COMPLETED`만 표시하며 잘못되거나 이전 형식인 payload는 무시한다.
 - `GUIDEBOOK`은 `/guidebooks?highlightGuidebookId={reference_id}`로 이동한다.
 - 가이드북 목록은 query를 읽어 대상 카드를 잠시 강조한 뒤 query를 제거한다.
-- 기타 알림은 `/mypage/notifications`로 이동한다.
+- 열린 동일 origin 창이 있으면 그 창을 이동·포커스하고, 없을 때만 새 창을 연다.
 - 이동 경로는 현재 origin 안으로 제한해 외부 URL 주입을 막는다.
+- 같은 `notification_id`가 SSE와 Web Push로 경합하면 페이지와 Service Worker가 ID를 공유해 두 채널의 중복 UX를 억제한다. 이미 표시된 시스템 알림도 같은 tag로 다시 만들지 않는다.
+- `prefers-reduced-motion: reduce` 환경은 흔들림 없이 테두리와 그림자로 대상 카드를 식별한다.
 
-BE의 실제 Push 발송 payload는 발송 구현 Issue에서 이 계약과 맞춘다.
+BE PR #184의 실제 Push payload와 이 계약을 맞춘다. BE는 하나 이상의 SSE 전송이 성공하면 Web Push를 생략하고, SSE 연결이 없거나 전송이 실패할 때 Web Push로 fallback한다.
 
 ## 5. 권한과 구독 수명주기
 
@@ -87,4 +90,6 @@ iOS·iPadOS 16.4 이상에서 Web Push를 받으려면 사용자가 KGB를 홈 �
 - 일반 브라우저와 Service Worker 비지원 환경에서 기존 기능 회귀 확인
 - Chrome·Edge의 권한 허용 → 구독 등록 → 로그아웃 구독 해제
 - macOS Safari와 iOS 16.4+ 홈 화면 앱의 구독·수신 확인
-- 실제 Push 수신은 BE 발송 구현과 VAPID 배포 설정을 포함해 확인
+- 포그라운드 SSE, 백그라운드·종료 상태 Web Push와 동일 알림 ID 중복 억제 확인
+- 알림 클릭 시 기존 창 재사용, 대상 카드 자동 스크롤·강조 확인
+- 실제 Push 수신은 BE PR #184와 VAPID 배포 설정을 포함해 확인
