@@ -98,6 +98,29 @@ describe('SettingsPage', () => {
     expect(toggle).not.toBeChecked()
   })
 
+  it('알림 수신 문제 안내에서 iOS와 Android 설정 방법을 확인한다', async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(screen.getByRole('button', {
+      name: '알림을 켰지만 수신되지 않나요?',
+    }))
+
+    const dialog = screen.getByRole('dialog', { name: '알림 설정 방법' })
+    expect(dialog).toHaveTextContent(
+      '브라우저의 사이트 알림 권한과 기기의 알림 권한을 모두 허용해야 알림을 받을 수 있어요.',
+    )
+    expect(dialog).toHaveTextContent('KGB를 홈 화면에 추가해 웹 앱으로 실행해 주세요.')
+    expect(dialog).toHaveTextContent('설정 → 알림 → KGB → 알림 허용을 켜 주세요.')
+    expect(dialog).toHaveTextContent('설정 → 알림 → 앱 알림으로 이동해 주세요.')
+    expect(dialog).toHaveTextContent(
+      '사용하는 브라우저 또는 설치된 KGB 웹 앱의 알림을 허용해 주세요.',
+    )
+
+    await user.click(screen.getByRole('button', { name: '확인' }))
+    expect(screen.queryByRole('dialog', { name: '알림 설정 방법' })).not.toBeInTheDocument()
+  })
+
   it('로그아웃을 확인하면 API를 호출하고 로그인 화면으로 이동한다', async () => {
     const user = userEvent.setup()
     renderPage()
