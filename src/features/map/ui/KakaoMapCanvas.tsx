@@ -54,10 +54,16 @@ function toApiZoom(level: number): number {
 
 const CLUSTER_KAKAO_LEVEL = 8
 const CLUSTER_ZOOM_STEP = 2
+const MAP_FOCUS_ANIMATION_DURATION_MS = 500
+
+function animateMapFocus(map: KakaoMap, center: ReturnType<KakaoCluster['getCenter']>, level: number) {
+  map.jump(center, level, {
+    animate: { duration: MAP_FOCUS_ANIMATION_DURATION_MS },
+  })
+}
 
 function focusCluster(map: KakaoMap, center: ReturnType<KakaoCluster['getCenter']>) {
-  map.panTo(center)
-  map.setLevel(Math.max(1, map.getLevel() - CLUSTER_ZOOM_STEP), { anchor: center })
+  animateMapFocus(map, center, Math.max(1, map.getLevel() - CLUSTER_ZOOM_STEP))
 }
 
 // --------------------------------------------------
@@ -461,8 +467,7 @@ export function KakaoMapCanvas({
         })
 
         maps.event.addListener(marker, 'click', () => {
-          map.panTo(position)
-          map.setLevel(Math.max(1, map.getLevel() - CLUSTER_ZOOM_STEP), { anchor: position })
+          animateMapFocus(map, position, Math.max(1, map.getLevel() - CLUSTER_ZOOM_STEP))
         })
 
         return marker
@@ -526,8 +531,7 @@ export function KakaoMapCanvas({
 
     if (focusTarget.level !== undefined) {
       const position = new maps.LatLng(focusTarget.latitude, focusTarget.longitude)
-      map.panTo(position)
-      map.setLevel(focusTarget.level, { anchor: position })
+      animateMapFocus(map, position, focusTarget.level)
       return
     }
 

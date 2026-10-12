@@ -558,7 +558,7 @@ export function MapPage() {
                           latitude: item.latitude,
                           longitude: item.longitude,
                           requestId: focusRequestIdRef.current,
-                          level: 1,
+                          level: 5,
                         })
                         changeSheetLevel('default')
                       }}
