@@ -1,5 +1,11 @@
 import { useEffect, useRef } from 'react'
-import type { MapBounds, MapCluster, MapContentItem } from '../api/map.ts'
+
+import type {
+  MapBounds,
+  MapCluster,
+  MapContentItem,
+} from '../api/map.ts'
+
 import {
   loadKakaoMaps,
   type KakaoMap,
@@ -9,8 +15,19 @@ import {
   type KakaoMarkerClusterer,
   type KakaoMarker,
 } from '../lib/kakaoMaps.ts'
-import { clusterLabel, pinColor, serverClusterStyle } from '../lib/mapMarkers.ts'
-import { panMapToCoordinate, type Coordinate } from '../lib/mapViewport.ts'
+
+import {
+  clusterLabel,
+  pinColor,
+  serverClusterStyle,
+  clusterSvg,
+  clientClusterStyle,
+} from '../lib/mapMarkers.ts'
+
+import {
+  panMapToCoordinate,
+  type Coordinate,
+} from '../lib/mapViewport.ts'
 
 type MapFocusTarget = Coordinate & {
   requestId: number
@@ -36,19 +53,56 @@ function toApiZoom(level: number): number {
 
 const CLUSTER_KAKAO_LEVEL = 8
 
-function markerImage(maps: KakaoMaps, color: string, selected: boolean) {
+// --------------------------------------------------
+// 일반 콘텐츠 핀
+// --------------------------------------------------
+
+function markerImage(
+  maps: KakaoMaps,
+  color: string,
+  selected: boolean,
+) {
   const width = selected ? 38 : 32
   const height = selected ? 50 : 42
+
   const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 32 42">
-      <path d="M16 1C7.7 1 1 7.7 1 16c0 10.5 15 25 15 25s15-14.5 15-25C31 7.7 24.3 1 16 1Z" fill="${color}" stroke="white" stroke-width="2"/>
-      <circle cx="16" cy="16" r="5" fill="white"/>
-    </svg>`
-  const source = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`
-  return new maps.MarkerImage(source, new maps.Size(width, height), {
-    offset: new maps.Point(width / 2, height),
-  })
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="${width}"
+      height="${height}"
+      viewBox="0 0 32 42"
+    >
+      <path
+        d="M16 1C7.7 1 1 7.7 1 16c0 10.5 15 25 15 25s15-14.5 15-25C31 7.7 24.3 1 16 1Z"
+        fill="${color}"
+        stroke="white"
+        stroke-width="2"
+      />
+
+      <circle
+        cx="16"
+        cy="16"
+        r="5"
+        fill="white"
+      />
+    </svg>
+  `
+
+  const source =
+    `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`
+
+  return new maps.MarkerImage(
+    source,
+    new maps.Size(width, height),
+    {
+      offset: new maps.Point(width / 2, height),
+    },
+  )
 }
+
+// --------------------------------------------------
+// 현재 위치 표시
+// --------------------------------------------------
 
 function currentPositionOverlay(
   maps: KakaoMaps,
@@ -56,14 +110,23 @@ function currentPositionOverlay(
   position: Coordinate,
 ): KakaoCustomOverlay {
   const content = document.createElement('div')
+
   content.className = 'map-current-position'
   content.setAttribute('role', 'img')
   content.setAttribute('aria-label', '현재 위치')
   content.title = '현재 위치'
-  content.innerHTML = '<span class="map-current-position__pulse"></span><span class="map-current-position__dot"></span>'
+
+  content.innerHTML = `
+    <span class="map-current-position__pulse"></span>
+    <span class="map-current-position__dot"></span>
+  `
+
   return new maps.CustomOverlay({
     map,
-    position: new maps.LatLng(position.latitude, position.longitude),
+    position: new maps.LatLng(
+      position.latitude,
+      position.longitude,
+    ),
     content,
     xAnchor: 0.5,
     yAnchor: 0.5,
@@ -71,37 +134,34 @@ function currentPositionOverlay(
   })
 }
 
-function clusterImage(maps: KakaoMaps, count: number, level: number) {
-  const label = clusterLabel(count)
-  const { size, fontSize, fill, edge, glow } = serverClusterStyle(level, count)
-  const center = size / 2
-  const radius = center - 4
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
-      <defs>
-        <radialGradient id="cluster-fill" cx="35%" cy="25%" r="75%">
-          <stop offset="0%" stop-color="${glow}"/>
-          <stop offset="58%" stop-color="${fill}"/>
-          <stop offset="100%" stop-color="${edge}"/>
-        </radialGradient>
-        <filter id="cluster-shadow" x="-30%" y="-30%" width="160%" height="170%">
-          <feDropShadow dx="0" dy="3" stdDeviation="2.4" flood-color="#17213A" flood-opacity="0.28"/>
-        </filter>
-      </defs>
-      <circle cx="${center}" cy="${center}" r="${radius}"
-        fill="url(#cluster-fill)" stroke="white" stroke-width="3"
-        filter="url(#cluster-shadow)"/>
-      <circle cx="${center}" cy="${center}" r="${radius - 4}"
-        fill="none" stroke="white" stroke-opacity="0.18" stroke-width="1"/>
-      <text x="${center}" y="${center + 1}" fill="white" font-size="${fontSize}" font-weight="800"
-        font-family="Pretendard, -apple-system, BlinkMacSystemFont, sans-serif"
-        text-anchor="middle" dominant-baseline="middle">${label}</text>
-    </svg>`
-  const source = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`
-  return new maps.MarkerImage(source, new maps.Size(size, size), {
-    offset: new maps.Point(center, center),
-  })
+// --------------------------------------------------
+// 서버 클러스터 이미지
+// --------------------------------------------------
+
+function clusterImage(
+  maps: KakaoMaps,
+  count: number,
+  level: number,
+) {
+  const { size } = serverClusterStyle(level, count)
+
+  const svg = clusterSvg(count, size)
+
+  const source =
+    `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`
+
+  return new maps.MarkerImage(
+    source,
+    new maps.Size(size, size),
+    {
+      offset: new maps.Point(size / 2, size / 2),
+    },
+  )
 }
+
+// --------------------------------------------------
+// 카카오 맵 컴포넌트
+// --------------------------------------------------
 
 export function KakaoMapCanvas({
   center,
@@ -117,19 +177,34 @@ export function KakaoMapCanvas({
   mapRef,
 }: KakaoMapCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null)
+
   const initialCenterRef = useRef(center)
   const initialCurrentPositionRef = useRef(currentPosition)
+
   const mapsRef = useRef<KakaoMaps | null>(null)
+
   const contentMarkersRef = useRef<KakaoMarker[]>([])
   const serverClusterMarkersRef = useRef<KakaoMarker[]>([])
+
   const clustererRef = useRef<KakaoMarkerClusterer | null>(null)
-  const currentPositionOverlayRef = useRef<KakaoCustomOverlay | null>(null)
+
+  const currentPositionOverlayRef =
+    useRef<KakaoCustomOverlay | null>(null)
+
   const lastFocusRequestIdRef = useRef(0)
   const focusTargetRef = useRef(focusTarget)
+
+  // --------------------------------------------------
+  // 포커스 대상 동기화
+  // --------------------------------------------------
 
   useEffect(() => {
     focusTargetRef.current = focusTarget
   }, [focusTarget])
+
+  // --------------------------------------------------
+  // 지도 초기화
+  // --------------------------------------------------
 
   useEffect(() => {
     let disposed = false
@@ -138,7 +213,9 @@ export function KakaoMapCanvas({
     loadKakaoMaps()
       .then((maps) => {
         if (disposed || !containerRef.current) return
+
         mapsRef.current = maps
+
         const map = new maps.Map(containerRef.current, {
           center: new maps.LatLng(
             initialCenterRef.current.latitude,
@@ -146,25 +223,40 @@ export function KakaoMapCanvas({
           ),
           level: 5,
         })
+
         mapRef.current = map
+
         map.setMinLevel(1)
         map.setMaxLevel(16)
+
         if (focusTargetRef.current) {
-          lastFocusRequestIdRef.current = focusTargetRef.current.requestId
-          panMapToCoordinate(maps, map, focusTargetRef.current)
-        }
-        if (initialCurrentPositionRef.current) {
-          currentPositionOverlayRef.current = currentPositionOverlay(
+          lastFocusRequestIdRef.current =
+            focusTargetRef.current.requestId
+
+          panMapToCoordinate(
             maps,
             map,
-            initialCurrentPositionRef.current,
+            focusTargetRef.current,
           )
         }
+
+        if (initialCurrentPositionRef.current) {
+          currentPositionOverlayRef.current =
+            currentPositionOverlay(
+              maps,
+              map,
+              initialCurrentPositionRef.current,
+            )
+        }
+
         idleHandler = () => {
           const bounds = map.getBounds()
+
           const southWest = bounds.getSouthWest()
           const northEast = bounds.getNorthEast()
+
           const zoom = toApiZoom(map.getLevel())
+
           onBoundsChange({
             south: southWest.getLat(),
             west: southWest.getLng(),
@@ -174,133 +266,275 @@ export function KakaoMapCanvas({
             limit: 200,
           })
         }
+
         maps.event.addListener(map, 'idle', idleHandler)
         maps.event.addListener(map, 'click', onMapClick)
+
         idleHandler()
       })
       .catch((error: unknown) => {
-        onError(error instanceof Error ? error.message : '지도를 불러오지 못했습니다.')
+        onError(
+          error instanceof Error
+            ? error.message
+            : '지도를 불러오지 못했습니다.',
+        )
       })
 
     return () => {
       disposed = true
-      if (mapRef.current && idleHandler && mapsRef.current) {
-        mapsRef.current.event.removeListener(mapRef.current, 'idle', idleHandler)
-        mapsRef.current.event.removeListener(mapRef.current, 'click', onMapClick)
+
+      if (
+        mapRef.current &&
+        idleHandler &&
+        mapsRef.current
+      ) {
+        mapsRef.current.event.removeListener(
+          mapRef.current,
+          'idle',
+          idleHandler,
+        )
+
+        mapsRef.current.event.removeListener(
+          mapRef.current,
+          'click',
+          onMapClick,
+        )
       }
+
       clustererRef.current?.clear()
-      contentMarkersRef.current.forEach((marker) => marker.setMap(null))
-      serverClusterMarkersRef.current.forEach((marker) => marker.setMap(null))
+
+      contentMarkersRef.current.forEach((marker) => {
+        marker.setMap(null)
+      })
+
+      serverClusterMarkersRef.current.forEach((marker) => {
+        marker.setMap(null)
+      })
+
       currentPositionOverlayRef.current?.setMap(null)
+
       mapRef.current = null
     }
-  }, [mapRef, onBoundsChange, onError, onMapClick])
+  }, [
+    mapRef,
+    onBoundsChange,
+    onError,
+    onMapClick,
+  ])
+
+  // --------------------------------------------------
+  // 일반 핀 + 프론트 클러스터
+  // --------------------------------------------------
 
   useEffect(() => {
     const maps = mapsRef.current
     const map = mapRef.current
+
     if (!maps || !map) return
 
     clustererRef.current?.clear()
-    contentMarkersRef.current.forEach((marker) => marker.setMap(null))
+
+    contentMarkersRef.current.forEach((marker) => {
+      marker.setMap(null)
+    })
+
     contentMarkersRef.current = items.map((item) => {
+      const isSelected =
+        item.content_id === selectedContentId
+
       const marker = new maps.Marker({
         image: markerImage(
           maps,
-          item.content_id === selectedContentId ? '#2478ff' : pinColor(item),
-          item.content_id === selectedContentId,
+          isSelected ? '#2478ff' : pinColor(item),
+          isSelected,
         ),
-        position: new maps.LatLng(item.latitude, item.longitude),
+        position: new maps.LatLng(
+          item.latitude,
+          item.longitude,
+        ),
         title: item.title,
       })
-      maps.event.addListener(marker, 'click', () => onSelectItem(item))
+
+      maps.event.addListener(marker, 'click', () => {
+        onSelectItem(item)
+      })
+
       return marker
     })
+
+    // 개수에 따라 파스텔 스타일 3단계
+    const clusterStyles = [
+      clientClusterStyle(5),
+      clientClusterStyle(25),
+      clientClusterStyle(120),
+    ]
 
     const clusterer = new maps.MarkerClusterer({
       map,
       markers: contentMarkersRef.current,
+
       gridSize: 52,
       averageCenter: true,
+
       minLevel: CLUSTER_KAKAO_LEVEL,
       minClusterSize: 2,
+
       disableClickZoom: true,
+
+      // 10개 미만 / 10~99개 / 100개 이상
+      calculator: [10, 100],
+
       texts: clusterLabel,
-      styles: [{
-        width: '46px',
-        height: '46px',
-        border: '3px solid #fff',
-        borderRadius: '50%',
-        background: 'linear-gradient(145deg, #77abff 0%, #2478ff 55%, #1559c6 100%)',
-        color: '#fff',
-        fontSize: '14px',
-        fontWeight: '800',
-        lineHeight: '40px',
-        textAlign: 'center',
-        boxShadow: '0 4px 12px rgba(23, 33, 58, 0.28), inset 0 0 0 1px rgba(255, 255, 255, 0.18)',
-      }],
+
+      styles: clusterStyles,
     })
+
     const handleClusterClick = (cluster: KakaoCluster) => {
       if (map.getLevel() > CLUSTER_KAKAO_LEVEL) {
-        map.setLevel(CLUSTER_KAKAO_LEVEL, { anchor: cluster.getCenter() })
+        map.setLevel(CLUSTER_KAKAO_LEVEL, {
+          anchor: cluster.getCenter(),
+        })
       }
     }
-    maps.event.addListener(clusterer, 'clusterclick', handleClusterClick)
+
+    maps.event.addListener(
+      clusterer,
+      'clusterclick',
+      handleClusterClick,
+    )
+
     clustererRef.current = clusterer
 
     return () => {
-      maps.event.removeListener(clusterer, 'clusterclick', handleClusterClick)
+      maps.event.removeListener(
+        clusterer,
+        'clusterclick',
+        handleClusterClick,
+      )
+
       clusterer.clear()
     }
-  }, [items, mapRef, onSelectItem, selectedContentId])
+  }, [
+    items,
+    mapRef,
+    onSelectItem,
+    selectedContentId,
+  ])
+
+  // --------------------------------------------------
+  // 서버 클러스터
+  // --------------------------------------------------
 
   useEffect(() => {
     const maps = mapsRef.current
     const map = mapRef.current
+
     if (!maps || !map) return
 
-    serverClusterMarkersRef.current.forEach((marker) => marker.setMap(null))
-    const level = map.getLevel()
-    serverClusterMarkersRef.current = clusters.map((cluster) => {
-      const position = new maps.LatLng(cluster.latitude, cluster.longitude)
-      const marker = new maps.Marker({
-        map,
-        image: clusterImage(maps, cluster.count, level),
-        position,
-        title: `콘텐츠 ${cluster.count}개`,
-      })
-      maps.event.addListener(marker, 'click', () => {
-        map.setLevel(7, { anchor: position })
-      })
-      return marker
+    serverClusterMarkersRef.current.forEach((marker) => {
+      marker.setMap(null)
     })
 
+    const level = map.getLevel()
+
+    serverClusterMarkersRef.current = clusters.map(
+      (cluster) => {
+        const position = new maps.LatLng(
+          cluster.latitude,
+          cluster.longitude,
+        )
+
+        const marker = new maps.Marker({
+          map,
+
+          image: clusterImage(
+            maps,
+            cluster.count,
+            level,
+          ),
+
+          position,
+
+          title: `콘텐츠 ${cluster.count}개`,
+        })
+
+        maps.event.addListener(marker, 'click', () => {
+          map.setLevel(7, {
+            anchor: position,
+          })
+        })
+
+        return marker
+      },
+    )
+
     return () => {
-      serverClusterMarkersRef.current.forEach((marker) => marker.setMap(null))
+      serverClusterMarkersRef.current.forEach((marker) => {
+        marker.setMap(null)
+      })
+
       serverClusterMarkersRef.current = []
     }
   }, [clusters, mapRef])
 
+  // --------------------------------------------------
+  // 현재 위치 갱신
+  // --------------------------------------------------
+
   useEffect(() => {
     const maps = mapsRef.current
     const map = mapRef.current
+
     if (!maps || !map || !currentPosition) return
 
     currentPositionOverlayRef.current?.setMap(null)
-    currentPositionOverlayRef.current = currentPositionOverlay(maps, map, currentPosition)
-    panMapToCoordinate(maps, map, currentPosition)
+
+    currentPositionOverlayRef.current =
+      currentPositionOverlay(
+        maps,
+        map,
+        currentPosition,
+      )
+
+    panMapToCoordinate(
+      maps,
+      map,
+      currentPosition,
+    )
   }, [currentPosition, mapRef])
+
+  // --------------------------------------------------
+  // 외부 포커스 요청
+  // --------------------------------------------------
 
   useEffect(() => {
     const maps = mapsRef.current
     const map = mapRef.current
-    if (!maps || !map || !focusTarget || focusTarget.requestId === lastFocusRequestIdRef.current) {
+
+    if (
+      !maps ||
+      !map ||
+      !focusTarget ||
+      focusTarget.requestId === lastFocusRequestIdRef.current
+    ) {
       return
     }
 
-    lastFocusRequestIdRef.current = focusTarget.requestId
-    panMapToCoordinate(maps, map, focusTarget)
+    lastFocusRequestIdRef.current =
+      focusTarget.requestId
+
+    panMapToCoordinate(
+      maps,
+      map,
+      focusTarget,
+    )
   }, [focusTarget, mapRef])
 
-  return <div className="map-canvas" ref={containerRef} aria-label="현재 위치 주변 관광 지도" />
+  return (
+    <div
+      className="map-canvas"
+      ref={containerRef}
+      aria-label="현재 위치 주변 관광 지도"
+    />
+  )
 }
