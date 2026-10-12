@@ -46,27 +46,34 @@ describe('지도 클러스터 표기', () => {
     expect(clusterLabel(100)).toBe('99+')
   })
 
-  it('광역 줌일수록 클러스터를 작고 투명하게 표시한다', () => {
+  it('광역 줌일수록 클러스터 크기를 단계적으로 줄인다', () => {
     expect(serverClusterStyle(13, 200)).toEqual({
-      size: 28,
-      fontSize: 11,
-      fillOpacity: 0.7,
+      size: 52,
+      fontSize: 16,
+      fill: '#6C4CF1',
+      edge: '#4930B8',
+      glow: '#A795FF',
     })
     expect(serverClusterStyle(10, 200)).toEqual({
-      size: 32,
-      fontSize: 13,
-      fillOpacity: 0.8,
+      size: 56,
+      fontSize: 16,
+      fill: '#6C4CF1',
+      edge: '#4930B8',
+      glow: '#A795FF',
     })
     expect(serverClusterStyle(8, 200)).toEqual({
-      size: 38,
-      fontSize: 13,
-      fillOpacity: 0.9,
+      size: 58,
+      fontSize: 16,
+      fill: '#6C4CF1',
+      edge: '#4930B8',
+      glow: '#A795FF',
     })
   })
 
-  it('콘텐츠가 적은 클러스터는 지역 줌에서도 더 작게 표시한다', () => {
-    expect(serverClusterStyle(8, 4).size).toBe(24)
-    expect(serverClusterStyle(8, 40).size).toBe(30)
+  it('콘텐츠 개수에 따라 크기와 색을 구분한다', () => {
+    expect(serverClusterStyle(8, 4)).toMatchObject({ size: 42, fill: '#148F77' })
+    expect(serverClusterStyle(8, 40)).toMatchObject({ size: 50, fill: '#2478FF' })
+    expect(serverClusterStyle(8, 400)).toMatchObject({ size: 58, fill: '#6C4CF1' })
   })
 })
 

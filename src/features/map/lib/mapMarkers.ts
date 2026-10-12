@@ -18,12 +18,18 @@ export function clusterLabel(size: number): string {
 }
 
 export function serverClusterStyle(level: number, count: number) {
-  const zoomMaximum = level >= 13 ? 28 : level >= 10 ? 32 : 38
-  const countSize = count < 10 ? 24 : count < 100 ? 30 : 38
-  const size = Math.min(zoomMaximum, countSize)
+  const countSize = count < 10 ? 42 : count < 100 ? 50 : 58
+  const zoomAdjustment = level >= 13 ? -6 : level >= 10 ? -2 : 0
+  const size = countSize + zoomAdjustment
+  const palette = count < 10
+    ? { fill: '#148F77', edge: '#0B6B5A', glow: '#43D7B5' }
+    : count < 100
+      ? { fill: '#2478FF', edge: '#1559C6', glow: '#77ABFF' }
+      : { fill: '#6C4CF1', edge: '#4930B8', glow: '#A795FF' }
+
   return {
     size,
-    fontSize: size <= 24 ? 10 : size <= 30 ? 11 : 13,
-    fillOpacity: level >= 13 ? 0.7 : level >= 10 ? 0.8 : 0.9,
+    fontSize: size <= 40 ? 13 : size <= 48 ? 14 : 16,
+    ...palette,
   }
 }

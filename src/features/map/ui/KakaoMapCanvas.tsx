@@ -73,15 +73,28 @@ function currentPositionOverlay(
 
 function clusterImage(maps: KakaoMaps, count: number, level: number) {
   const label = clusterLabel(count)
-  const { size, fontSize, fillOpacity } = serverClusterStyle(level, count)
+  const { size, fontSize, fill, edge, glow } = serverClusterStyle(level, count)
   const center = size / 2
-  const radius = center - 1.5
+  const radius = center - 4
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+      <defs>
+        <radialGradient id="cluster-fill" cx="35%" cy="25%" r="75%">
+          <stop offset="0%" stop-color="${glow}"/>
+          <stop offset="58%" stop-color="${fill}"/>
+          <stop offset="100%" stop-color="${edge}"/>
+        </radialGradient>
+        <filter id="cluster-shadow" x="-30%" y="-30%" width="160%" height="170%">
+          <feDropShadow dx="0" dy="3" stdDeviation="2.4" flood-color="#17213A" flood-opacity="0.28"/>
+        </filter>
+      </defs>
       <circle cx="${center}" cy="${center}" r="${radius}"
-        fill="#242428" fill-opacity="${fillOpacity}"
-        stroke="white" stroke-opacity="0.88" stroke-width="1.5"/>
-      <text x="${center}" y="${center + 1}" fill="white" font-size="${fontSize}" font-weight="700"
+        fill="url(#cluster-fill)" stroke="white" stroke-width="3"
+        filter="url(#cluster-shadow)"/>
+      <circle cx="${center}" cy="${center}" r="${radius - 4}"
+        fill="none" stroke="white" stroke-opacity="0.18" stroke-width="1"/>
+      <text x="${center}" y="${center + 1}" fill="white" font-size="${fontSize}" font-weight="800"
+        font-family="Pretendard, -apple-system, BlinkMacSystemFont, sans-serif"
         text-anchor="middle" dominant-baseline="middle">${label}</text>
     </svg>`
   const source = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`
@@ -214,17 +227,17 @@ export function KakaoMapCanvas({
       disableClickZoom: true,
       texts: clusterLabel,
       styles: [{
-        width: '38px',
-        height: '38px',
-        border: '2px solid #fff',
+        width: '46px',
+        height: '46px',
+        border: '3px solid #fff',
         borderRadius: '50%',
-        background: '#242428',
+        background: 'linear-gradient(145deg, #77abff 0%, #2478ff 55%, #1559c6 100%)',
         color: '#fff',
-        fontSize: '13px',
-        fontWeight: '700',
-        lineHeight: '34px',
+        fontSize: '14px',
+        fontWeight: '800',
+        lineHeight: '40px',
         textAlign: 'center',
-        boxShadow: '0 3px 10px rgba(20, 20, 23, 0.22)',
+        boxShadow: '0 4px 12px rgba(23, 33, 58, 0.28), inset 0 0 0 1px rgba(255, 255, 255, 0.18)',
       }],
     })
     const handleClusterClick = (cluster: KakaoCluster) => {
