@@ -163,7 +163,7 @@ describe('MapPage', () => {
     expect(document.querySelector('.map-content-sheet--default')).toBeInTheDocument()
   })
 
-  it('지도 화면 영역이 바뀌면 백엔드 콘텐츠를 조회한다', async () => {
+  it('지도 화면 영역이 바뀌면 마커만 조회하고 목록을 펼칠 때 콘텐츠를 조회한다', async () => {
     const user = userEvent.setup()
     localStorage.setItem('kgb.location-prompt-completed', 'true')
     render(<MemoryRouter><MapPage /></MemoryRouter>)
@@ -176,6 +176,9 @@ describe('MapPage', () => {
       east: 127,
       zoom: 18,
     }))
+    expect(getMapContentsMock).not.toHaveBeenCalled()
+
+    await user.click(screen.getByRole('button', { name: '장소 목록 펼치기' }))
     expect(getMapContentsMock).toHaveBeenCalledWith({
       south: 37.5,
       west: 126.9,
@@ -213,6 +216,7 @@ describe('MapPage', () => {
     render(<MemoryRouter><MapPage /></MemoryRouter>)
 
     await user.click(screen.getByRole('button', { name: '지도 범위 조회' }))
+    await user.click(screen.getByRole('button', { name: '장소 목록 펼치기' }))
 
     expect(await screen.findByText('현재 화면 장소·행사 200개')).toBeInTheDocument()
     expect(screen.getByText('광역 대표 장소')).toBeInTheDocument()
@@ -242,8 +246,8 @@ describe('MapPage', () => {
     render(<MemoryRouter><MapPage /></MemoryRouter>)
 
     await user.click(screen.getByRole('button', { name: '지도 범위 조회' }))
-    expect(await screen.findByText('장소 1')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: '장소 목록 펼치기' }))
+    expect(await screen.findByText('장소 1')).toBeInTheDocument()
 
     expect(screen.getByText('장소 10')).toBeInTheDocument()
     expect(screen.queryByText('장소 11')).not.toBeInTheDocument()
@@ -303,10 +307,10 @@ describe('MapPage', () => {
     render(<MemoryRouter><MapPage /></MemoryRouter>)
 
     await user.click(screen.getByRole('button', { name: '지도 범위 조회' }))
+    await user.click(screen.getByRole('button', { name: '장소 목록 펼치기' }))
     expect(await screen.findByText('주변 장소·행사 2개')).toBeInTheDocument()
     expect(screen.getByText('서울숲')).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: '장소 목록 펼치기' }))
     expect(screen.getByRole('button', { name: '장소 목록 접기' })).toHaveAttribute('aria-expanded', 'true')
     expect(screen.getByText('서울 축제')).toBeInTheDocument()
 
@@ -357,6 +361,7 @@ describe('MapPage', () => {
     render(<MemoryRouter><MapPage /></MemoryRouter>)
 
     await user.click(screen.getByRole('button', { name: '지도 범위 조회' }))
+    await user.click(screen.getByRole('button', { name: '장소 목록 펼치기' }))
     const saveButton = await screen.findByRole('button', { name: '서울숲 즐겨찾기 저장' })
     await user.click(saveButton)
 

@@ -31,6 +31,7 @@ import {
 
 type MapFocusTarget = Coordinate & {
   requestId: number
+  level?: number
 }
 
 type KakaoMapCanvasProps = {
@@ -52,6 +53,12 @@ function toApiZoom(level: number): number {
 }
 
 const CLUSTER_KAKAO_LEVEL = 8
+const CLUSTER_ZOOM_STEP = 2
+
+function focusCluster(map: KakaoMap, center: ReturnType<KakaoCluster['getCenter']>) {
+  map.panTo(center)
+  map.setLevel(Math.max(1, map.getLevel() - CLUSTER_ZOOM_STEP), { anchor: center })
+}
 
 // --------------------------------------------------
 // 일반 콘텐츠 핀
@@ -389,11 +396,7 @@ export function KakaoMapCanvas({
     })
 
     const handleClusterClick = (cluster: KakaoCluster) => {
-      if (map.getLevel() > CLUSTER_KAKAO_LEVEL) {
-        map.setLevel(CLUSTER_KAKAO_LEVEL, {
-          anchor: cluster.getCenter(),
-        })
-      }
+      focusCluster(map, cluster.getCenter())
     }
 
     maps.event.addListener(
@@ -458,9 +461,8 @@ export function KakaoMapCanvas({
         })
 
         maps.event.addListener(marker, 'click', () => {
-          map.setLevel(7, {
-            anchor: position,
-          })
+          map.panTo(position)
+          map.setLevel(Math.max(1, map.getLevel() - CLUSTER_ZOOM_STEP), { anchor: position })
         })
 
         return marker
@@ -521,6 +523,13 @@ export function KakaoMapCanvas({
 
     lastFocusRequestIdRef.current =
       focusTarget.requestId
+
+    if (focusTarget.level !== undefined) {
+      const position = new maps.LatLng(focusTarget.latitude, focusTarget.longitude)
+      map.panTo(position)
+      map.setLevel(focusTarget.level, { anchor: position })
+      return
+    }
 
     panMapToCoordinate(
       maps,

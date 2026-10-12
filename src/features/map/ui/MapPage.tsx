@@ -25,7 +25,7 @@ const NEXT_PAGE_LOADING_MINIMUM_MS = 350
 
 type PermissionStep = 'location' | 'notification' | null
 type SheetLevel = 'collapsed' | 'default' | 'expanded'
-type MapFocusTarget = typeof DEFAULT_CENTER & { requestId: number }
+type MapFocusTarget = typeof DEFAULT_CENTER & { requestId: number; level?: number }
 
 function initialPermissionStep(): PermissionStep {
   return localStorage.getItem(LOCATION_PROMPT_KEY) ? null : 'location'
@@ -103,11 +103,13 @@ function MapContentCard({
 export function MapPage() {
   const mapRef = useRef<KakaoMap | null>(null)
   const focusRequestIdRef = useRef(0)
+  const markerRequestIdRef = useRef(0)
   const [position, setPosition] = useState<{ latitude: number; longitude: number } | null>(null)
   const [focusTarget, setFocusTarget] = useState<MapFocusTarget | null>(null)
   const [isRestoringPosition, setIsRestoringPosition] = useState(shouldRestoreCurrentPosition)
   const latestContentRequestRef = useRef(0)
   const currentBoundsRef = useRef<MapBounds | null>(null)
+  const sheetLevelRef = useRef<SheetLevel>('collapsed')
   const lastRequestedCursorRef = useRef<string | null>(null)
   const [markers, setMarkers] = useState<MapMarkerItem[]>([])
   const [items, setItems] = useState<MapContentItem[]>([])
@@ -129,37 +131,24 @@ export function MapPage() {
   const [mapError, setMapError] = useState<string | null>(null)
   const [favoritePendingId, setFavoritePendingId] = useState<string | null>(null)
 
-  const requestContents = useCallback((bounds: MapBounds) => {
+  const requestFirstContents = useCallback((bounds: MapBounds) => {
     const requestId = latestContentRequestRef.current + 1
     latestContentRequestRef.current = requestId
     setIsContentsLoading(true)
     setContentsError(false)
-    currentBoundsRef.current = bounds
     lastRequestedCursorRef.current = null
-    const contentBounds = {
+    getMapContents({
       south: bounds.south,
       west: bounds.west,
       north: bounds.north,
       east: bounds.east,
-    }
-    Promise.all([getMapMarkers(bounds), getMapContents(contentBounds)])
-      .then(([markerResult, contentPage]) => {
+    })
+      .then((contentPage) => {
         if (requestId !== latestContentRequestRef.current) return
-        setMarkers(markerResult.markers)
         setItems(contentPage.items)
-        setClusters(markerResult.clusters)
-        setResponseMode(markerResult.mode)
         setNextCursor(contentPage.next_cursor)
         setHasMore(contentPage.has_more)
         setIsNextPageLoading(false)
-        setSelectedItem((current) => (
-          current && (
-            contentPage.items.some((item) => item.content_id === current.content_id) ||
-            markerResult.markers.some((item) => item.content_id === current.content_id)
-          )
-            ? current
-            : null
-        ))
       })
       .catch(() => {
         if (requestId !== latestContentRequestRef.current) return
@@ -170,6 +159,50 @@ export function MapPage() {
         if (requestId === latestContentRequestRef.current) setIsContentsLoading(false)
       })
   }, [])
+
+  const requestMapData = useCallback((bounds: MapBounds) => {
+    const requestId = markerRequestIdRef.current + 1
+    markerRequestIdRef.current = requestId
+    currentBoundsRef.current = bounds
+    latestContentRequestRef.current += 1
+    lastRequestedCursorRef.current = null
+    setItems([])
+    setNextCursor(null)
+    setHasMore(false)
+    setIsNextPageLoading(false)
+
+    getMapMarkers(bounds)
+      .then((result) => {
+        if (requestId !== markerRequestIdRef.current) return
+        setMarkers(result.markers)
+        setClusters(result.clusters)
+        setResponseMode(result.mode)
+        setSelectedItem((current) => (
+          current && result.markers.some((item) => item.content_id === current.content_id)
+            ? current
+            : null
+        ))
+      })
+      .catch(() => {
+        if (requestId !== markerRequestIdRef.current) return
+        setToast('지도 표시 정보를 불러오지 못했어요.')
+      })
+
+    if (sheetLevelRef.current === 'expanded') {
+      requestFirstContents(bounds)
+    } else {
+      setIsContentsLoading(false)
+      setContentsError(false)
+    }
+  }, [requestFirstContents])
+
+  const changeSheetLevel = useCallback((level: SheetLevel) => {
+    sheetLevelRef.current = level
+    setSheetLevel(level)
+    if (level === 'expanded' && currentBoundsRef.current) {
+      requestFirstContents(currentBoundsRef.current)
+    }
+  }, [requestFirstContents])
 
   const requestNextContents = useCallback(() => {
     const bounds = currentBoundsRef.current
@@ -345,7 +378,7 @@ export function MapPage() {
           ? candidate
           : closest
       ))[0]
-    setSheetLevel(nextLevel)
+    changeSheetLevel(nextLevel)
     setSheetDragHeight(null)
     sheetDragStart.current = null
     if (element.hasPointerCapture?.(pointerId)) element.releasePointerCapture?.(pointerId)
@@ -357,9 +390,9 @@ export function MapPage() {
   const clusteredContentCount = clusters.reduce((total, cluster) => total + cluster.count, 0)
   const handleMapClick = useCallback(() => {
     setSelectedItem(null)
-    setSheetLevel((current) => current === 'expanded' ? 'default' : 'collapsed')
+    changeSheetLevel(sheetLevelRef.current === 'expanded' ? 'default' : 'collapsed')
     setSheetDragHeight(null)
-  }, [])
+  }, [changeSheetLevel])
 
   const toggleFavorite = async (item: MapContentItem) => {
     if (favoritePendingId) return
@@ -406,12 +439,12 @@ export function MapPage() {
           clusters={clusters}
           selectedContentId={selectedItem?.content_id ?? null}
           mapRef={mapRef}
-          onBoundsChange={requestContents}
+          onBoundsChange={requestMapData}
           onError={setMapError}
           onMapClick={handleMapClick}
           onSelectItem={(item) => {
             setSelectedItem(markerAsContentItem(item))
-            setSheetLevel('default')
+            changeSheetLevel('default')
           }}
         />
       )}
@@ -451,7 +484,7 @@ export function MapPage() {
               sheetWasDragged.current = false
               return
             }
-            setSheetLevel((current) => current === 'expanded' ? 'default' : 'expanded')
+            changeSheetLevel(sheetLevel === 'expanded' ? 'default' : 'expanded')
           }}
           onPointerDown={(event) => {
             sheetWasDragged.current = false
@@ -480,12 +513,12 @@ export function MapPage() {
           <div className="map-content-sheet__empty">
             <strong>주변 장소와 행사를 찾고 있어요</strong>
           </div>
-        ) : contentsError && items.length === 0 ? (
+        ) : contentsError && items.length === 0 && !selectedItem ? (
           <div className="map-content-sheet__empty">
             <strong>관광 정보를 불러오지 못했어요</strong>
             <p>지도를 움직여 다시 조회해 주세요.</p>
           </div>
-        ) : items.length === 0 ? (
+        ) : items.length === 0 && !selectedItem ? (
           <div className="map-content-sheet__empty">
             <strong>이 지도 영역에 표시할 장소·행사가 없어요</strong>
             <p>관광 콘텐츠 적재 여부를 확인하거나 다른 지역으로 이동해 주세요.</p>
@@ -525,8 +558,9 @@ export function MapPage() {
                           latitude: item.latitude,
                           longitude: item.longitude,
                           requestId: focusRequestIdRef.current,
+                          level: 1,
                         })
-                        setSheetLevel('default')
+                        changeSheetLevel('default')
                       }}
                       onToggleFavorite={() => void toggleFavorite(item)}
                     />
