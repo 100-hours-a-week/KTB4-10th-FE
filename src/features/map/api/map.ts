@@ -1,6 +1,7 @@
 import { http } from '../../../shared/api/http.ts'
 import { isApiResponse } from '../../../shared/api/types.ts'
 
+const MAP_MARKERS_PATH = '/api/v1/map/markers'
 const MAP_CONTENTS_PATH = '/api/v1/map/contents'
 const MAP_CONTENT_CACHE_TTL_MS = 5 * 60 * 1000
 const MAP_CONTENT_CACHE_MAX_ENTRIES = 30
@@ -11,7 +12,16 @@ export type MapBounds = {
   north: number
   east: number
   zoom: number
-  limit?: number
+}
+
+export type MapMarkerItem = {
+  content_id: string
+  title: string
+  content_type: 'PLACE' | 'EVENT'
+  latitude: number
+  longitude: number
+  is_favorite: boolean
+  is_in_guidebook: boolean
 }
 
 export type MapContentItem = {
@@ -28,10 +38,15 @@ export type MapContentItem = {
   is_in_guidebook?: boolean
 }
 
-export type MapContentResult = {
-  mode: 'CONTENT' | 'CLUSTER'
+export type MapMarkerResult = {
+  mode: 'MARKER' | 'CLUSTER'
   clusters: MapCluster[]
+  markers: MapMarkerItem[]
+}
+
+export type MapContentPage = {
   items: MapContentItem[]
+  next_cursor: string | null
   has_more: boolean
 }
 
@@ -44,11 +59,11 @@ export type MapCluster = {
 
 type MapContentCacheEntry = {
   expiresAt: number
-  result: MapContentResult
+  result: MapMarkerResult
 }
 
 const mapContentCache = new Map<string, MapContentCacheEntry>()
-const pendingMapContentRequests = new Map<string, Promise<MapContentResult>>()
+const pendingMapContentRequests = new Map<string, Promise<MapMarkerResult>>()
 
 function roundedCoordinate(value: number): string {
   return value.toFixed(4)
@@ -61,7 +76,6 @@ export function mapContentCacheKey(bounds: MapBounds): string {
     roundedCoordinate(bounds.west),
     roundedCoordinate(bounds.north),
     roundedCoordinate(bounds.east),
-    bounds.limit ?? 100,
   ].join(':')
 }
 
@@ -70,7 +84,7 @@ export function clearMapContentCache(): void {
   pendingMapContentRequests.clear()
 }
 
-function cacheResult(key: string, result: MapContentResult): void {
+function cacheResult(key: string, result: MapMarkerResult): void {
   if (mapContentCache.size >= MAP_CONTENT_CACHE_MAX_ENTRIES) {
     const oldestKey = mapContentCache.keys().next().value
     if (oldestKey !== undefined) mapContentCache.delete(oldestKey)
@@ -99,6 +113,19 @@ function isMapContentItem(value: unknown): value is MapContentItem {
     (value.event_period === null || isRecord(value.event_period)) &&
     typeof value.is_favorite === 'boolean' &&
     (typeof value.is_in_guidebook === 'boolean' || value.is_in_guidebook === undefined)
+  )
+}
+
+function isMapMarkerItem(value: unknown): value is MapMarkerItem {
+  if (!isRecord(value)) return false
+  return (
+    typeof value.content_id === 'string' &&
+    typeof value.title === 'string' &&
+    (value.content_type === 'PLACE' || value.content_type === 'EVENT') &&
+    typeof value.latitude === 'number' &&
+    typeof value.longitude === 'number' &&
+    typeof value.is_favorite === 'boolean' &&
+    typeof value.is_in_guidebook === 'boolean'
   )
 }
 
@@ -155,7 +182,7 @@ export function filterContentsWithinBounds(
   ))
 }
 
-export async function getMapContents(bounds: MapBounds): Promise<MapContentResult> {
+export async function getMapMarkers(bounds: MapBounds): Promise<MapMarkerResult> {
   const cacheKey = mapContentCacheKey(bounds)
   const cached = mapContentCache.get(cacheKey)
   if (cached && cached.expiresAt > Date.now()) return cached.result
@@ -164,25 +191,24 @@ export async function getMapContents(bounds: MapBounds): Promise<MapContentResul
   const pending = pendingMapContentRequests.get(cacheKey)
   if (pending) return pending
 
-  const request = http.get<unknown>(MAP_CONTENTS_PATH, { params: bounds })
+  const request = http.get<unknown>(MAP_MARKERS_PATH, { params: bounds })
     .then((response) => {
       if (!isApiResponse(response.data) || !isRecord(response.data.data)) {
         throw new Error('지도 콘텐츠 응답 계약이 올바르지 않습니다.')
       }
 
-      const { mode, clusters, items, has_more: hasMore } = response.data.data
+      const { mode, clusters, markers } = response.data.data
       if (
-        (mode !== 'CONTENT' && mode !== 'CLUSTER') ||
+        (mode !== 'MARKER' && mode !== 'CLUSTER') ||
         !Array.isArray(clusters) ||
         !clusters.every(isMapCluster) ||
-        !Array.isArray(items) ||
-        !items.every(isMapContentItem) ||
-        typeof hasMore !== 'boolean'
+        !Array.isArray(markers) ||
+        !markers.every(isMapMarkerItem)
       ) {
-        throw new Error('지도 콘텐츠 응답 계약이 올바르지 않습니다.')
+        throw new Error('지도 마커 응답 계약이 올바르지 않습니다.')
       }
 
-      const result: MapContentResult = { mode, clusters, items, has_more: hasMore }
+      const result: MapMarkerResult = { mode, clusters, markers }
       cacheResult(cacheKey, result)
       return result
     })
@@ -190,4 +216,27 @@ export async function getMapContents(bounds: MapBounds): Promise<MapContentResul
 
   pendingMapContentRequests.set(cacheKey, request)
   return request
+}
+
+export async function getMapContents(
+  bounds: Omit<MapBounds, 'zoom'>,
+  cursor: string | null = null,
+): Promise<MapContentPage> {
+  const response = await http.get<unknown>(MAP_CONTENTS_PATH, {
+    params: { ...bounds, cursor: cursor ?? undefined },
+  })
+  if (!isApiResponse(response.data) || !isRecord(response.data.data)) {
+    throw new Error('지도 바텀시트 응답 계약이 올바르지 않습니다.')
+  }
+
+  const { items, next_cursor: nextCursor, has_more: hasMore } = response.data.data
+  if (
+    !Array.isArray(items) ||
+    !items.every(isMapContentItem) ||
+    (typeof nextCursor !== 'string' && nextCursor !== null) ||
+    typeof hasMore !== 'boolean'
+  ) {
+    throw new Error('지도 바텀시트 응답 계약이 올바르지 않습니다.')
+  }
+  return { items, next_cursor: nextCursor, has_more: hasMore }
 }

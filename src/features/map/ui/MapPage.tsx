@@ -3,11 +3,12 @@ import { BottomNavigation } from '../../../shared/ui/BottomNavigation.tsx'
 import { Toast } from '../../../shared/ui/Toast.tsx'
 import {
   clearMapContentCache,
-  filterContentsWithinBounds,
   getMapContents,
+  getMapMarkers,
   type MapBounds,
   type MapCluster,
   type MapContentItem,
+  type MapMarkerItem,
 } from '../api/map.ts'
 import { removeFavorite, saveFavorite } from '../api/favorites.ts'
 import { updatePushEnabled } from '../../member/api/memberSettings.ts'
@@ -20,7 +21,7 @@ import { PermissionModal } from './PermissionModal.tsx'
 const DEFAULT_CENTER = { latitude: 37.3952969470752, longitude: 127.110449292622 }
 const LOCATION_PROMPT_KEY = 'kgb.location-prompt-completed'
 const NOTIFICATION_PROMPT_KEY = 'kgb.notification-prompt-completed'
-const SHEET_PAGE_SIZE = 20
+const NEXT_PAGE_LOADING_MINIMUM_MS = 350
 
 type PermissionStep = 'location' | 'notification' | null
 type SheetLevel = 'collapsed' | 'default' | 'expanded'
@@ -41,6 +42,15 @@ function shouldRestoreCurrentPosition(): boolean {
 function eventPeriodText(item: MapContentItem): string | null {
   if (!item.event_period) return null
   return `${item.event_period.start_date} ~ ${item.event_period.end_date}`
+}
+
+function markerAsContentItem(marker: MapMarkerItem): MapContentItem {
+  return {
+    ...marker,
+    address: '',
+    thumbnail_url: null,
+    event_period: null,
+  }
 }
 
 type MapContentCardProps = {
@@ -97,10 +107,15 @@ export function MapPage() {
   const [focusTarget, setFocusTarget] = useState<MapFocusTarget | null>(null)
   const [isRestoringPosition, setIsRestoringPosition] = useState(shouldRestoreCurrentPosition)
   const latestContentRequestRef = useRef(0)
+  const currentBoundsRef = useRef<MapBounds | null>(null)
+  const lastRequestedCursorRef = useRef<string | null>(null)
+  const [markers, setMarkers] = useState<MapMarkerItem[]>([])
   const [items, setItems] = useState<MapContentItem[]>([])
   const [clusters, setClusters] = useState<MapCluster[]>([])
-  const [responseMode, setResponseMode] = useState<'CONTENT' | 'CLUSTER'>('CONTENT')
-  const [visibleSheetItemCount, setVisibleSheetItemCount] = useState(SHEET_PAGE_SIZE)
+  const [responseMode, setResponseMode] = useState<'MARKER' | 'CLUSTER'>('MARKER')
+  const [nextCursor, setNextCursor] = useState<string | null>(null)
+  const [hasMore, setHasMore] = useState(false)
+  const [isNextPageLoading, setIsNextPageLoading] = useState(false)
   const [selectedItem, setSelectedItem] = useState<MapContentItem | null>(null)
   const [isContentsLoading, setIsContentsLoading] = useState(false)
   const [contentsError, setContentsError] = useState(false)
@@ -119,16 +134,29 @@ export function MapPage() {
     latestContentRequestRef.current = requestId
     setIsContentsLoading(true)
     setContentsError(false)
-    getMapContents(bounds)
-      .then((result) => {
+    currentBoundsRef.current = bounds
+    lastRequestedCursorRef.current = null
+    const contentBounds = {
+      south: bounds.south,
+      west: bounds.west,
+      north: bounds.north,
+      east: bounds.east,
+    }
+    Promise.all([getMapMarkers(bounds), getMapContents(contentBounds)])
+      .then(([markerResult, contentPage]) => {
         if (requestId !== latestContentRequestRef.current) return
-        const visibleItems = filterContentsWithinBounds(result.items, bounds)
-        setItems(visibleItems)
-        setClusters(result.clusters)
-        setResponseMode(result.mode)
-        setVisibleSheetItemCount(SHEET_PAGE_SIZE)
+        setMarkers(markerResult.markers)
+        setItems(contentPage.items)
+        setClusters(markerResult.clusters)
+        setResponseMode(markerResult.mode)
+        setNextCursor(contentPage.next_cursor)
+        setHasMore(contentPage.has_more)
+        setIsNextPageLoading(false)
         setSelectedItem((current) => (
-          current && visibleItems.some((item) => item.content_id === current.content_id)
+          current && (
+            contentPage.items.some((item) => item.content_id === current.content_id) ||
+            markerResult.markers.some((item) => item.content_id === current.content_id)
+          )
             ? current
             : null
         ))
@@ -142,6 +170,46 @@ export function MapPage() {
         if (requestId === latestContentRequestRef.current) setIsContentsLoading(false)
       })
   }, [])
+
+  const requestNextContents = useCallback(() => {
+    const bounds = currentBoundsRef.current
+    if (!bounds || !hasMore || !nextCursor || isNextPageLoading) return
+    if (lastRequestedCursorRef.current === nextCursor) return
+
+    const requestId = latestContentRequestRef.current
+    const requestedCursor = nextCursor
+    lastRequestedCursorRef.current = requestedCursor
+    setIsNextPageLoading(true)
+    const startedAt = performance.now()
+    getMapContents({
+      south: bounds.south,
+      west: bounds.west,
+      north: bounds.north,
+      east: bounds.east,
+    }, requestedCursor)
+      .then(async (page) => {
+        const remainingDelay = NEXT_PAGE_LOADING_MINIMUM_MS - (performance.now() - startedAt)
+        if (remainingDelay > 0) {
+          await new Promise((resolve) => window.setTimeout(resolve, remainingDelay))
+        }
+        if (requestId !== latestContentRequestRef.current) return
+        setItems((current) => {
+          const merged = new Map(current.map((item) => [item.content_id, item]))
+          page.items.forEach((item) => merged.set(item.content_id, item))
+          return [...merged.values()]
+        })
+        setNextCursor(page.next_cursor)
+        setHasMore(page.has_more)
+      })
+      .catch(() => {
+        if (requestId !== latestContentRequestRef.current) return
+        lastRequestedCursorRef.current = null
+        setToast('다음 관광 정보를 불러오지 못했어요.')
+      })
+      .finally(() => {
+        if (requestId === latestContentRequestRef.current) setIsNextPageLoading(false)
+      })
+  }, [hasMore, isNextPageLoading, nextCursor])
 
   const focusKakaoHeadquarters = useCallback(() => {
     focusRequestIdRef.current += 1
@@ -283,8 +351,9 @@ export function MapPage() {
     if (element.hasPointerCapture?.(pointerId)) element.releasePointerCapture?.(pointerId)
   }
 
-  const displayedItem = selectedItem ?? items[0] ?? null
-  const visibleSheetItems = items.slice(0, visibleSheetItemCount)
+  const displayedItem = selectedItem
+    ? items.find((item) => item.content_id === selectedItem.content_id) ?? selectedItem
+    : items[0] ?? null
   const clusteredContentCount = clusters.reduce((total, cluster) => total + cluster.count, 0)
   const handleMapClick = useCallback(() => {
     setSelectedItem(null)
@@ -333,7 +402,7 @@ export function MapPage() {
           center={position ?? DEFAULT_CENTER}
           currentPosition={position}
           focusTarget={focusTarget}
-          items={responseMode === 'CONTENT' ? items : []}
+          items={responseMode === 'MARKER' ? markers : []}
           clusters={clusters}
           selectedContentId={selectedItem?.content_id ?? null}
           mapRef={mapRef}
@@ -341,8 +410,8 @@ export function MapPage() {
           onError={setMapError}
           onMapClick={handleMapClick}
           onSelectItem={(item) => {
-            setSelectedItem(item)
-            setSheetLevel((current) => current === 'collapsed' ? 'default' : current)
+            setSelectedItem(markerAsContentItem(item))
+            setSheetLevel('default')
           }}
         />
       )}
@@ -426,8 +495,8 @@ export function MapPage() {
             <div className="map-content-sheet__summary">
               <strong>
                 {responseMode === 'CLUSTER'
-                  ? `현재 화면 장소·행사 ${clusteredContentCount}개 · 주요 ${items.length}개`
-                  : `주변 장소·행사 ${items.length}개`}
+                  ? `현재 화면 장소·행사 ${clusteredContentCount}개`
+                  : `주변 장소·행사 ${items.length}${hasMore ? '+' : ''}개`}
               </strong>
             </div>
             {sheetLevel === 'expanded' ? (
@@ -438,14 +507,10 @@ export function MapPage() {
                 onScroll={(event) => {
                   const list = event.currentTarget
                   const remaining = list.scrollHeight - list.scrollTop - list.clientHeight
-                  if (responseMode === 'CONTENT' && remaining <= 120) {
-                    setVisibleSheetItemCount((current) => (
-                      Math.min(items.length, current + SHEET_PAGE_SIZE)
-                    ))
-                  }
+                  if (remaining <= 1) requestNextContents()
                 }}
               >
-                {visibleSheetItems.map((item) => (
+                {items.map((item) => (
                   <div
                     className={`map-content-sheet__list-item${selectedItem?.content_id === item.content_id ? ' map-content-sheet__list-item--selected' : ''}`}
                     key={item.content_id}
@@ -455,12 +520,29 @@ export function MapPage() {
                       favoritePending={favoritePendingId === item.content_id}
                       onSelect={() => {
                         setSelectedItem(item)
+                        focusRequestIdRef.current += 1
+                        setFocusTarget({
+                          latitude: item.latitude,
+                          longitude: item.longitude,
+                          requestId: focusRequestIdRef.current,
+                        })
                         setSheetLevel('default')
                       }}
                       onToggleFavorite={() => void toggleFavorite(item)}
                     />
                   </div>
                 ))}
+                {isNextPageLoading && (
+                  <div className="map-content-sheet__page-loader" role="status">
+                    <span aria-hidden="true" />
+                    <strong>다음 10개를 펼치고 있어요</strong>
+                  </div>
+                )}
+                {!hasMore && items.length > 0 && (
+                  <p className="map-content-sheet__list-end">
+                    현재 영역의 장소와 행사를 모두 확인했어요
+                  </p>
+                )}
               </div>
             ) : displayedItem ? (
               <MapContentCard

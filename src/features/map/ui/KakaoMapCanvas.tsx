@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react'
 import type {
   MapBounds,
   MapCluster,
-  MapContentItem,
+  MapMarkerItem,
 } from '../api/map.ts'
 
 import {
@@ -37,13 +37,13 @@ type KakaoMapCanvasProps = {
   center: Coordinate
   currentPosition: Coordinate | null
   focusTarget: MapFocusTarget | null
-  items: MapContentItem[]
+  items: MapMarkerItem[]
   clusters: MapCluster[]
   selectedContentId: string | null
   onBoundsChange: (bounds: MapBounds) => void
   onError: (message: string) => void
   onMapClick: () => void
-  onSelectItem: (item: MapContentItem) => void
+  onSelectItem: (item: MapMarkerItem) => void
   mapRef: React.MutableRefObject<KakaoMap | null>
 }
 
@@ -263,7 +263,6 @@ export function KakaoMapCanvas({
             north: northEast.getLat(),
             east: northEast.getLng(),
             zoom,
-            limit: 200,
           })
         }
 
