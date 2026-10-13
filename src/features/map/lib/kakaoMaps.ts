@@ -74,6 +74,7 @@ export type KakaoMaps = {
     minLevel?: number
     minClusterSize?: number
     disableClickZoom?: boolean
+    calculator?: number[]
     texts?: (size: number) => string
     styles?: Array<Record<string, string>>
   }) => KakaoMarkerClusterer

@@ -48,32 +48,38 @@ describe('지도 클러스터 표기', () => {
 
   it('광역 줌일수록 클러스터 크기를 단계적으로 줄인다', () => {
     expect(serverClusterStyle(13, 200)).toEqual({
-      size: 52,
-      fontSize: 16,
-      fill: '#6C4CF1',
-      edge: '#4930B8',
-      glow: '#A795FF',
+      size: 84,
+      fontSize: 20,
+      core: '#EAF8D4',
+      fill: '#BAE58C',
+      edge: '#83C75D',
+      glow: '#D8F1B7',
+      text: '#34442C',
     })
     expect(serverClusterStyle(10, 200)).toEqual({
-      size: 56,
-      fontSize: 16,
-      fill: '#6C4CF1',
-      edge: '#4930B8',
-      glow: '#A795FF',
+      size: 88,
+      fontSize: 20,
+      core: '#EAF8D4',
+      fill: '#BAE58C',
+      edge: '#83C75D',
+      glow: '#D8F1B7',
+      text: '#34442C',
     })
     expect(serverClusterStyle(8, 200)).toEqual({
-      size: 58,
-      fontSize: 16,
-      fill: '#6C4CF1',
-      edge: '#4930B8',
-      glow: '#A795FF',
+      size: 90,
+      fontSize: 20,
+      core: '#EAF8D4',
+      fill: '#BAE58C',
+      edge: '#83C75D',
+      glow: '#D8F1B7',
+      text: '#34442C',
     })
   })
 
   it('콘텐츠 개수에 따라 크기와 색을 구분한다', () => {
-    expect(serverClusterStyle(8, 4)).toMatchObject({ size: 42, fill: '#148F77' })
-    expect(serverClusterStyle(8, 40)).toMatchObject({ size: 50, fill: '#2478FF' })
-    expect(serverClusterStyle(8, 400)).toMatchObject({ size: 58, fill: '#6C4CF1' })
+    expect(serverClusterStyle(8, 4)).toMatchObject({ size: 58, fill: '#91CCFF' })
+    expect(serverClusterStyle(8, 40)).toMatchObject({ size: 74, fill: '#80DED0' })
+    expect(serverClusterStyle(8, 400)).toMatchObject({ size: 90, fill: '#BAE58C' })
   })
 })
 
