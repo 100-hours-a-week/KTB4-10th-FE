@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react'
 import type {
   MapBounds,
   MapCluster,
-  MapContentItem,
+  MapMarkerItem,
 } from '../api/map.ts'
 
 import {
@@ -31,19 +31,20 @@ import {
 
 type MapFocusTarget = Coordinate & {
   requestId: number
+  level?: number
 }
 
 type KakaoMapCanvasProps = {
   center: Coordinate
   currentPosition: Coordinate | null
   focusTarget: MapFocusTarget | null
-  items: MapContentItem[]
+  items: MapMarkerItem[]
   clusters: MapCluster[]
   selectedContentId: string | null
   onBoundsChange: (bounds: MapBounds) => void
   onError: (message: string) => void
   onMapClick: () => void
-  onSelectItem: (item: MapContentItem) => void
+  onSelectItem: (item: MapMarkerItem) => void
   mapRef: React.MutableRefObject<KakaoMap | null>
 }
 
@@ -52,6 +53,18 @@ function toApiZoom(level: number): number {
 }
 
 const CLUSTER_KAKAO_LEVEL = 8
+const CLUSTER_ZOOM_STEP = 2
+const MAP_FOCUS_ANIMATION_DURATION_MS = 500
+
+function animateMapFocus(map: KakaoMap, center: ReturnType<KakaoCluster['getCenter']>, level: number) {
+  map.jump(center, level, {
+    animate: { duration: MAP_FOCUS_ANIMATION_DURATION_MS },
+  })
+}
+
+function focusCluster(map: KakaoMap, center: ReturnType<KakaoCluster['getCenter']>) {
+  animateMapFocus(map, center, Math.max(1, map.getLevel() - CLUSTER_ZOOM_STEP))
+}
 
 // --------------------------------------------------
 // 일반 콘텐츠 핀
@@ -263,7 +276,6 @@ export function KakaoMapCanvas({
             north: northEast.getLat(),
             east: northEast.getLng(),
             zoom,
-            limit: 200,
           })
         }
 
@@ -390,11 +402,7 @@ export function KakaoMapCanvas({
     })
 
     const handleClusterClick = (cluster: KakaoCluster) => {
-      if (map.getLevel() > CLUSTER_KAKAO_LEVEL) {
-        map.setLevel(CLUSTER_KAKAO_LEVEL, {
-          anchor: cluster.getCenter(),
-        })
-      }
+      focusCluster(map, cluster.getCenter())
     }
 
     maps.event.addListener(
@@ -459,9 +467,7 @@ export function KakaoMapCanvas({
         })
 
         maps.event.addListener(marker, 'click', () => {
-          map.setLevel(7, {
-            anchor: position,
-          })
+          animateMapFocus(map, position, Math.max(1, map.getLevel() - CLUSTER_ZOOM_STEP))
         })
 
         return marker
@@ -522,6 +528,12 @@ export function KakaoMapCanvas({
 
     lastFocusRequestIdRef.current =
       focusTarget.requestId
+
+    if (focusTarget.level !== undefined) {
+      const position = new maps.LatLng(focusTarget.latitude, focusTarget.longitude)
+      animateMapFocus(map, position, focusTarget.level)
+      return
+    }
 
     panMapToCoordinate(
       maps,
