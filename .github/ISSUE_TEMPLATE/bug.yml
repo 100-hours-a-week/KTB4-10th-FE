@@ -1,0 +1,40 @@
+name: 버그
+description: 재현 가능한 프론트엔드 오류를 등록합니다.
+title: "[bug][domain] "
+labels: [bug]
+body:
+  - type: dropdown
+    id: domain
+    attributes: {label: 영역, options: [회원, 관광 콘텐츠, 가이드북, 평가, 생성권, 공통, 인프라]}
+    validations: {required: true}
+  - type: textarea
+    id: problem
+    attributes: {label: 문제, description: 사용자에게 발생한 현상과 영향을 작성해 주세요.}
+    validations: {required: true}
+  - type: textarea
+    id: reproduction
+    attributes: {label: 재현 방법, description: URL, 사전 상태, 브라우저·기기, 입력과 순서를 작성해 주세요.}
+    validations: {required: true}
+  - type: textarea
+    id: expected
+    attributes: {label: 기대 동작}
+    validations: {required: true}
+  - type: textarea
+    id: actual
+    attributes: {label: 실제 동작, description: 오류 응답과 화면 상태를 작성하되 개인정보와 토큰은 제외해 주세요.}
+    validations: {required: true}
+  - type: textarea
+    id: acceptance-criteria
+    attributes: {label: 완료 조건, description: 재현 테스트, 수정 결과와 유사 경로 확인 조건을 작성해 주세요.}
+    validations: {required: true}
+  - type: input
+    id: requirement-ids
+    attributes: {label: 관련 요구사항 ID, description: 없으면 '해당 없음'으로 작성해 주세요.}
+    validations: {required: true}
+  - type: textarea
+    id: references
+    attributes: {label: 관련 자료}
+  - type: textarea
+    id: impact
+    attributes: {label: 영향 범위, description: 사용자, API, 데이터 표시, 브라우저·기기와 문서 영향을 작성해 주세요.}
+    validations: {required: true}

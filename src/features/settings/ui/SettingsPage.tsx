@@ -1,11 +1,22 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { routes } from '../../../shared/config/routes.ts'
 import { Toast } from '../../../shared/ui/Toast.tsx'
+import {
+  getMemberSettings,
+  updatePushEnabled,
+} from '../../member/api/memberSettings.ts'
+import { notifyRealtimeNotificationSettingChanged } from '../../notification/model/events.ts'
+import { enableWebPush, webPushErrorMessage } from '../../notification/model/webPush.ts'
 import { logout, withdrawMember } from '../api/settings.ts'
 import './settings-page.css'
 
-type SettingsModal = 'logout' | 'withdrawal-notice' | 'withdrawal-confirm' | null
+type SettingsModal =
+  | 'notification-help'
+  | 'logout'
+  | 'withdrawal-notice'
+  | 'withdrawal-confirm'
+  | null
 
 const WITHDRAWAL_CONFIRM_TEXT = '회원 탈퇴'
 
@@ -16,6 +27,43 @@ export function SettingsPage() {
   const [withdrawalInput, setWithdrawalInput] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
+  const [pushEnabled, setPushEnabled] = useState(false)
+  const [isNotificationSettingLoading, setIsNotificationSettingLoading] = useState(true)
+  const [isNotificationSettingSaving, setIsNotificationSettingSaving] = useState(false)
+  const [hasInteractedWithNotificationSetting, setHasInteractedWithNotificationSetting] =
+    useState(false)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    void getMemberSettings(controller.signal)
+      .then((settings) => setPushEnabled(settings.push_enabled))
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          setToast('알림 설정을 불러오지 못했습니다.')
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setIsNotificationSettingLoading(false)
+        }
+      })
+    return () => controller.abort()
+  }, [])
+
+  const handleNotificationSettingChange = async (enabled: boolean) => {
+    if (isNotificationSettingLoading || isNotificationSettingSaving) return
+    setIsNotificationSettingSaving(true)
+    try {
+      if (enabled) await enableWebPush()
+      const settings = await updatePushEnabled(enabled)
+      setPushEnabled(settings.push_enabled)
+      notifyRealtimeNotificationSettingChanged(settings.push_enabled)
+    } catch (error) {
+      setToast(webPushErrorMessage(error))
+    } finally {
+      setIsNotificationSettingSaving(false)
+    }
+  }
 
   const closeModal = () => {
     if (isSubmitting) return
@@ -66,12 +114,32 @@ export function SettingsPage() {
         <section className="settings-section" aria-labelledby="notification-settings-title">
           <h2 id="notification-settings-title">알림 설정</h2>
           <div className="settings-row">
-            <div>
-              <strong>푸시 알림</strong>
-              <small>서비스 준비 중이에요.</small>
+            <div className="settings-notification-label">
+              <strong>알림 받기</strong>
+              <button
+                className="settings-notification-help-button"
+                type="button"
+                aria-label="알림 설정 방법 보기"
+                onClick={() => setModal('notification-help')}
+              >
+                <img src="/assets/settings/info.png" alt="" aria-hidden="true" />
+              </button>
             </div>
-            <label className="settings-toggle settings-toggle--disabled">
-              <input type="checkbox" disabled aria-label="푸시 알림 준비 중" />
+            <label
+              className={`settings-toggle${hasInteractedWithNotificationSetting
+                ? ' settings-toggle--interactive'
+                : ''}`}
+            >
+              <input
+                type="checkbox"
+                checked={pushEnabled}
+                disabled={isNotificationSettingLoading || isNotificationSettingSaving}
+                aria-label="알림 받기"
+                onChange={(event) => {
+                  setHasInteractedWithNotificationSetting(true)
+                  void handleNotificationSettingChange(event.target.checked)
+                }}
+              />
               <span aria-hidden="true" />
             </label>
           </div>
@@ -87,6 +155,42 @@ export function SettingsPage() {
           </div>
         </section>
       </div>
+
+      {modal === 'notification-help' && (
+        <div className="settings-modal-backdrop" role="presentation">
+          <section
+            className="settings-modal settings-modal--notification-help"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="notification-help-title"
+          >
+            <h2 id="notification-help-title">알림 설정 방법</h2>
+            <div className="settings-notification-guide">
+              <p>
+                브라우저의 사이트 알림 권한과 기기의 알림 권한을 모두 허용해야
+                알림을 받을 수 있어요.
+              </p>
+              <section aria-labelledby="ios-notification-guide-title">
+                <h3 id="ios-notification-guide-title">iOS</h3>
+                <ol>
+                  <li>KGB를 홈 화면에 추가해 웹 앱으로 실행해 주세요.</li>
+                  <li><strong>설정 → 알림 → KGB → 알림 허용</strong>을 켜 주세요.</li>
+                </ol>
+              </section>
+              <section aria-labelledby="android-notification-guide-title">
+                <h3 id="android-notification-guide-title">Android</h3>
+                <ol>
+                  <li><strong>설정 → 알림 → 앱 알림</strong>으로 이동해 주세요.</li>
+                  <li>사용하는 브라우저 또는 설치된 KGB 웹 앱의 알림을 허용해 주세요.</li>
+                </ol>
+              </section>
+            </div>
+            <div className="settings-modal__actions settings-modal__actions--confirm">
+              <button type="button" autoFocus onClick={closeModal}>확인</button>
+            </div>
+          </section>
+        </div>
+      )}
 
       {modal === 'logout' && (
         <div className="settings-modal-backdrop" role="presentation">

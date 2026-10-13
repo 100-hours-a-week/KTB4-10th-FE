@@ -11,6 +11,7 @@ const {
   getPreferenceOptionsMock,
   replaceMemberPreferencesMock,
   startKakaoLoginMock,
+  trackEventMock,
 } = vi.hoisted(
   () => ({
     getCurrentMemberMock: vi.fn(),
@@ -19,8 +20,11 @@ const {
     getPreferenceOptionsMock: vi.fn(),
     replaceMemberPreferencesMock: vi.fn(),
     startKakaoLoginMock: vi.fn(),
+    trackEventMock: vi.fn(),
   }),
 )
+
+vi.mock('../shared/lib/analytics.ts', () => ({ trackEvent: trackEventMock }))
 
 vi.mock('../features/auth/api/auth.ts', async () => {
   const actual = await vi.importActual('../features/auth/api/auth.ts')
@@ -168,6 +172,7 @@ describe('App', () => {
     expect(
       await screen.findByRole('heading', { name: '취향 선택' }),
     ).toBeInTheDocument()
+    expect(trackEventMock).toHaveBeenCalledWith('login', { method: 'kakao' })
   })
 
   it('ACTIVE 회원을 지도 화면으로 보낸다', async () => {

@@ -4,14 +4,36 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { SettingsPage } from './SettingsPage.tsx'
 
-const { logoutMock, withdrawMemberMock } = vi.hoisted(() => ({
+const {
+  getMemberSettingsMock,
+  logoutMock,
+  notifyRealtimeNotificationSettingChangedMock,
+  updatePushEnabledMock,
+  withdrawMemberMock,
+  enableWebPushMock,
+} = vi.hoisted(() => ({
+  getMemberSettingsMock: vi.fn(),
   logoutMock: vi.fn(),
+  notifyRealtimeNotificationSettingChangedMock: vi.fn(),
+  updatePushEnabledMock: vi.fn(),
   withdrawMemberMock: vi.fn(),
+  enableWebPushMock: vi.fn(),
 }))
 
 vi.mock('../api/settings.ts', () => ({
   logout: logoutMock,
   withdrawMember: withdrawMemberMock,
+}))
+vi.mock('../../member/api/memberSettings.ts', () => ({
+  getMemberSettings: getMemberSettingsMock,
+  updatePushEnabled: updatePushEnabledMock,
+}))
+vi.mock('../../notification/model/events.ts', () => ({
+  notifyRealtimeNotificationSettingChanged: notifyRealtimeNotificationSettingChangedMock,
+}))
+vi.mock('../../notification/model/webPush.ts', () => ({
+  enableWebPush: enableWebPushMock,
+  webPushErrorMessage: (error: unknown) => error instanceof Error ? error.message : '알림 오류',
 }))
 
 function renderPage() {
@@ -31,13 +53,72 @@ describe('SettingsPage', () => {
     vi.clearAllMocks()
     logoutMock.mockResolvedValue(undefined)
     withdrawMemberMock.mockResolvedValue(undefined)
+    getMemberSettingsMock.mockResolvedValue({ language_code: 'ko', push_enabled: false })
+    updatePushEnabledMock.mockResolvedValue({ language_code: 'ko', push_enabled: true })
+    enableWebPushMock.mockResolvedValue(undefined)
   })
 
-  it('V1에서 푸시 알림 토글을 준비 중 상태로 비활성화한다', () => {
+  it('저장된 실시간 알림 설정을 조회해 알림 받기 토글에 반영한다', async () => {
+    getMemberSettingsMock.mockResolvedValue({ language_code: 'ko', push_enabled: true })
     renderPage()
 
-    expect(screen.getByRole('checkbox', { name: '푸시 알림 준비 중' })).toBeDisabled()
-    expect(screen.getByText('서비스 준비 중이에요.')).toBeInTheDocument()
+    const toggle = await screen.findByRole('checkbox', { name: '알림 받기' })
+    expect(toggle).toBeChecked()
+    expect(toggle.closest('label')).not.toHaveClass('settings-toggle--interactive')
+    expect(screen.queryByText('서비스 준비 중이에요.')).not.toBeInTheDocument()
+  })
+
+  it('알림 받기 토글 변경을 저장하고 전역 SSE 연결 설정에 반영한다', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    const toggle = await screen.findByRole('checkbox', { name: '알림 받기' })
+    await waitFor(() => expect(toggle).toBeEnabled())
+
+    await user.click(toggle)
+
+    await waitFor(() => expect(updatePushEnabledMock).toHaveBeenCalledWith(true))
+    expect(enableWebPushMock).toHaveBeenCalledOnce()
+    expect(toggle.closest('label')).toHaveClass('settings-toggle--interactive')
+    expect(notifyRealtimeNotificationSettingChangedMock).toHaveBeenCalledWith(true)
+    expect(toggle).toBeChecked()
+  })
+
+  it('알림 받기를 끄면 저장값과 전역 SSE 연결 설정을 함께 해제한다', async () => {
+    const user = userEvent.setup()
+    getMemberSettingsMock.mockResolvedValue({ language_code: 'ko', push_enabled: true })
+    updatePushEnabledMock.mockResolvedValue({ language_code: 'ko', push_enabled: false })
+    renderPage()
+    const toggle = await screen.findByRole('checkbox', { name: '알림 받기' })
+    await waitFor(() => expect(toggle).toBeEnabled())
+
+    await user.click(toggle)
+
+    await waitFor(() => expect(updatePushEnabledMock).toHaveBeenCalledWith(false))
+    expect(notifyRealtimeNotificationSettingChangedMock).toHaveBeenCalledWith(false)
+    expect(toggle).not.toBeChecked()
+  })
+
+  it('알림 수신 문제 안내에서 iOS와 Android 설정 방법을 확인한다', async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(screen.getByRole('button', {
+      name: '알림 설정 방법 보기',
+    }))
+
+    const dialog = screen.getByRole('dialog', { name: '알림 설정 방법' })
+    expect(dialog).toHaveTextContent(
+      '브라우저의 사이트 알림 권한과 기기의 알림 권한을 모두 허용해야 알림을 받을 수 있어요.',
+    )
+    expect(dialog).toHaveTextContent('KGB를 홈 화면에 추가해 웹 앱으로 실행해 주세요.')
+    expect(dialog).toHaveTextContent('설정 → 알림 → KGB → 알림 허용을 켜 주세요.')
+    expect(dialog).toHaveTextContent('설정 → 알림 → 앱 알림으로 이동해 주세요.')
+    expect(dialog).toHaveTextContent(
+      '사용하는 브라우저 또는 설치된 KGB 웹 앱의 알림을 허용해 주세요.',
+    )
+
+    await user.click(screen.getByRole('button', { name: '확인' }))
+    expect(screen.queryByRole('dialog', { name: '알림 설정 방법' })).not.toBeInTheDocument()
   })
 
   it('로그아웃을 확인하면 API를 호출하고 로그인 화면으로 이동한다', async () => {

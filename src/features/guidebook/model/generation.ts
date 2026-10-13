@@ -12,7 +12,7 @@ export const GenerationContext = createContext<{
   job: Job | null
   error: string
   busy: boolean
-  track: (job: Job) => void
+  track: (job: Job, startedAt?: number) => void
   retry: () => Promise<void>
   refresh: () => void
   dismiss: () => void

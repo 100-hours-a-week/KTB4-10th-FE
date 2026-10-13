@@ -6,9 +6,10 @@ import { GuidebookListPage } from './GuidebookListPage.tsx'
 import { GuidebookViewerPage } from './GuidebookViewerPage.tsx'
 import { today, dayOffset } from '../model/conditions.ts'
 
-const { createBook, listBooks, deleteBook, getViewer, track, getCreditWallet, getMemberPreferences, getPreferenceOptions } = vi.hoisted(() => ({
-  createBook: vi.fn(), listBooks: vi.fn(), deleteBook: vi.fn(), getViewer: vi.fn(), track: vi.fn(), getCreditWallet: vi.fn(), getMemberPreferences: vi.fn(), getPreferenceOptions: vi.fn(),
+const { createBook, listBooks, deleteBook, getViewer, track, trackEvent, getCreditWallet, getMemberPreferences, getPreferenceOptions } = vi.hoisted(() => ({
+  createBook: vi.fn(), listBooks: vi.fn(), deleteBook: vi.fn(), getViewer: vi.fn(), track: vi.fn(), trackEvent: vi.fn(), getCreditWallet: vi.fn(), getMemberPreferences: vi.fn(), getPreferenceOptions: vi.fn(),
 }))
+vi.mock('../../../shared/lib/analytics.ts', () => ({ trackEvent }))
 vi.mock('../api/credits.ts', () => ({ getCreditWallet }))
 vi.mock('../api/guidebooks.ts', () => ({ createBook, listBooks, deleteBook, getViewer }))
 vi.mock('../../preference/api/preferences.ts', () => ({ getMemberPreferences, getPreferenceOptions }))
@@ -64,7 +65,14 @@ describe('가이드북 화면', () => {
     expect(await screen.findByText('생성 진행 화면')).toBeInTheDocument()
     expect(createBook).toHaveBeenCalledTimes(2)
     expect(createBook.mock.calls[0]).toEqual(createBook.mock.calls[1])
-    expect(track).toHaveBeenCalledWith({ job_id: 31, status: 'PENDING', guidebook_id: null })
+    expect(track).toHaveBeenCalledWith(
+      { job_id: 31, status: 'PENDING', guidebook_id: null },
+      expect.any(Number),
+    )
+    expect(trackEvent.mock.calls).toEqual([
+      ['guidebook_generate_start'],
+      ['guidebook_generate_accepted'],
+    ])
   })
 
   it('혼자는 1명, 연인은 2명만 선택하며 시도 변경 시 시군구를 비운다', () => {
@@ -119,6 +127,35 @@ describe('가이드북 화면', () => {
     expect(createLink).toHaveAttribute('href', '/guidebooks/new')
     fireEvent.click(createLink)
     expect(await screen.findByText('가이드북 생성 화면')).toBeInTheDocument()
+  })
+
+  it('알림 토스트에서 이동하면 대상 가이드북 카드를 잠시 강조한다', async () => {
+    const book = { guidebook_id: 10, title: '경주 여행', start_date: '2026-10-01', end_date: '2026-10-03', companion: 'FRIEND' }
+    listBooks.mockResolvedValue({ items: [book], next_cursor: null, has_more: false })
+    render(
+      <MemoryRouter initialEntries={[{
+        pathname: '/guidebooks',
+        state: { highlightGuidebookId: 10 },
+      }]}>
+        <GuidebookListPage />
+      </MemoryRouter>,
+    )
+
+    expect((await screen.findByText('경주 여행')).closest('li'))
+      .toHaveClass('book-card--highlighted')
+  })
+
+  it('Web Push로 이동하면 query의 대상 가이드북 카드를 잠시 강조한다', async () => {
+    const book = { guidebook_id: 10, title: '경주 여행', start_date: '2026-10-01', end_date: '2026-10-03', companion: 'FRIEND' }
+    listBooks.mockResolvedValue({ items: [book], next_cursor: null, has_more: false })
+    render(
+      <MemoryRouter initialEntries={['/guidebooks?highlightGuidebookId=10']}>
+        <GuidebookListPage />
+      </MemoryRouter>,
+    )
+
+    expect((await screen.findByText('경주 여행')).closest('li'))
+      .toHaveClass('book-card--highlighted')
   })
 
   it('뷰어는 전체 화면에서 내부 스크립트와 탭 감지를 지원한다', async () => {

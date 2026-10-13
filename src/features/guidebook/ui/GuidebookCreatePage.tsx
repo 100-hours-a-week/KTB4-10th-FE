@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { trackEvent } from '../../../shared/lib/analytics.ts'
 import { getMemberPreferences, getPreferenceOptions } from '../../preference/api/preferences.ts'
 import { createBook, type Companion, type GenerationRequest } from '../api/guidebooks.ts'
 import { getCreditWallet, type CreditWallet } from '../api/credits.ts'
@@ -59,7 +60,7 @@ export function GuidebookCreatePage() {
     return () => { active = false }
   }, [])
   const creditBlocked = !uncertain && wallet !== null && (wallet.credit_balance === 0 || !wallet.can_generate)
-  const submission = useRef<{ key: string; body: GenerationRequest } | null>(null)
+  const submission = useRef<{ key: string; body: GenerationRequest; startedAt: number } | null>(null)
   const locked = useRef(false)
   const mounted = useRef(true)
   useEffect(() => { mounted.current = true; return () => { mounted.current = false } }, [])
@@ -90,11 +91,14 @@ export function GuidebookCreatePage() {
       setError('지역과 여행 날짜를 확인해 주세요. 여행 기간은 최대 7일이에요.'); return
     }
     locked.current = true; setSubmitting(true); setError('')
-    const attempt = submission.current ?? { key: crypto.randomUUID(), body: { ...form } }
+    const isNewGeneration = submission.current === null
+    const attempt = submission.current ?? { key: crypto.randomUUID(), body: { ...form }, startedAt: Date.now() }
     submission.current = attempt
+    if (isNewGeneration) trackEvent('guidebook_generate_start')
     try {
       const next = await createBook(attempt.body, attempt.key)
-      track(next)
+      trackEvent('guidebook_generate_accepted')
+      track(next, attempt.startedAt)
       if (mounted.current) navigate(`/guidebooks/generating/${next.job_id}`, { replace: true })
     } catch (reason) {
       if (mounted.current) {

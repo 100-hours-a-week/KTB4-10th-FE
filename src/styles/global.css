@@ -18,12 +18,30 @@ html,
 body,
 #root {
   min-width: 320px;
-  min-height: 100%;
   margin: 0;
 }
 
+html {
+  height: 100%;
+  background: #ececef;
+}
+
 body {
+  min-height: 100%;
+  overflow-x: hidden;
+  overscroll-behavior-y: none;
+  background: #ececef;
+}
+
+#root {
   min-height: 100vh;
+  min-height: 100svh;
+}
+
+@supports (min-height: 100dvh) {
+  #root {
+    min-height: 100dvh;
+  }
 }
 
 button {
@@ -48,14 +66,20 @@ button:disabled {
   position: relative;
   width: min(100%, 390px);
   min-height: 100vh;
+  min-height: 100svh;
   margin: 0 auto;
   overflow: hidden;
   background: #fbfbfc;
 }
 
+@supports (min-height: 100dvh) {
+  .app-shell {
+    min-height: 100dvh;
+  }
+}
+
 .login-page {
   display: flex;
-  min-height: 100dvh;
   flex-direction: column;
 }
 
@@ -206,7 +230,6 @@ button:disabled {
 
 .auth-result-page {
   position: relative;
-  min-height: 100dvh;
   padding: 24px;
 }
 
@@ -253,7 +276,6 @@ button:disabled {
 }
 
 .preference-page {
-  min-height: 100dvh;
   padding-bottom: calc(env(safe-area-inset-bottom) + 96px);
 }
 
@@ -470,6 +492,32 @@ button:disabled {
   animation: toast-rise 180ms ease-out forwards;
 }
 
+.app-toast:has(button) {
+  grid-template-columns: minmax(0, 1fr) auto;
+  justify-items: start;
+  gap: 12px;
+  text-align: left;
+}
+
+.app-toast button {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid rgb(255 255 255 / 48%);
+  border-radius: 7px;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.app-toast button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
 .app-toast--closing {
   animation: toast-drop 180ms ease-in forwards;
 }
@@ -488,7 +536,6 @@ button:disabled {
 }
 
 .setup-page {
-  min-height: 100vh;
   display: grid;
   place-items: center;
   padding: 24px;
@@ -526,8 +573,16 @@ button:disabled {
 }
 
 .map-page {
-  min-height: 100dvh;
+  height: 100vh;
+  height: 100svh;
+  min-height: 0;
   background: #e4e4e7;
+}
+
+@supports (height: 100dvh) {
+  .map-page {
+    height: 100dvh;
+  }
 }
 
 .map-canvas {
@@ -778,6 +833,49 @@ button:disabled {
   border-color: #242428;
 }
 
+.map-content-sheet__page-loader {
+  display: grid;
+  min-height: 58px;
+  place-items: center;
+  gap: 5px;
+  padding: 12px 0 6px;
+  color: #6d7d62;
+  font-size: 12px;
+  animation: map-page-loader-enter 350ms ease both;
+}
+
+.map-content-sheet__page-loader span {
+  width: 34px;
+  height: 8px;
+  border-radius: 999px;
+  background: #cce7aa;
+  box-shadow: 0 0 0 5px rgb(220 242 191 / 45%);
+  animation: map-page-loader-breathe 900ms ease-in-out infinite alternate;
+}
+
+.map-content-sheet__list-end {
+  margin: 4px 0 0;
+  padding: 12px 0 6px;
+  color: #8c8c94;
+  font-size: 11px;
+  text-align: center;
+}
+
+@keyframes map-page-loader-enter {
+  from { min-height: 0; opacity: 0; transform: translateY(-8px); }
+  to { min-height: 58px; opacity: 1; transform: translateY(0); }
+}
+
+@keyframes map-page-loader-breathe {
+  from { opacity: 0.55; transform: scaleX(0.78); }
+  to { opacity: 1; transform: scaleX(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-content-sheet__page-loader,
+  .map-content-sheet__page-loader span { animation: none; }
+}
+
 .map-content-card {
   position: relative;
   display: flex;
@@ -878,11 +976,13 @@ button:disabled {
 }
 
 .bottom-navigation {
-  position: absolute;
+  position: fixed;
   z-index: 6;
   right: 0;
   bottom: 0;
   left: 0;
+  width: min(100%, 390px);
+  margin: 0 auto;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   min-height: calc(env(safe-area-inset-bottom) + 76px);
@@ -975,7 +1075,6 @@ button:disabled {
 }
 
 .mypage-page {
-  min-height: 100dvh;
   padding-bottom: calc(env(safe-area-inset-bottom) + 92px);
   background: #f7f7f9;
 }
@@ -1264,7 +1363,6 @@ button:disabled {
 
 .main-tab-placeholder {
   display: grid;
-  min-height: 100dvh;
   place-items: center;
   padding: 24px 24px calc(env(safe-area-inset-bottom) + 100px);
 }
@@ -1280,12 +1378,6 @@ button:disabled {
 .main-tab-placeholder section p:last-child {
   color: #6b6b73;
   font-size: 13px;
-}
-
-@media (min-width: 391px) {
-  .app-shell {
-    min-height: 100vh;
-  }
 }
 
 @media (max-height: 720px) {

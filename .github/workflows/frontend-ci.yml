@@ -3,7 +3,7 @@ name: Frontend-CI
 on:
   pull_request:
     branches:
-      - develop
+      - dev
       - main
 
 jobs:
@@ -22,8 +22,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Typecheck
+        run: npm run typecheck
+
       - name: Lint
         run: npm run lint
+
+      - name: Test
+        run: npm test -- --run
 
       - name: Build
         run: npm run build

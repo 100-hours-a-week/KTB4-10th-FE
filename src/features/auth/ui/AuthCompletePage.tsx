@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { routes } from '../../../shared/config/routes.ts'
+import { trackEvent } from '../../../shared/lib/analytics.ts'
 import { getMemberPreferences } from '../../preference/api/preferences.ts'
 import { getCurrentMember } from '../api/auth.ts'
 import { AuthLoadingView } from './AuthLoadingView.tsx'
@@ -8,13 +9,20 @@ import { AuthLoadingView } from './AuthLoadingView.tsx'
 export function AuthCompletePage() {
   const navigate = useNavigate()
   const [failed, setFailed] = useState(false)
+  const loginTracked = useRef(false)
 
   useEffect(() => {
     let active = true
     Promise.all([getCurrentMember(), getMemberPreferences()])
       .then(([member, preferences]) => {
         const needsOnboarding = member.status === 'ONBOARDING' || preferences.length === 0
-        if (active) navigate(needsOnboarding ? routes.preferences : routes.map, { replace: true })
+        if (active) {
+          if (!loginTracked.current) {
+            loginTracked.current = true
+            trackEvent('login', { method: 'kakao' })
+          }
+          navigate(needsOnboarding ? routes.preferences : routes.map, { replace: true })
+        }
       })
       .catch(() => { if (active) setFailed(true) })
     return () => { active = false }

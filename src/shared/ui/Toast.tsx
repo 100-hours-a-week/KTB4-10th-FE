@@ -4,15 +4,25 @@ type ToastProps = {
   message: string
   onDismiss?: () => void
   duration?: number
+  onAction?: () => void
+  actionLabel?: string
+  actionDisabled?: boolean
 }
 
 const EXIT_ANIMATION_DURATION = 180
 
-export function Toast({ message, onDismiss, duration = 1600 }: ToastProps) {
+export function Toast({
+  message,
+  onDismiss,
+  duration = 1600,
+  onAction,
+  actionLabel,
+  actionDisabled = false,
+}: ToastProps) {
   const [isClosing, setIsClosing] = useState(false)
 
   useEffect(() => {
-    if (!onDismiss) return undefined
+    if (!onDismiss || actionDisabled) return undefined
 
     const closingTimer = window.setTimeout(
       () => setIsClosing(true),
@@ -23,7 +33,7 @@ export function Toast({ message, onDismiss, duration = 1600 }: ToastProps) {
       window.clearTimeout(closingTimer)
       window.clearTimeout(dismissTimer)
     }
-  }, [duration, message, onDismiss])
+  }, [actionDisabled, duration, message, onDismiss])
 
   return (
     <div
@@ -31,7 +41,12 @@ export function Toast({ message, onDismiss, duration = 1600 }: ToastProps) {
       role="status"
       aria-label={message}
     >
-      {message}
+      <span>{message}</span>
+      {onAction && actionLabel && (
+        <button type="button" disabled={actionDisabled} onClick={onAction}>
+          {actionDisabled ? '처리 중...' : actionLabel}
+        </button>
+      )}
     </div>
   )
 }

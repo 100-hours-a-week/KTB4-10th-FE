@@ -1,4 +1,4 @@
-.coupon-page { min-height: 100dvh; }
+.coupon-page { background: #fbfbfc; }
 
 .coupon-page__back {
   width: 40px; height: 40px; padding: 0; border: 0; background: transparent;

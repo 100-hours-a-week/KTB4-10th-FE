@@ -8,12 +8,22 @@ export type KakaoBounds = {
   getNorthEast: () => KakaoLatLng
 }
 
+type KakaoMapAnimation = boolean | { duration: number }
+
 export type KakaoMap = {
   getBounds: () => KakaoBounds
   getCenter: () => KakaoLatLng
   getLevel: () => number
+  jump: (
+    center: KakaoLatLng,
+    level: number,
+    options?: { animate?: KakaoMapAnimation },
+  ) => void
   panTo: (position: KakaoLatLng) => void
-  setLevel: (level: number, options?: { anchor?: KakaoLatLng }) => void
+  setLevel: (
+    level: number,
+    options?: { anchor?: KakaoLatLng; animate?: KakaoMapAnimation },
+  ) => void
   setMinLevel: (level: number) => void
   setMaxLevel: (level: number) => void
 }
@@ -74,6 +84,7 @@ export type KakaoMaps = {
     minLevel?: number
     minClusterSize?: number
     disableClickZoom?: boolean
+    calculator?: number[]
     texts?: (size: number) => string
     styles?: Array<Record<string, string>>
   }) => KakaoMarkerClusterer
