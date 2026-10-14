@@ -36,8 +36,12 @@
 .book-card h2 { margin: 0 0 7px; font-size: 15px; overflow-wrap: anywhere; }
 .book-card p { margin: 0 0 5px; font-size: 10px; line-height: 1.5; color: #73737d; }
 .book-card span:not(.book-cover) { color: #73737d; font-size: 11px; }
-.book-delete, .book-pdf { padding: 9px 7px; border: 1px solid #ededf0; border-radius: 6px; font-size: 11px; color: #61616b; background: #fff; cursor: pointer; }
-.book-pdf { margin-left: auto; }
+.book-delete, .book-pdf { display: grid; min-width: 34px; min-height: 34px; place-items: center; padding: 7px; border: 1px solid #ededf0; border-radius: 6px; font-size: 11px; color: #61616b; background: #fff; cursor: pointer; }
+.book-pdf { margin-left: auto; text-decoration: none; }
+.book-pdf img { width: 18px; height: 18px; object-fit: contain; opacity: .72; }
+.book-pdf:hover, .book-pdf:focus-visible { border-color: #cfcfd5; background: #f5f5f7; }
+.book-pdf:focus-visible { outline: 3px solid #b8b8bd; outline-offset: 2px; }
+.book-pdf:active { transform: scale(.94); }
 .book-state { display: grid; gap: 14px; justify-items: center; padding: 40px 24px; color: #73737d; font-size: 14px; line-height: 1.7; text-align: center; }
 .book-state a { display: block; margin-top: 14px; color: inherit; }
 .book-state button { padding: 0 20px; }
@@ -119,6 +123,20 @@
 .book-viewer-controls.is-visible .book-viewer-close { pointer-events: auto; }
 .book-viewer-close svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
 .book-viewer-close:focus-visible { outline: 3px solid #ffd43b; outline-offset: 3px; }
+.book-print-page { position: fixed; z-index: 30; inset: 0; display: grid; min-height: 100dvh; padding: max(24px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left)); place-items: center; overflow: hidden; background: #fff; }
+.book-print-page > .book-state { place-content: center; }
+.book-print-notice { display: grid; width: min(calc(100% - 48px), 360px); gap: 9px; padding: 22px 20px; border: 1px solid #dedee3; border-radius: 14px; background: #f8f8fa; color: #242428; text-align: center; box-shadow: 0 10px 30px rgb(20 20 23 / 8%); }
+.book-print-notice strong { font-size: 17px; }
+.book-print-notice p { margin: 0; font-size: 14px; line-height: 1.65; }
+.book-print-notice p span { display: block; }
+.book-print-notice small { color: #73737d; font-size: 12px; }
+.book-print-frame { position: fixed; width: 1px; height: 1px; border: 0; opacity: 0; pointer-events: none; }
+.book-print-fallback { display: grid; max-width: 340px; gap: 16px; justify-items: center; padding: 32px 24px; text-align: center; }
+.book-print-fallback h1 { margin: 0; font-size: 20px; }
+.book-print-fallback p { margin: 0; color: #73737d; font-size: 13px; line-height: 1.7; }
+.book-print-fallback p span { display: block; }
+.book-print-fallback button, .book-print-fallback a { width: 100%; padding: 0 20px; text-decoration: none; }
+.book-print-fallback a { display: grid; place-items: center; text-align: center; }
 @media (prefers-reduced-motion: reduce) {
   .book-spark--active, .book-card--highlighted { animation: none; }
   .book-card--highlighted { box-shadow: 0 0 0 3px rgb(183 110 66 / 18%); }

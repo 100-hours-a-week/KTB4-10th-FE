@@ -13,6 +13,7 @@ import { GuidebookCreatePage } from '../features/guidebook/ui/GuidebookCreatePag
 import { GuidebookGeneratingPage } from '../features/guidebook/ui/GuidebookGeneratingPage.tsx'
 import { GuidebookDetailPage } from '../features/guidebook/ui/GuidebookDetailPage.tsx'
 import { GuidebookViewerPage } from '../features/guidebook/ui/GuidebookViewerPage.tsx'
+import { GuidebookPrintPage } from '../features/guidebook/ui/GuidebookPrintPage.tsx'
 import { NotificationCenter } from '../features/notification/ui/NotificationCenter.tsx'
 import { NotificationPage } from '../features/notification/ui/NotificationPage.tsx'
 import { SettingsPage } from '../features/settings/ui/SettingsPage.tsx'
@@ -38,6 +39,7 @@ function App() {
         <Route path={routes.guidebookCreate} element={<GuidebookAccess><GuidebookCreatePage /></GuidebookAccess>} />
         <Route path={routes.guidebookGenerating} element={<GuidebookAccess><GuidebookGeneratingPage /></GuidebookAccess>} />
         <Route path={routes.guidebookViewer} element={<GuidebookAccess><GuidebookViewerPage /></GuidebookAccess>} />
+        <Route path={routes.guidebookPrint} element={<GuidebookAccess><GuidebookPrintPage /></GuidebookAccess>} />
         <Route path={routes.myPage} element={<AuthBoundary><MyPage /></AuthBoundary>} />
         <Route path={routes.coupon} element={<AuthBoundary><CouponPage /></AuthBoundary>} />
         <Route
