@@ -3,7 +3,7 @@ const GUIDEBOOK_REFERENCE_TYPE = 'GUIDEBOOK'
 const GUIDEBOOK_NOTIFICATION_TITLE = '가이드북 생성 완료'
 const GUIDEBOOK_NOTIFICATION_BODY = '새로운 여행 가이드북이 완성됐어요.'
 const NOTIFICATION_LIST_PATH = '/mypage/notifications'
-const GUIDEBOOK_LIST_PATH = '/guidebooks'
+const NOTIFICATION_OPEN_PATH = '/notifications/open'
 const WEB_PUSH_RECEIVED_MESSAGE = 'KGB_WEB_PUSH_RECEIVED'
 const NOTIFICATION_SEEN_MESSAGE = 'KGB_NOTIFICATION_SEEN'
 const MAX_SEEN_NOTIFICATION_IDS = 200
@@ -47,8 +47,12 @@ function parseGuidebookPushPayload(event) {
   return { notificationId, guidebookId }
 }
 
-function notificationTarget(guidebookId) {
-  return `${GUIDEBOOK_LIST_PATH}?highlightGuidebookId=${guidebookId}`
+function notificationTarget(notificationId, guidebookId) {
+  const query = new URLSearchParams({
+    notificationId,
+    guidebookId: String(guidebookId),
+  })
+  return `${NOTIFICATION_OPEN_PATH}?${query.toString()}`
 }
 
 function rememberNotification(notificationId) {
@@ -83,7 +87,7 @@ async function displayGuidebookNotification(payload) {
     tag,
     renotify: false,
     data: {
-      target: notificationTarget(payload.guidebookId),
+      target: notificationTarget(payload.notificationId, payload.guidebookId),
       notificationId: payload.notificationId,
       referenceType: GUIDEBOOK_REFERENCE_TYPE,
       referenceId: String(payload.guidebookId),

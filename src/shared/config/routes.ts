@@ -12,6 +12,7 @@ export const routes = {
   myPage: '/mypage',
   coupon: '/mypage/coupon',
   notifications: '/mypage/notifications',
+  notificationOpen: '/notifications/open',
   settings: '/mypage/settings',
   guidebookDetail: '/guidebooks/:guidebookId',
 } as const
