@@ -153,8 +153,8 @@ describe('가이드북 화면', () => {
       </MemoryRouter>,
     )
 
-    expect((await screen.findByText('경주 여행')).closest('li'))
-      .toHaveClass('book-card--highlighted')
+    const card = (await screen.findByText('경주 여행')).closest('li')
+    await waitFor(() => expect(card).toHaveClass('book-card--highlighted'))
   })
 
   it('Web Push로 이동하면 query의 대상 가이드북 카드를 잠시 강조한다', async () => {
@@ -166,8 +166,8 @@ describe('가이드북 화면', () => {
       </MemoryRouter>,
     )
 
-    expect((await screen.findByText('경주 여행')).closest('li'))
-      .toHaveClass('book-card--highlighted')
+    const card = (await screen.findByText('경주 여행')).closest('li')
+    await waitFor(() => expect(card).toHaveClass('book-card--highlighted'))
   })
 
   it('대상 가이드북이 다음 커서 페이지에 있으면 자동으로 불러와 강조한다', async () => {
@@ -186,9 +186,40 @@ describe('가이드북 화면', () => {
       </MemoryRouter>,
     )
 
-    expect((await screen.findByText('경주 여행')).closest('li'))
-      .toHaveClass('book-card--highlighted')
+    const card = (await screen.findByText('경주 여행')).closest('li')
+    await waitFor(() => expect(card).toHaveClass('book-card--highlighted'))
     expect(listBooks).toHaveBeenNthCalledWith(2, 'cursor/1', expect.any(AbortSignal))
+  })
+
+  it('대상 카드가 화면 밖에 있으면 스크롤이 끝난 뒤 강조한다', async () => {
+    const book = { guidebook_id: 10, title: '경주 여행', start_date: '2026-10-01', end_date: '2026-10-03', companion: 'FRIEND' }
+    listBooks.mockResolvedValue({ items: [book], next_cursor: null, has_more: false })
+    const rect = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
+      top: 900,
+      bottom: 980,
+      left: 0,
+      right: 360,
+      width: 360,
+      height: 80,
+      x: 0,
+      y: 900,
+      toJSON: () => ({}),
+    })
+
+    render(
+      <MemoryRouter initialEntries={[{
+        pathname: '/guidebooks',
+        state: { highlightGuidebookId: 10 },
+      }]}>
+        <GuidebookListPage />
+      </MemoryRouter>,
+    )
+
+    const card = (await screen.findByText('경주 여행')).closest('li')
+    expect(card).not.toHaveClass('book-card--highlighted')
+    window.dispatchEvent(new Event('scrollend'))
+    await waitFor(() => expect(card).toHaveClass('book-card--highlighted'))
+    rect.mockRestore()
   })
 
   it('뷰어는 전체 화면에서 내부 스크립트와 탭 감지를 지원한다', async () => {

@@ -9,6 +9,15 @@ import { PageHeader } from '../../../shared/ui/PageHeader.tsx'
 import { getCreditWallet } from '../api/credits.ts'
 import { Toast } from '../../../shared/ui/Toast.tsx'
 
+const HIGHLIGHT_DURATION_MS = 600
+const SCROLL_END_FALLBACK_MS = 800
+
+function isFullyVisible(element: HTMLElement): boolean {
+  const { top, bottom } = element.getBoundingClientRect()
+  const viewportHeight = window.innerHeight || document.documentElement.clientHeight
+  return top >= 0 && bottom <= viewportHeight
+}
+
 export function GuidebookListPage() {
   const location = useLocation()
   const navigate = useNavigate()
@@ -31,6 +40,7 @@ export function GuidebookListPage() {
   const automaticCursors = useRef(new Set<string>())
   const automaticTarget = useRef(0)
   const [highlightError, setHighlightError] = useState('')
+  const [highlightedGuidebookId, setHighlightedGuidebookId] = useState<number | null>(null)
   const stateHighlightId = (location.state as { highlightGuidebookId?: unknown } | null)
     ?.highlightGuidebookId
   const requestedHighlightId = Number(
@@ -102,19 +112,47 @@ export function GuidebookListPage() {
       return undefined
     }
 
-    cardElements.current.get(requestedHighlightId)?.scrollIntoView?.({
-      behavior: 'smooth',
-      block: 'center',
-    })
-    const timer = window.setTimeout(() => {
+    const targetElement = cardElements.current.get(requestedHighlightId)
+    if (!targetElement) return undefined
+
+    let highlightStarted = false
+    let scrollFallbackTimer: number | undefined
+    let highlightTimer: number | undefined
+    const clearHighlightTarget = () => {
       const query = new URLSearchParams(location.search)
       query.delete('highlightGuidebookId')
       navigate({
         pathname: location.pathname,
         search: query.size > 0 ? `?${query.toString()}` : '',
       }, { replace: true, state: null })
-    }, 320)
-    return () => window.clearTimeout(timer)
+    }
+    const startHighlight = () => {
+      if (highlightStarted) return
+      highlightStarted = true
+      window.removeEventListener('scrollend', startHighlight)
+      if (scrollFallbackTimer !== undefined) window.clearTimeout(scrollFallbackTimer)
+      setHighlightedGuidebookId(requestedHighlightId)
+      highlightTimer = window.setTimeout(() => {
+        setHighlightedGuidebookId(null)
+        clearHighlightTarget()
+      }, HIGHLIGHT_DURATION_MS)
+    }
+
+    targetElement.scrollIntoView?.({
+      behavior: 'smooth',
+      block: 'center',
+    })
+    if (isFullyVisible(targetElement)) {
+      scrollFallbackTimer = window.setTimeout(startHighlight, 0)
+    } else {
+      window.addEventListener('scrollend', startHighlight, { once: true })
+      scrollFallbackTimer = window.setTimeout(startHighlight, SCROLL_END_FALLBACK_MS)
+    }
+    return () => {
+      window.removeEventListener('scrollend', startHighlight)
+      if (scrollFallbackTimer !== undefined) window.clearTimeout(scrollFallbackTimer)
+      if (highlightTimer !== undefined) window.clearTimeout(highlightTimer)
+    }
   }, [data, loadMore, loading, location.pathname, location.search, navigate, requestedHighlightId])
 
   async function remove() {
@@ -141,7 +179,7 @@ export function GuidebookListPage() {
       {error && <State error onRetry={() => failedCursor.current ? void loadMore() : setRevision((value) => value + 1)}>{error}</State>}
       {data?.items.length === 0 && !loading && !error && <div className="book-empty"><BookCover /><h2>아직 가이드북이 없어요</h2><p>여행할 곳을 고르고<br />나만의 여행을 만들어 보세요.</p><Link className="primary-button book-button" to="/guidebooks/new">가이드북 만들기</Link></div>}
       <ul className="book-list">{data?.items.map((book) => <li
-        className={`book-card${requestedHighlightId === book.guidebook_id ? ' book-card--highlighted' : ''}`}
+        className={`book-card${highlightedGuidebookId === book.guidebook_id ? ' book-card--highlighted' : ''}`}
         key={book.guidebook_id}
         ref={(element) => {
           if (element) cardElements.current.set(book.guidebook_id, element)
