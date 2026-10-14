@@ -123,6 +123,15 @@ export function GuidebookListPage() {
         }}
       >
         <Link to={`/guidebooks/${book.guidebook_id}/viewer`} className="book-card-main"><BookCover /><div><h2>{book.title}</h2><p>{book.start_date.replaceAll('-', '.')} – {book.end_date.replaceAll('-', '.')}</p><span>{companions[book.companion]?.[0]}</span></div></Link>
+        <a
+          className="book-pdf"
+          href={`/guidebooks/${book.guidebook_id}/print`}
+          target="_blank"
+          rel="noopener"
+          aria-label={`${book.title} PDF 저장`}
+        >
+          <img src="/assets/guidebook/paper.png" alt="" aria-hidden="true" />
+        </a>
         <button className="book-delete" onClick={() => { setDeleteError(''); setTarget(book) }} aria-label={`${book.title} 삭제`}>삭제</button>
       </li>)}</ul>
       {loading && <State>가이드북을 불러오고 있어요.</State>}

@@ -8,6 +8,7 @@ export const routes = {
   guidebookCreate: '/guidebooks/new',
   guidebookGenerating: '/guidebooks/generating/:jobId',
   guidebookViewer: '/guidebooks/:guidebookId/viewer',
+  guidebookPrint: '/guidebooks/:guidebookId/print',
   myPage: '/mypage',
   coupon: '/mypage/coupon',
   notifications: '/mypage/notifications',

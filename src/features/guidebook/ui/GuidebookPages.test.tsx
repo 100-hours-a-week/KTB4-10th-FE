@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { GuidebookCreatePage } from './GuidebookCreatePage.tsx'
 import { GuidebookListPage } from './GuidebookListPage.tsx'
 import { GuidebookViewerPage } from './GuidebookViewerPage.tsx'
+import { GuidebookPrintPage } from './GuidebookPrintPage.tsx'
 import { today, dayOffset } from '../model/conditions.ts'
 
 const { createBook, listBooks, deleteBook, getViewer, track, trackEvent, getCreditWallet, getMemberPreferences, getPreferenceOptions } = vi.hoisted(() => ({
@@ -129,6 +130,17 @@ describe('가이드북 화면', () => {
     expect(await screen.findByText('가이드북 생성 화면')).toBeInTheDocument()
   })
 
+  it('목록의 PDF 저장 버튼은 인쇄 전용 화면을 새 탭으로 연다', async () => {
+    const book = { guidebook_id: 10, title: '경주 여행', start_date: '2026-10-01', end_date: '2026-10-03', companion: 'FRIEND' }
+    listBooks.mockResolvedValue({ items: [book], next_cursor: null, has_more: false })
+    render(<MemoryRouter><GuidebookListPage /></MemoryRouter>)
+
+    const printLink = await screen.findByRole('link', { name: '경주 여행 PDF 저장' })
+    expect(printLink).toHaveAttribute('href', '/guidebooks/10/print')
+    expect(printLink).toHaveAttribute('target', '_blank')
+    expect(printLink).toHaveAttribute('rel', 'noopener')
+  })
+
   it('알림 토스트에서 이동하면 대상 가이드북 카드를 잠시 강조한다', async () => {
     const book = { guidebook_id: 10, title: '경주 여행', start_date: '2026-10-01', end_date: '2026-10-03', companion: 'FRIEND' }
     listBooks.mockResolvedValue({ items: [book], next_cursor: null, has_more: false })
@@ -169,5 +181,17 @@ describe('가이드북 화면', () => {
     expect(screen.queryByRole('link', { name: '가이드북 뷰어 닫기' })).not.toBeInTheDocument()
     await act(async () => { window.dispatchEvent(new MessageEvent('message', { data: 'kgb:guidebook-interaction', source: viewer.contentWindow })) })
     expect(screen.getByRole('link', { name: '가이드북 뷰어 닫기' })).toBeVisible()
+  })
+
+  it('인쇄 화면은 가이드북 HTML을 정제해 격리된 문서로 준비한다', async () => {
+    const html = '<!doctype html><html><head><title>경주 여행</title></head><body onload="alert(1)"><h1>여행</h1><script>alert(1)</script></body></html>'
+    getViewer.mockResolvedValue({ guidebook_id: 10, content_html: html, version: 1, updated_at: '2026-09-29T00:00:00Z' })
+    render(<MemoryRouter initialEntries={['/guidebooks/10/print']}><Routes><Route path="/guidebooks/:guidebookId/print" element={<GuidebookPrintPage />} /></Routes></MemoryRouter>)
+
+    const printDocument = await screen.findByTitle('가이드북 인쇄 문서')
+    expect(printDocument.getAttribute('srcdoc')).toContain('<h1>여행</h1>')
+    expect(printDocument.getAttribute('srcdoc')).not.toContain('<script')
+    expect(printDocument.getAttribute('srcdoc')).not.toContain('onload=')
+    expect(printDocument).toHaveAttribute('sandbox', 'allow-same-origin allow-modals')
   })
 })
