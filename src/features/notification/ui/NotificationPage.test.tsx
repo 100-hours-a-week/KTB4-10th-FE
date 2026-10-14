@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { NotificationPage } from './NotificationPage.tsx'
 import { NOTIFICATIONS_UPDATED_EVENT } from '../model/events.ts'
@@ -52,12 +52,18 @@ function response(items = [olderNotification, newerNotification]) {
   }
 }
 
+function GuidebookDestination() {
+  const location = useLocation()
+  return <output aria-label="가이드북 이동 정보">{JSON.stringify(location.state)}</output>
+}
+
 function renderPage() {
   return render(
     <MemoryRouter initialEntries={['/mypage/notifications']}>
       <Routes>
         <Route path="/mypage/notifications" element={<NotificationPage />} />
         <Route path="/mypage" element={<h1>마이페이지</h1>} />
+        <Route path="/guidebooks" element={<GuidebookDestination />} />
       </Routes>
     </MemoryRouter>,
   )
@@ -74,7 +80,7 @@ describe('NotificationPage', () => {
   it('백엔드 응답 순서와 무관하게 최신 알림을 먼저 표시한다', async () => {
     renderPage()
 
-    const cards = await screen.findAllByRole('article')
+    const cards = await screen.findAllByRole('button', { name: /가이드북 보기/ })
     expect(cards[0]).toHaveTextContent('서울 가이드북 생성 완료')
     expect(cards[1]).toHaveTextContent('부산 가이드북 생성 완료')
   })
@@ -104,7 +110,7 @@ describe('NotificationPage', () => {
 
   it('카드를 왼쪽으로 밀면 개별 읽음 처리 후 목록에서 제거한다', async () => {
     renderPage()
-    const card = (await screen.findAllByRole('article'))[0]
+    const card = (await screen.findAllByRole('button', { name: /가이드북 보기/ }))[0]
 
     fireEvent.pointerDown(card, { pointerId: 1, clientX: 200 })
     fireEvent.pointerMove(card, { pointerId: 1, clientX: 120 })
@@ -113,6 +119,34 @@ describe('NotificationPage', () => {
     await waitFor(() => expect(deleteNotificationMock).toHaveBeenCalledWith('11'))
     await waitFor(() => expect(screen.queryByText('서울 가이드북 생성 완료')).not.toBeInTheDocument())
     expect(screen.getByText('부산 가이드북 생성 완료')).toBeInTheDocument()
+  })
+
+  it('가이드북 알림을 누르면 읽음 처리 후 대상 정보를 담아 목록으로 이동한다', async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(await screen.findByRole('button', {
+      name: '서울 가이드북 생성 완료 가이드북 보기',
+    }))
+
+    await waitFor(() => expect(deleteNotificationMock).toHaveBeenCalledWith('11'))
+    expect(await screen.findByRole('status', { name: '가이드북 이동 정보' }))
+      .toHaveTextContent('{"highlightGuidebookId":5}')
+  })
+
+  it('가이드북 알림 읽음 처리에 실패하면 이동하지 않고 안내한다', async () => {
+    const user = userEvent.setup()
+    deleteNotificationMock.mockRejectedValue(new Error('network error'))
+    renderPage()
+
+    await user.click(await screen.findByRole('button', {
+      name: '서울 가이드북 생성 완료 가이드북 보기',
+    }))
+
+    expect(await screen.findByRole('status', {
+      name: '읽음 처리에 실패했습니다. 다시 시도해주세요.',
+    })).toBeInTheDocument()
+    expect(screen.queryByRole('status', { name: '가이드북 이동 정보' })).not.toBeInTheDocument()
   })
 
   it('전체 읽음 처리 중 버튼을 비활성화하고 성공 후 빈 상태를 표시한다', async () => {

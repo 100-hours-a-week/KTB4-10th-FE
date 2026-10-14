@@ -79,7 +79,7 @@ describe('Web Push Service Worker', () => {
       tag: 'kgb-notification-301',
       renotify: false,
       data: {
-        target: '/guidebooks?highlightGuidebookId=101',
+        target: '/notifications/open?notificationId=301&guidebookId=101',
         notificationId: '301',
         referenceType: 'GUIDEBOOK',
         referenceId: '101',
@@ -120,12 +120,12 @@ describe('Web Push Service Worker', () => {
     const harness = createHarness([visibleClient])
 
     await harness.notificationClick({
-      target: '/guidebooks?highlightGuidebookId=101',
+      target: '/notifications/open?notificationId=301&guidebookId=101',
       notificationId: '301',
     })
 
     expect(visibleClient.navigate).toHaveBeenCalledWith(
-      'https://kguidebook.site/guidebooks?highlightGuidebookId=101',
+      'https://kguidebook.site/notifications/open?notificationId=301&guidebookId=101',
     )
     expect(focused.focus).toHaveBeenCalledOnce()
     expect(harness.openWindow).not.toHaveBeenCalled()
@@ -135,12 +135,12 @@ describe('Web Push Service Worker', () => {
     const harness = createHarness()
 
     await harness.notificationClick({
-      target: '/guidebooks?highlightGuidebookId=101',
+      target: '/notifications/open?notificationId=301&guidebookId=101',
       notificationId: '301',
     })
 
     expect(harness.openWindow).toHaveBeenCalledWith(
-      'https://kguidebook.site/guidebooks?highlightGuidebookId=101',
+      'https://kguidebook.site/notifications/open?notificationId=301&guidebookId=101',
     )
   })
 })

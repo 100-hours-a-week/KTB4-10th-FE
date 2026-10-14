@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { BottomNavigation } from '../../../shared/ui/BottomNavigation.tsx'
 import { deleteBook, listBooks, type BookList, type Book } from '../api/guidebooks.ts'
@@ -7,6 +7,7 @@ import { isRunning, useGeneration } from '../model/generation.ts'
 import { BookCover, State } from './GuidebookLayout.tsx'
 import { PageHeader } from '../../../shared/ui/PageHeader.tsx'
 import { getCreditWallet } from '../api/credits.ts'
+import { Toast } from '../../../shared/ui/Toast.tsx'
 
 export function GuidebookListPage() {
   const location = useLocation()
@@ -27,6 +28,9 @@ export function GuidebookListPage() {
   const completedId = job?.status === 'COMPLETED' ? job.guidebook_id : null
   const [creditBalance, setCreditBalance] = useState<number | null>(null)
   const cardElements = useRef(new Map<number, HTMLLIElement>())
+  const automaticCursors = useRef(new Set<string>())
+  const automaticTarget = useRef(0)
+  const [highlightError, setHighlightError] = useState('')
   const stateHighlightId = (location.state as { highlightGuidebookId?: unknown } | null)
     ?.highlightGuidebookId
   const requestedHighlightId = Number(
@@ -58,9 +62,45 @@ export function GuidebookListPage() {
     else modal.current?.close()
   }, [target])
 
+  const loadMore = useCallback(async () => {
+    if (!data?.next_cursor || loadLock.current) return
+    const cursor = data.next_cursor
+    const controller = new AbortController()
+    request.current = controller; loadLock.current = true; setLoading(true); setError('')
+    try {
+      const next = await listBooks(cursor, controller.signal)
+      if (!controller.signal.aborted) setData((current) => ({
+        ...next, items: [...(current?.items ?? []), ...next.items.filter((item) => !current?.items.some((old) => old.guidebook_id === item.guidebook_id))],
+      }))
+    } catch (reason) { if (!controller.signal.aborted) { failedCursor.current = cursor; setError(message(reason)) } }
+    finally { if (!controller.signal.aborted) { loadLock.current = false; setLoading(false) } }
+  }, [data])
+
   useEffect(() => {
     if (!Number.isSafeInteger(requestedHighlightId) || requestedHighlightId < 1) return undefined
-    if (!data?.items.some(({ guidebook_id }) => guidebook_id === requestedHighlightId)) return undefined
+    if (automaticTarget.current !== requestedHighlightId) {
+      automaticTarget.current = requestedHighlightId
+      automaticCursors.current.clear()
+    }
+    if (!data) return undefined
+    if (!data.items.some(({ guidebook_id }) => guidebook_id === requestedHighlightId)) {
+      if (data.has_more && data.next_cursor && !loading && !automaticCursors.current.has(data.next_cursor)) {
+        automaticCursors.current.add(data.next_cursor)
+        void loadMore()
+      } else if (!data.has_more && !loading) {
+        const timer = window.setTimeout(() => {
+          setHighlightError('대상 가이드북을 찾지 못했습니다.')
+          const query = new URLSearchParams(location.search)
+          query.delete('highlightGuidebookId')
+          navigate({
+            pathname: location.pathname,
+            search: query.size > 0 ? `?${query.toString()}` : '',
+          }, { replace: true, state: null })
+        }, 0)
+        return () => window.clearTimeout(timer)
+      }
+      return undefined
+    }
 
     cardElements.current.get(requestedHighlightId)?.scrollIntoView?.({
       behavior: 'smooth',
@@ -75,21 +115,7 @@ export function GuidebookListPage() {
       }, { replace: true, state: null })
     }, 320)
     return () => window.clearTimeout(timer)
-  }, [data?.items, location.pathname, location.search, navigate, requestedHighlightId])
-
-  async function more() {
-    if (!data?.next_cursor || loadLock.current) return
-    const cursor = data.next_cursor
-    const controller = new AbortController()
-    request.current = controller; loadLock.current = true; setLoading(true); setError('')
-    try {
-      const next = await listBooks(cursor, controller.signal)
-      if (!controller.signal.aborted) setData((current) => ({
-        ...next, items: [...(current?.items ?? []), ...next.items.filter((item) => !current?.items.some((old) => old.guidebook_id === item.guidebook_id))],
-      }))
-    } catch (reason) { if (!controller.signal.aborted) { failedCursor.current = cursor; setError(message(reason)) } }
-    finally { if (!controller.signal.aborted) { loadLock.current = false; setLoading(false) } }
-  }
+  }, [data, loadMore, loading, location.pathname, location.search, navigate, requestedHighlightId])
 
   async function remove() {
     if (!target || deleteLock.current) return
@@ -112,7 +138,7 @@ export function GuidebookListPage() {
         <span>{job.status === 'FAILED' ? '다시 시도하기' : '진행 상황 확인'} ›</span>
       </Link>}
       {jobError && <State error onRetry={job ? refresh : undefined}>{jobError}</State>}
-      {error && <State error onRetry={() => failedCursor.current ? void more() : setRevision((value) => value + 1)}>{error}</State>}
+      {error && <State error onRetry={() => failedCursor.current ? void loadMore() : setRevision((value) => value + 1)}>{error}</State>}
       {data?.items.length === 0 && !loading && !error && <div className="book-empty"><BookCover /><h2>아직 가이드북이 없어요</h2><p>여행할 곳을 고르고<br />나만의 여행을 만들어 보세요.</p><Link className="primary-button book-button" to="/guidebooks/new">가이드북 만들기</Link></div>}
       <ul className="book-list">{data?.items.map((book) => <li
         className={`book-card${requestedHighlightId === book.guidebook_id ? ' book-card--highlighted' : ''}`}
@@ -135,7 +161,7 @@ export function GuidebookListPage() {
         <button className="book-delete" onClick={() => { setDeleteError(''); setTarget(book) }} aria-label={`${book.title} 삭제`}>삭제</button>
       </li>)}</ul>
       {loading && <State>가이드북을 불러오고 있어요.</State>}
-      {data?.has_more && !loading && <button className="secondary-button book-more" onClick={() => void more()}>더 보기</button>}
+      {data?.has_more && !loading && <button className="secondary-button book-more" onClick={() => void loadMore()}>더 보기</button>}
     </div>
     <BottomNavigation />
     <dialog ref={modal} className="book-dialog" onCancel={(event) => { if (deleting) event.preventDefault(); else setTarget(null) }}>
@@ -143,5 +169,6 @@ export function GuidebookListPage() {
       {deleteError && <p role="alert" className="book-error">{deleteError}</p>}
       <div className="book-dialog-actions"><button className="secondary-button" disabled={deleting} onClick={() => setTarget(null)}>취소</button><button className="primary-button" disabled={deleting} onClick={() => void remove()}>{deleting ? '삭제 중…' : '삭제'}</button></div>
     </dialog>
+    {highlightError && <Toast message={highlightError} onDismiss={() => setHighlightError('')} />}
   </main>
 }

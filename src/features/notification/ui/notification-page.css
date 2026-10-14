@@ -122,6 +122,19 @@
   user-select: none;
 }
 
+.notification-card__content[role='button'] {
+  cursor: pointer;
+}
+
+.notification-card__content[role='button']:focus-visible {
+  outline: 2px solid #343439;
+  outline-offset: -3px;
+}
+
+.notification-open-page {
+  background: #f7f7f9;
+}
+
 .notification-card__content > div {
   display: flex;
   align-items: baseline;

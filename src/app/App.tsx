@@ -16,6 +16,7 @@ import { GuidebookViewerPage } from '../features/guidebook/ui/GuidebookViewerPag
 import { GuidebookPrintPage } from '../features/guidebook/ui/GuidebookPrintPage.tsx'
 import { NotificationCenter } from '../features/notification/ui/NotificationCenter.tsx'
 import { NotificationPage } from '../features/notification/ui/NotificationPage.tsx'
+import { NotificationOpenPage } from '../features/notification/ui/NotificationOpenPage.tsx'
 import { SettingsPage } from '../features/settings/ui/SettingsPage.tsx'
 import { routes } from '../shared/config/routes.ts'
 import '../features/guidebook/ui/guidebook.css'
@@ -45,6 +46,10 @@ function App() {
         <Route
           path={routes.notifications}
           element={<AuthBoundary><NotificationPage /></AuthBoundary>}
+        />
+        <Route
+          path={routes.notificationOpen}
+          element={<AuthBoundary><NotificationOpenPage /></AuthBoundary>}
         />
         <Route
           path={routes.settings}
