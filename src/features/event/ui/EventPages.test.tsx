@@ -5,10 +5,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { EventDetailPage } from './EventDetailPage.tsx'
 import { EventListPage } from './EventListPage.tsx'
 
-const { getEventDetailMock, getEventsMock, getNewEventsMock } = vi.hoisted(() => ({
+const { getCurrentMemberMock, getEventDetailMock, getEventsMock, getNewEventsMock } = vi.hoisted(() => ({
+  getCurrentMemberMock: vi.fn(),
   getEventDetailMock: vi.fn(),
   getEventsMock: vi.fn(),
   getNewEventsMock: vi.fn(),
+}))
+
+vi.mock('../../auth/api/auth.ts', () => ({
+  getCurrentMember: getCurrentMemberMock,
 }))
 
 vi.mock('../api/events.ts', async () => {
@@ -32,7 +37,10 @@ const preview = {
 }
 
 describe('event information pages', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    getCurrentMemberMock.mockResolvedValue({ unread_count: 0 })
+  })
 
   it('전체 행사와 오늘 등록된 행사 표시를 함께 제공한다', async () => {
     getEventsMock.mockResolvedValue({
@@ -83,6 +91,26 @@ describe('event information pages', () => {
     expect(screen.queryByText(/오늘 새로 등록된 행사/)).not.toBeInTheDocument()
   })
 
+  it('행사 헤더에 읽지 않은 알림 상태를 반영한다', async () => {
+    getCurrentMemberMock.mockResolvedValue({ unread_count: 2 })
+    getEventsMock.mockResolvedValue({
+      items: [], page: 1, size: 10, total_items: 0, total_pages: 0,
+    })
+    getNewEventsMock.mockResolvedValue({
+      date: '2026-10-15', items: [], page: 1, size: 20, total_items: 0, total_pages: 0,
+    })
+
+    render(<MemoryRouter initialEntries={['/information']}><EventListPage /></MemoryRouter>)
+
+    expect(await screen.findByRole('button', { name: '읽지 않은 알림 2개 확인' }))
+      .toBeInTheDocument()
+    window.dispatchEvent(new CustomEvent('kgb:notifications-updated', {
+      detail: { unreadCount: 3 },
+    }))
+    expect(await screen.findByRole('button', { name: '읽지 않은 알림 3개 확인' }))
+      .toBeInTheDocument()
+  })
+
   it('페이지 버튼을 누르면 해당 페이지를 조회한다', async () => {
     const user = userEvent.setup()
     getEventsMock
@@ -110,6 +138,26 @@ describe('event information pages', () => {
     expect(await screen.findByText('2페이지 행사')).toBeInTheDocument()
     expect(getEventsMock).toHaveBeenLastCalledWith('', 2, expect.any(AbortSignal))
     expect(screen.getByRole('button', { name: '2' })).toHaveAttribute('aria-current', 'page')
+  })
+
+  it('같은 검색어나 공백 검색을 다시 제출해도 재조회한다', async () => {
+    const user = userEvent.setup()
+    const emptyPage = {
+      items: [], page: 1, size: 10, total_items: 0, total_pages: 0,
+    }
+    getEventsMock.mockResolvedValue(emptyPage)
+    getNewEventsMock.mockResolvedValue({
+      date: '2026-10-15', items: [], page: 1, size: 20, total_items: 0, total_pages: 0,
+    })
+
+    render(<MemoryRouter initialEntries={['/information']}><EventListPage /></MemoryRouter>)
+    await screen.findByText('검색 결과가 없어요')
+
+    const searchInput = screen.getByRole('textbox', { name: '행사명 검색' })
+    await user.type(searchInput, '   {Enter}')
+    await screen.findByText('검색 결과가 없어요')
+
+    expect(getEventsMock).toHaveBeenCalledTimes(2)
   })
 
   it('행사 상세 정보와 이용 정보를 표시한다', async () => {

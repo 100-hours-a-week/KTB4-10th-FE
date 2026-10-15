@@ -3,6 +3,7 @@ import { isApiResponse } from '../../../shared/api/types.ts'
 
 const NEW_EVENTS_PATH = '/api/v1/events/new'
 const EVENTS_PATH = '/api/v1/contents'
+const EVENT_PAGE_SIZE = 10
 const ONE_DAY_MS = 24 * 60 * 60 * 1000
 const SEOUL_DATE_FORMATTER = new Intl.DateTimeFormat('en-CA', {
   timeZone: 'Asia/Seoul',
@@ -152,7 +153,7 @@ export async function getEvents(
   signal?: AbortSignal,
 ): Promise<EventList> {
   const response = await http.get<unknown>(EVENTS_PATH, {
-    params: { category: 'EVENT', page, size: 20, ...(query ? { q: query } : {}) },
+    params: { category: 'EVENT', page, size: EVENT_PAGE_SIZE, ...(query ? { q: query } : {}) },
     signal,
   })
   if (!isApiResponse(response.data) || !isEventList(response.data.data)) {

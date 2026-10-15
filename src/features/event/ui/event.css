@@ -1,7 +1,17 @@
 .event-list-page {
   min-height: 100svh;
+  padding-top: calc(env(safe-area-inset-top) + 70px);
   padding-bottom: calc(env(safe-area-inset-bottom) + 92px);
   background: #f6f6f3;
+}
+
+.event-list-page > .app-page-header {
+  position: fixed;
+  z-index: 20;
+  top: 0;
+  left: 50%;
+  width: min(100%, 390px);
+  transform: translateX(-50%);
 }
 
 .event-list-content {
@@ -360,11 +370,18 @@
 
 .event-detail-page {
   min-height: 100svh;
+  padding-top: calc(env(safe-area-inset-top) + 58px);
   padding-bottom: calc(env(safe-area-inset-bottom) + 32px);
   background: #f6f6f3;
 }
 
 .event-detail-header {
+  position: fixed;
+  z-index: 20;
+  top: 0;
+  left: 50%;
+  width: min(100%, 390px);
+  transform: translateX(-50%);
   display: grid;
   min-height: calc(env(safe-area-inset-top) + 58px);
   grid-template-columns: 44px 1fr 44px;

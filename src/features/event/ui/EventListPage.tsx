@@ -3,6 +3,11 @@ import { Link, useNavigate } from 'react-router-dom'
 import { BottomNavigation } from '../../../shared/ui/BottomNavigation.tsx'
 import { PageHeader } from '../../../shared/ui/PageHeader.tsx'
 import { routes } from '../../../shared/config/routes.ts'
+import { getCurrentMember } from '../../auth/api/auth.ts'
+import {
+  NOTIFICATIONS_UPDATED_EVENT,
+  type NotificationsUpdatedDetail,
+} from '../../notification/model/events.ts'
 import { getEvents, getNewEvents, type EventList, type EventListItem } from '../api/events.ts'
 import { eventListFixture } from '../model/eventFixtures.ts'
 import './event.css'
@@ -62,6 +67,27 @@ export function EventListPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [revision, setRevision] = useState(0)
+  const [unreadCount, setUnreadCount] = useState(0)
+
+  useEffect(() => {
+    let active = true
+    void getCurrentMember()
+      .then((member) => {
+        if (active) setUnreadCount(member.unread_count)
+      })
+      .catch(() => undefined)
+    const handleNotificationsUpdated = (event: Event) => {
+      const { unreadCount: nextUnreadCount } = (
+        event as CustomEvent<NotificationsUpdatedDetail>
+      ).detail
+      setUnreadCount(nextUnreadCount)
+    }
+    window.addEventListener(NOTIFICATIONS_UPDATED_EVENT, handleNotificationsUpdated)
+    return () => {
+      active = false
+      window.removeEventListener(NOTIFICATIONS_UPDATED_EVENT, handleNotificationsUpdated)
+    }
+  }, [])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -106,6 +132,7 @@ export function EventListPage() {
     setError(false)
     setPage(1)
     setQuery(input.trim())
+    setRevision((value) => value + 1)
   }
 
   function movePage(nextPage: number) {
@@ -123,9 +150,21 @@ export function EventListPage() {
 
   return (
     <main className="app-shell event-list-page">
-      <PageHeader title="이런 행사 어때요?">
-        <button className="app-page-header__notification" type="button" aria-label="알림 확인" onClick={() => navigate(routes.notifications)}>
-          <img src="/assets/mypage/bell-empty.png" alt="" aria-hidden="true" />
+      <PageHeader title="행사 정보">
+        <button
+          className="app-page-header__notification"
+          type="button"
+          aria-label={unreadCount > 0 ? `읽지 않은 알림 ${unreadCount}개 확인` : '알림 확인'}
+          onClick={() => navigate(routes.notifications)}
+        >
+          <img
+            src={unreadCount > 0
+              ? '/assets/mypage/bell-unread.png'
+              : '/assets/mypage/bell-empty.png'}
+            alt=""
+            aria-hidden="true"
+          />
+          {unreadCount > 0 && <span>{unreadCount}</span>}
         </button>
       </PageHeader>
 
