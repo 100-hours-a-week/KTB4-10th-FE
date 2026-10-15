@@ -28,6 +28,7 @@ import {
   panMapToCoordinate,
   type Coordinate,
 } from '../lib/mapViewport.ts'
+import type { MapViewport } from '../model/mapNavigationState.ts'
 
 type MapFocusTarget = Coordinate & {
   requestId: number
@@ -36,12 +37,14 @@ type MapFocusTarget = Coordinate & {
 
 type KakaoMapCanvasProps = {
   center: Coordinate
+  initialLevel?: number
   currentPosition: Coordinate | null
   focusTarget: MapFocusTarget | null
   items: MapMarkerItem[]
   clusters: MapCluster[]
   selectedContentId: string | null
   onBoundsChange: (bounds: MapBounds) => void
+  onViewportChange: (viewport: MapViewport) => void
   onError: (message: string) => void
   onMapClick: () => void
   onSelectItem: (item: MapMarkerItem) => void
@@ -178,12 +181,14 @@ function clusterImage(
 
 export function KakaoMapCanvas({
   center,
+  initialLevel = 5,
   currentPosition,
   focusTarget,
   items,
   clusters,
   selectedContentId,
   onBoundsChange,
+  onViewportChange,
   onError,
   onMapClick,
   onSelectItem,
@@ -192,6 +197,7 @@ export function KakaoMapCanvas({
   const containerRef = useRef<HTMLDivElement>(null)
 
   const initialCenterRef = useRef(center)
+  const initialLevelRef = useRef(initialLevel)
   const initialCurrentPositionRef = useRef(currentPosition)
 
   const mapsRef = useRef<KakaoMaps | null>(null)
@@ -234,7 +240,7 @@ export function KakaoMapCanvas({
             initialCenterRef.current.latitude,
             initialCenterRef.current.longitude,
           ),
-          level: 5,
+          level: initialLevelRef.current,
         })
 
         mapRef.current = map
@@ -264,11 +270,20 @@ export function KakaoMapCanvas({
 
         idleHandler = () => {
           const bounds = map.getBounds()
+          const center = map.getCenter()
 
           const southWest = bounds.getSouthWest()
           const northEast = bounds.getNorthEast()
 
           const zoom = toApiZoom(map.getLevel())
+
+          onViewportChange({
+            center: {
+              latitude: center.getLat(),
+              longitude: center.getLng(),
+            },
+            level: map.getLevel(),
+          })
 
           onBoundsChange({
             south: southWest.getLat(),
@@ -332,6 +347,7 @@ export function KakaoMapCanvas({
     onBoundsChange,
     onError,
     onMapClick,
+    onViewportChange,
   ])
 
   // --------------------------------------------------
