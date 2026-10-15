@@ -220,11 +220,6 @@ export function MapPage() {
         setMarkers(result.markers)
         setClusters(result.clusters)
         setResponseMode(result.mode)
-        setSelectedItem((current) => (
-          current && result.markers.some((item) => item.content_id === current.content_id)
-            ? current
-            : null
-        ))
       })
       .catch(() => {
         if (requestId !== markerRequestIdRef.current) return
@@ -429,7 +424,9 @@ export function MapPage() {
 
   const displayedItem = selectedItem
     ? items.find((item) => item.content_id === selectedItem.content_id) ?? selectedItem
-    : items[0] ?? null
+    : items[0] ?? (responseMode === 'MARKER' && markers[0]
+      ? markerAsContentItem(markers[0])
+      : null)
   const clusteredContentCount = clusters.reduce((total, cluster) => total + cluster.count, 0)
   const visibleMapContentCount = responseMode === 'CLUSTER'
     ? clusteredContentCount
