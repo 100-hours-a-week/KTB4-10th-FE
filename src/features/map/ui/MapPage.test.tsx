@@ -90,7 +90,7 @@ vi.mock('./KakaoMapCanvas.tsx', () => ({
         address: '서울 성동구',
         latitude: 37.5444,
         longitude: 127.0374,
-        thumbnail_url: null,
+        thumbnail_url: 'https://example.com/seoul-forest.jpg',
         event_period: null,
         is_favorite: false,
         is_in_guidebook: false,
@@ -162,7 +162,7 @@ describe('MapPage', () => {
         address: '서울 성동구',
         latitude: 37.5444,
         longitude: 127.0374,
-        thumbnail_url: null,
+        thumbnail_url: 'https://example.com/seoul-forest.jpg',
         event_period: null,
         is_favorite: false,
         is_in_guidebook: false,
@@ -176,6 +176,8 @@ describe('MapPage', () => {
 
     await user.click(screen.getByRole('button', { name: '지도 핀 선택' }))
     expect(await screen.findByText('서울숲')).toBeInTheDocument()
+    await waitFor(() => expect(document.querySelector('.map-content-card__thumbnail img'))
+      .toHaveAttribute('src', 'https://example.com/seoul-forest.jpg'))
     expect(document.querySelector('.map-content-sheet--default')).toBeInTheDocument()
   })
 
@@ -403,16 +405,29 @@ describe('MapPage', () => {
     getMapMarkersMock
       .mockResolvedValueOnce({ mode: 'MARKER', clusters: [], markers })
       .mockResolvedValueOnce({ mode: 'MARKER', clusters: [], markers: [markers[1]] })
-    getMapContentsMock.mockResolvedValue({
-      items: markers.map((marker) => ({
-        ...marker,
-        address: '서울',
-        thumbnail_url: null,
-        event_period: null,
-      })),
-      next_cursor: null,
-      has_more: false,
-    })
+    getMapContentsMock
+      .mockResolvedValueOnce({
+        items: markers.map((marker) => ({
+          ...marker,
+          address: '서울',
+          thumbnail_url: marker.content_id === 'place-1'
+            ? 'https://example.com/seoul-forest.jpg'
+            : 'https://example.com/seoul-festival.jpg',
+          event_period: null,
+        })),
+        next_cursor: null,
+        has_more: false,
+      })
+      .mockResolvedValueOnce({
+        items: [{
+          ...markers[1],
+          address: '서울',
+          thumbnail_url: 'https://example.com/seoul-festival.jpg',
+          event_period: null,
+        }],
+        next_cursor: null,
+        has_more: false,
+      })
     render(<MemoryRouter><MapPage /></MemoryRouter>)
 
     await user.click(screen.getByRole('button', { name: '지도 범위 조회' }))
@@ -425,6 +440,8 @@ describe('MapPage', () => {
 
     await user.click(screen.getByRole('button', { name: '지도 범위 조회' }))
     expect(await screen.findByText('서울숲')).toBeInTheDocument()
+    expect(document.querySelector('.map-content-card__thumbnail img'))
+      .toHaveAttribute('src', 'https://example.com/seoul-forest.jpg')
     expect(screen.getByText('주변 장소·행사 1개')).toBeInTheDocument()
     expect(screen.queryByText('주변 장소·행사 0개')).not.toBeInTheDocument()
 
@@ -457,7 +474,7 @@ describe('MapPage', () => {
         address: '서울 중구',
         latitude: 37.5665,
         longitude: 126.978,
-        thumbnail_url: null,
+        thumbnail_url: 'https://example.com/seoul-festival.jpg',
         event_period: null,
         is_favorite: false,
         is_in_guidebook: false,
@@ -475,6 +492,8 @@ describe('MapPage', () => {
 
     await user.click(screen.getByRole('button', { name: '지도 범위 조회' }))
     expect(await screen.findByText('서울 축제')).toBeInTheDocument()
+    expect(document.querySelector('.map-content-card__thumbnail img'))
+      .toHaveAttribute('src', 'https://example.com/seoul-festival.jpg')
     expect(screen.getByText('주변 장소·행사 1개')).toBeInTheDocument()
   })
 

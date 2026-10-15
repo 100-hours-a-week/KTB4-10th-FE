@@ -189,6 +189,9 @@ export function MapPage() {
       .then((contentPage) => {
         if (requestId !== latestContentRequestRef.current) return
         setItems(contentPage.items)
+        setSelectedItem((current) => current
+          ? contentPage.items.find((item) => item.content_id === current.content_id) ?? current
+          : current)
         setNextCursor(contentPage.next_cursor)
         setHasMore(contentPage.has_more)
         setIsNextPageLoading(false)
@@ -226,7 +229,7 @@ export function MapPage() {
         setToast('지도 표시 정보를 불러오지 못했어요.')
       })
 
-    if (sheetLevelRef.current === 'expanded') {
+    if (sheetLevelRef.current !== 'collapsed') {
       requestFirstContents(bounds)
     } else {
       setIsContentsLoading(false)
@@ -237,10 +240,10 @@ export function MapPage() {
   const changeSheetLevel = useCallback((level: SheetLevel) => {
     sheetLevelRef.current = level
     setSheetLevel(level)
-    if (level === 'expanded' && currentBoundsRef.current) {
+    if (level !== 'collapsed' && currentBoundsRef.current && items.length === 0) {
       requestFirstContents(currentBoundsRef.current)
     }
-  }, [requestFirstContents])
+  }, [items.length, requestFirstContents])
 
   const requestNextContents = useCallback(() => {
     const bounds = currentBoundsRef.current
@@ -488,7 +491,10 @@ export function MapPage() {
           onError={setMapError}
           onMapClick={handleMapClick}
           onSelectItem={(item) => {
-            setSelectedItem(markerAsContentItem(item))
+            setSelectedItem(
+              items.find((candidate) => candidate.content_id === item.content_id) ??
+              markerAsContentItem(item),
+            )
             changeSheetLevel('default')
           }}
         />
@@ -554,11 +560,11 @@ export function MapPage() {
           <span className="map-content-sheet__handle" aria-hidden="true" />
         </button>
 
-        {isContentsLoading && items.length === 0 ? (
+        {isContentsLoading && items.length === 0 && sheetLevel === 'expanded' ? (
           <div className="map-content-sheet__empty">
             <strong>주변 장소와 행사를 찾고 있어요</strong>
           </div>
-        ) : contentsError && items.length === 0 && !selectedItem ? (
+        ) : contentsError && items.length === 0 && !selectedItem && sheetLevel === 'expanded' ? (
           <div className="map-content-sheet__empty">
             <strong>관광 정보를 불러오지 못했어요</strong>
             <p>지도를 움직여 다시 조회해 주세요.</p>
