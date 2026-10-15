@@ -339,6 +339,30 @@ describe('MapPage', () => {
       ],
       has_more: false,
     })
+    getMapMarkersMock.mockResolvedValue({
+      mode: 'MARKER',
+      clusters: [],
+      markers: [
+        {
+          content_id: 'place-1',
+          title: '서울숲',
+          content_type: 'PLACE',
+          latitude: 37.5444,
+          longitude: 127.0374,
+          is_favorite: false,
+          is_in_guidebook: false,
+        },
+        {
+          content_id: 'event-1',
+          title: '서울 축제',
+          content_type: 'EVENT',
+          latitude: 37.5665,
+          longitude: 126.978,
+          is_favorite: false,
+          is_in_guidebook: false,
+        },
+      ],
+    })
     render(<MemoryRouter><MapPage /></MemoryRouter>)
 
     await user.click(screen.getByRole('button', { name: '지도 범위 조회' }))
@@ -351,6 +375,60 @@ describe('MapPage', () => {
 
     await user.click(screen.getByRole('button', { name: '지도 클릭' }))
     expect(document.querySelector('.map-content-sheet--expanded')).not.toBeInTheDocument()
+  })
+
+  it('장소 선택 후 지도 조작과 시트 전환에도 실제 마커 개수를 유지한다', async () => {
+    const user = userEvent.setup()
+    localStorage.setItem('kgb.location-prompt-completed', 'true')
+    const markers = [
+      {
+        content_id: 'place-1',
+        title: '서울숲',
+        content_type: 'PLACE' as const,
+        latitude: 37.5444,
+        longitude: 127.0374,
+        is_favorite: false,
+        is_in_guidebook: false,
+      },
+      {
+        content_id: 'event-1',
+        title: '서울 축제',
+        content_type: 'EVENT' as const,
+        latitude: 37.5665,
+        longitude: 126.978,
+        is_favorite: false,
+        is_in_guidebook: false,
+      },
+    ]
+    getMapMarkersMock.mockResolvedValue({ mode: 'MARKER', clusters: [], markers })
+    getMapContentsMock.mockResolvedValue({
+      items: markers.map((marker) => ({
+        ...marker,
+        address: '서울',
+        thumbnail_url: null,
+        event_period: null,
+      })),
+      next_cursor: null,
+      has_more: false,
+    })
+    render(<MemoryRouter><MapPage /></MemoryRouter>)
+
+    await user.click(screen.getByRole('button', { name: '지도 범위 조회' }))
+    expect(await screen.findByText('주변 장소·행사 2개')).toBeInTheDocument()
+    expect(document.querySelector('.map-content-sheet--collapsed')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: '장소 목록 펼치기' }))
+    await user.click(await screen.findByRole('button', { name: '서울숲 선택' }))
+    expect(document.querySelector('.map-content-sheet--default')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: '지도 범위 조회' }))
+    expect(await screen.findByText('서울숲')).toBeInTheDocument()
+    expect(screen.getByText('주변 장소·행사 2개')).toBeInTheDocument()
+    expect(screen.queryByText('주변 장소·행사 0개')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: '장소 목록 펼치기' }))
+    expect(document.querySelector('.map-content-sheet--expanded')).toBeInTheDocument()
+    expect(screen.getByText('주변 장소·행사 2개')).toBeInTheDocument()
   })
 
   it('핸들바를 아래로 드래그하면 하단 탭 위까지 축소된다', () => {

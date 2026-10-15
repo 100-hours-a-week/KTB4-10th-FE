@@ -431,6 +431,9 @@ export function MapPage() {
     ? items.find((item) => item.content_id === selectedItem.content_id) ?? selectedItem
     : items[0] ?? null
   const clusteredContentCount = clusters.reduce((total, cluster) => total + cluster.count, 0)
+  const visibleMapContentCount = responseMode === 'CLUSTER'
+    ? clusteredContentCount
+    : markers.length
   const handleMapClick = useCallback(() => {
     setSelectedItem(null)
     changeSheetLevel(sheetLevelRef.current === 'expanded' ? 'default' : 'collapsed')
@@ -563,7 +566,7 @@ export function MapPage() {
             <strong>관광 정보를 불러오지 못했어요</strong>
             <p>지도를 움직여 다시 조회해 주세요.</p>
           </div>
-        ) : items.length === 0 && !selectedItem ? (
+        ) : items.length === 0 && visibleMapContentCount === 0 && !selectedItem ? (
           <div className="map-content-sheet__empty">
             <strong>이 지도 영역에 표시할 장소·행사가 없어요</strong>
             <p>관광 콘텐츠 적재 여부를 확인하거나 다른 지역으로 이동해 주세요.</p>
@@ -573,8 +576,8 @@ export function MapPage() {
             <div className="map-content-sheet__summary">
               <strong>
                 {responseMode === 'CLUSTER'
-                  ? `현재 화면 장소·행사 ${clusteredContentCount}개`
-                  : `주변 장소·행사 ${items.length}${hasMore ? '+' : ''}개`}
+                  ? `현재 화면 장소·행사 ${visibleMapContentCount}개`
+                  : `주변 장소·행사 ${visibleMapContentCount}개`}
               </strong>
             </div>
             {sheetLevel === 'expanded' ? (
