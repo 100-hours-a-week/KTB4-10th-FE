@@ -5,10 +5,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { EventDetailPage } from './EventDetailPage.tsx'
 import { EventListPage } from './EventListPage.tsx'
 
-const { getEventDetailMock, getEventsMock, getNewEventsMock } = vi.hoisted(() => ({
+const { getCurrentMemberMock, getEventDetailMock, getEventsMock, getNewEventsMock } = vi.hoisted(() => ({
+  getCurrentMemberMock: vi.fn(),
   getEventDetailMock: vi.fn(),
   getEventsMock: vi.fn(),
   getNewEventsMock: vi.fn(),
+}))
+
+vi.mock('../../auth/api/auth.ts', () => ({
+  getCurrentMember: getCurrentMemberMock,
 }))
 
 vi.mock('../api/events.ts', async () => {
@@ -32,7 +37,10 @@ const preview = {
 }
 
 describe('event information pages', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    getCurrentMemberMock.mockResolvedValue({ unread_count: 0 })
+  })
 
   it('전체 행사와 오늘 등록된 행사 표시를 함께 제공한다', async () => {
     getEventsMock.mockResolvedValue({
@@ -81,6 +89,26 @@ describe('event information pages', () => {
 
     expect(await screen.findByText('계속 진행 중인 행사')).toBeInTheDocument()
     expect(screen.queryByText(/오늘 새로 등록된 행사/)).not.toBeInTheDocument()
+  })
+
+  it('행사 헤더에 읽지 않은 알림 상태를 반영한다', async () => {
+    getCurrentMemberMock.mockResolvedValue({ unread_count: 2 })
+    getEventsMock.mockResolvedValue({
+      items: [], page: 1, size: 10, total_items: 0, total_pages: 0,
+    })
+    getNewEventsMock.mockResolvedValue({
+      date: '2026-10-15', items: [], page: 1, size: 20, total_items: 0, total_pages: 0,
+    })
+
+    render(<MemoryRouter initialEntries={['/information']}><EventListPage /></MemoryRouter>)
+
+    expect(await screen.findByRole('button', { name: '읽지 않은 알림 2개 확인' }))
+      .toBeInTheDocument()
+    window.dispatchEvent(new CustomEvent('kgb:notifications-updated', {
+      detail: { unreadCount: 3 },
+    }))
+    expect(await screen.findByRole('button', { name: '읽지 않은 알림 3개 확인' }))
+      .toBeInTheDocument()
   })
 
   it('페이지 버튼을 누르면 해당 페이지를 조회한다', async () => {
