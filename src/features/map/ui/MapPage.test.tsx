@@ -12,6 +12,7 @@ const {
   saveFavoriteMock,
   updatePushEnabledMock,
   enableWebPushMock,
+  mapCanvasCallbacksMock,
 } = vi.hoisted(() => ({
   getMapContentsMock: vi.fn(),
   getMapMarkersMock: vi.fn(),
@@ -19,6 +20,7 @@ const {
   saveFavoriteMock: vi.fn(),
   updatePushEnabledMock: vi.fn(),
   enableWebPushMock: vi.fn(),
+  mapCanvasCallbacksMock: vi.fn(),
 }))
 
 vi.mock('../api/map.ts', () => ({
@@ -63,6 +65,7 @@ vi.mock('./KakaoMapCanvas.tsx', () => ({
     initialLevel?: number
     onViewportChange: (viewport: object) => void
   }) => (
+    mapCanvasCallbacksMock(onBoundsChange, onMapClick, onSelectItem),
     <div>
       <output aria-label="지도 초기 상태">{`${center.latitude},${center.longitude},${initialLevel ?? 5}`}</output>
       <output aria-label="지도 이동 요청">
@@ -222,6 +225,10 @@ describe('MapPage', () => {
       north: 37.6,
       east: 127,
     })
+    const callbackSets = [0, 1, 2].map((index) => new Set(
+      mapCanvasCallbacksMock.mock.calls.map((call) => call[index]),
+    ))
+    expect(callbackSets.every((callbacks) => callbacks.size === 1)).toBe(true)
   })
 
   it('광역 줌에서 클러스터 전체 개수와 대표 콘텐츠를 표시한다', async () => {

@@ -131,6 +131,7 @@ export function MapPage() {
   const lastRequestedCursorRef = useRef<string | null>(null)
   const [markers, setMarkers] = useState<MapMarkerItem[]>([])
   const [items, setItems] = useState<MapContentItem[]>([])
+  const itemsRef = useRef<MapContentItem[]>([])
   const [clusters, setClusters] = useState<MapCluster[]>([])
   const [responseMode, setResponseMode] = useState<'MARKER' | 'CLUSTER'>('MARKER')
   const [nextCursor, setNextCursor] = useState<string | null>(null)
@@ -157,6 +158,10 @@ export function MapPage() {
   useEffect(() => {
     selectedItemRef.current = selectedItem
   }, [selectedItem])
+
+  useEffect(() => {
+    itemsRef.current = items
+  }, [items])
 
   useEffect(() => () => {
     const { memberId } = initialNavigation
@@ -212,6 +217,7 @@ export function MapPage() {
     currentBoundsRef.current = bounds
     latestContentRequestRef.current += 1
     lastRequestedCursorRef.current = null
+    itemsRef.current = []
     setItems([])
     setNextCursor(null)
     setHasMore(false)
@@ -240,10 +246,10 @@ export function MapPage() {
   const changeSheetLevel = useCallback((level: SheetLevel) => {
     sheetLevelRef.current = level
     setSheetLevel(level)
-    if (level !== 'collapsed' && currentBoundsRef.current && items.length === 0) {
+    if (level !== 'collapsed' && currentBoundsRef.current && itemsRef.current.length === 0) {
       requestFirstContents(currentBoundsRef.current)
     }
-  }, [items.length, requestFirstContents])
+  }, [requestFirstContents])
 
   const requestNextContents = useCallback(() => {
     const bounds = currentBoundsRef.current
@@ -440,6 +446,14 @@ export function MapPage() {
     setSheetDragHeight(null)
   }, [changeSheetLevel])
 
+  const selectMapItem = useCallback((item: MapMarkerItem) => {
+    setSelectedItem(
+      itemsRef.current.find((candidate) => candidate.content_id === item.content_id) ??
+      markerAsContentItem(item),
+    )
+    changeSheetLevel('default')
+  }, [changeSheetLevel])
+
   const toggleFavorite = async (item: MapContentItem) => {
     if (favoritePendingId) return
     setFavoritePendingId(item.content_id)
@@ -490,13 +504,7 @@ export function MapPage() {
           onViewportChange={rememberViewport}
           onError={setMapError}
           onMapClick={handleMapClick}
-          onSelectItem={(item) => {
-            setSelectedItem(
-              items.find((candidate) => candidate.content_id === item.content_id) ??
-              markerAsContentItem(item),
-            )
-            changeSheetLevel('default')
-          }}
+          onSelectItem={selectMapItem}
         />
       )}
 
