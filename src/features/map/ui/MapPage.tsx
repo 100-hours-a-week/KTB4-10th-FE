@@ -131,6 +131,7 @@ export function MapPage() {
   const lastRequestedCursorRef = useRef<string | null>(null)
   const [markers, setMarkers] = useState<MapMarkerItem[]>([])
   const [items, setItems] = useState<MapContentItem[]>([])
+  const itemsRef = useRef<MapContentItem[]>([])
   const [clusters, setClusters] = useState<MapCluster[]>([])
   const [responseMode, setResponseMode] = useState<'MARKER' | 'CLUSTER'>('MARKER')
   const [nextCursor, setNextCursor] = useState<string | null>(null)
@@ -157,6 +158,10 @@ export function MapPage() {
   useEffect(() => {
     selectedItemRef.current = selectedItem
   }, [selectedItem])
+
+  useEffect(() => {
+    itemsRef.current = items
+  }, [items])
 
   useEffect(() => () => {
     const { memberId } = initialNavigation
@@ -189,6 +194,9 @@ export function MapPage() {
       .then((contentPage) => {
         if (requestId !== latestContentRequestRef.current) return
         setItems(contentPage.items)
+        setSelectedItem((current) => current
+          ? contentPage.items.find((item) => item.content_id === current.content_id) ?? current
+          : current)
         setNextCursor(contentPage.next_cursor)
         setHasMore(contentPage.has_more)
         setIsNextPageLoading(false)
@@ -209,6 +217,7 @@ export function MapPage() {
     currentBoundsRef.current = bounds
     latestContentRequestRef.current += 1
     lastRequestedCursorRef.current = null
+    itemsRef.current = []
     setItems([])
     setNextCursor(null)
     setHasMore(false)
@@ -220,18 +229,13 @@ export function MapPage() {
         setMarkers(result.markers)
         setClusters(result.clusters)
         setResponseMode(result.mode)
-        setSelectedItem((current) => (
-          current && result.markers.some((item) => item.content_id === current.content_id)
-            ? current
-            : null
-        ))
       })
       .catch(() => {
         if (requestId !== markerRequestIdRef.current) return
         setToast('지도 표시 정보를 불러오지 못했어요.')
       })
 
-    if (sheetLevelRef.current === 'expanded') {
+    if (sheetLevelRef.current !== 'collapsed') {
       requestFirstContents(bounds)
     } else {
       setIsContentsLoading(false)
@@ -242,7 +246,7 @@ export function MapPage() {
   const changeSheetLevel = useCallback((level: SheetLevel) => {
     sheetLevelRef.current = level
     setSheetLevel(level)
-    if (level === 'expanded' && currentBoundsRef.current) {
+    if (level !== 'collapsed' && currentBoundsRef.current && itemsRef.current.length === 0) {
       requestFirstContents(currentBoundsRef.current)
     }
   }, [requestFirstContents])
@@ -429,12 +433,25 @@ export function MapPage() {
 
   const displayedItem = selectedItem
     ? items.find((item) => item.content_id === selectedItem.content_id) ?? selectedItem
-    : items[0] ?? null
+    : items[0] ?? (responseMode === 'MARKER' && markers[0]
+      ? markerAsContentItem(markers[0])
+      : null)
   const clusteredContentCount = clusters.reduce((total, cluster) => total + cluster.count, 0)
+  const visibleMapContentCount = responseMode === 'CLUSTER'
+    ? clusteredContentCount
+    : markers.length
   const handleMapClick = useCallback(() => {
     setSelectedItem(null)
     changeSheetLevel(sheetLevelRef.current === 'expanded' ? 'default' : 'collapsed')
     setSheetDragHeight(null)
+  }, [changeSheetLevel])
+
+  const selectMapItem = useCallback((item: MapMarkerItem) => {
+    setSelectedItem(
+      itemsRef.current.find((candidate) => candidate.content_id === item.content_id) ??
+      markerAsContentItem(item),
+    )
+    changeSheetLevel('default')
   }, [changeSheetLevel])
 
   const toggleFavorite = async (item: MapContentItem) => {
@@ -487,10 +504,7 @@ export function MapPage() {
           onViewportChange={rememberViewport}
           onError={setMapError}
           onMapClick={handleMapClick}
-          onSelectItem={(item) => {
-            setSelectedItem(markerAsContentItem(item))
-            changeSheetLevel('default')
-          }}
+          onSelectItem={selectMapItem}
         />
       )}
 
@@ -554,16 +568,16 @@ export function MapPage() {
           <span className="map-content-sheet__handle" aria-hidden="true" />
         </button>
 
-        {isContentsLoading && items.length === 0 ? (
+        {isContentsLoading && items.length === 0 && sheetLevel === 'expanded' ? (
           <div className="map-content-sheet__empty">
             <strong>주변 장소와 행사를 찾고 있어요</strong>
           </div>
-        ) : contentsError && items.length === 0 && !selectedItem ? (
+        ) : contentsError && items.length === 0 && !selectedItem && sheetLevel === 'expanded' ? (
           <div className="map-content-sheet__empty">
             <strong>관광 정보를 불러오지 못했어요</strong>
             <p>지도를 움직여 다시 조회해 주세요.</p>
           </div>
-        ) : items.length === 0 && !selectedItem ? (
+        ) : items.length === 0 && visibleMapContentCount === 0 && !selectedItem ? (
           <div className="map-content-sheet__empty">
             <strong>이 지도 영역에 표시할 장소·행사가 없어요</strong>
             <p>관광 콘텐츠 적재 여부를 확인하거나 다른 지역으로 이동해 주세요.</p>
@@ -573,8 +587,8 @@ export function MapPage() {
             <div className="map-content-sheet__summary">
               <strong>
                 {responseMode === 'CLUSTER'
-                  ? `현재 화면 장소·행사 ${clusteredContentCount}개`
-                  : `주변 장소·행사 ${items.length}${hasMore ? '+' : ''}개`}
+                  ? `현재 화면 장소·행사 ${visibleMapContentCount}개`
+                  : `주변 장소·행사 ${visibleMapContentCount}개`}
               </strong>
             </div>
             {sheetLevel === 'expanded' ? (

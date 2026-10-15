@@ -12,6 +12,7 @@ const {
   saveFavoriteMock,
   updatePushEnabledMock,
   enableWebPushMock,
+  mapCanvasCallbacksMock,
 } = vi.hoisted(() => ({
   getMapContentsMock: vi.fn(),
   getMapMarkersMock: vi.fn(),
@@ -19,6 +20,7 @@ const {
   saveFavoriteMock: vi.fn(),
   updatePushEnabledMock: vi.fn(),
   enableWebPushMock: vi.fn(),
+  mapCanvasCallbacksMock: vi.fn(),
 }))
 
 vi.mock('../api/map.ts', () => ({
@@ -63,6 +65,7 @@ vi.mock('./KakaoMapCanvas.tsx', () => ({
     initialLevel?: number
     onViewportChange: (viewport: object) => void
   }) => (
+    mapCanvasCallbacksMock(onBoundsChange, onMapClick, onSelectItem),
     <div>
       <output aria-label="지도 초기 상태">{`${center.latitude},${center.longitude},${initialLevel ?? 5}`}</output>
       <output aria-label="지도 이동 요청">
@@ -90,7 +93,7 @@ vi.mock('./KakaoMapCanvas.tsx', () => ({
         address: '서울 성동구',
         latitude: 37.5444,
         longitude: 127.0374,
-        thumbnail_url: null,
+        thumbnail_url: 'https://example.com/seoul-forest.jpg',
         event_period: null,
         is_favorite: false,
         is_in_guidebook: false,
@@ -162,7 +165,7 @@ describe('MapPage', () => {
         address: '서울 성동구',
         latitude: 37.5444,
         longitude: 127.0374,
-        thumbnail_url: null,
+        thumbnail_url: 'https://example.com/seoul-forest.jpg',
         event_period: null,
         is_favorite: false,
         is_in_guidebook: false,
@@ -176,6 +179,8 @@ describe('MapPage', () => {
 
     await user.click(screen.getByRole('button', { name: '지도 핀 선택' }))
     expect(await screen.findByText('서울숲')).toBeInTheDocument()
+    await waitFor(() => expect(document.querySelector('.map-content-card__thumbnail img'))
+      .toHaveAttribute('src', 'https://example.com/seoul-forest.jpg'))
     expect(document.querySelector('.map-content-sheet--default')).toBeInTheDocument()
   })
 
@@ -220,6 +225,10 @@ describe('MapPage', () => {
       north: 37.6,
       east: 127,
     })
+    const callbackSets = [0, 1, 2].map((index) => new Set(
+      mapCanvasCallbacksMock.mock.calls.map((call) => call[index]),
+    ))
+    expect(callbackSets.every((callbacks) => callbacks.size === 1)).toBe(true)
   })
 
   it('광역 줌에서 클러스터 전체 개수와 대표 콘텐츠를 표시한다', async () => {
@@ -339,6 +348,30 @@ describe('MapPage', () => {
       ],
       has_more: false,
     })
+    getMapMarkersMock.mockResolvedValue({
+      mode: 'MARKER',
+      clusters: [],
+      markers: [
+        {
+          content_id: 'place-1',
+          title: '서울숲',
+          content_type: 'PLACE',
+          latitude: 37.5444,
+          longitude: 127.0374,
+          is_favorite: false,
+          is_in_guidebook: false,
+        },
+        {
+          content_id: 'event-1',
+          title: '서울 축제',
+          content_type: 'EVENT',
+          latitude: 37.5665,
+          longitude: 126.978,
+          is_favorite: false,
+          is_in_guidebook: false,
+        },
+      ],
+    })
     render(<MemoryRouter><MapPage /></MemoryRouter>)
 
     await user.click(screen.getByRole('button', { name: '지도 범위 조회' }))
@@ -351,6 +384,124 @@ describe('MapPage', () => {
 
     await user.click(screen.getByRole('button', { name: '지도 클릭' }))
     expect(document.querySelector('.map-content-sheet--expanded')).not.toBeInTheDocument()
+  })
+
+  it('장소 선택 후 지도 조작과 시트 전환에도 실제 마커 개수를 유지한다', async () => {
+    const user = userEvent.setup()
+    localStorage.setItem('kgb.location-prompt-completed', 'true')
+    const markers = [
+      {
+        content_id: 'place-1',
+        title: '서울숲',
+        content_type: 'PLACE' as const,
+        latitude: 37.5444,
+        longitude: 127.0374,
+        is_favorite: false,
+        is_in_guidebook: false,
+      },
+      {
+        content_id: 'event-1',
+        title: '서울 축제',
+        content_type: 'EVENT' as const,
+        latitude: 37.5665,
+        longitude: 126.978,
+        is_favorite: false,
+        is_in_guidebook: false,
+      },
+    ]
+    getMapMarkersMock
+      .mockResolvedValueOnce({ mode: 'MARKER', clusters: [], markers })
+      .mockResolvedValueOnce({ mode: 'MARKER', clusters: [], markers: [markers[1]] })
+    getMapContentsMock
+      .mockResolvedValueOnce({
+        items: markers.map((marker) => ({
+          ...marker,
+          address: '서울',
+          thumbnail_url: marker.content_id === 'place-1'
+            ? 'https://example.com/seoul-forest.jpg'
+            : 'https://example.com/seoul-festival.jpg',
+          event_period: null,
+        })),
+        next_cursor: null,
+        has_more: false,
+      })
+      .mockResolvedValueOnce({
+        items: [{
+          ...markers[1],
+          address: '서울',
+          thumbnail_url: 'https://example.com/seoul-festival.jpg',
+          event_period: null,
+        }],
+        next_cursor: null,
+        has_more: false,
+      })
+    render(<MemoryRouter><MapPage /></MemoryRouter>)
+
+    await user.click(screen.getByRole('button', { name: '지도 범위 조회' }))
+    expect(await screen.findByText('주변 장소·행사 2개')).toBeInTheDocument()
+    expect(document.querySelector('.map-content-sheet--collapsed')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: '장소 목록 펼치기' }))
+    await user.click(await screen.findByRole('button', { name: '서울숲 선택' }))
+    expect(document.querySelector('.map-content-sheet--default')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: '지도 범위 조회' }))
+    expect(await screen.findByText('서울숲')).toBeInTheDocument()
+    expect(document.querySelector('.map-content-card__thumbnail img'))
+      .toHaveAttribute('src', 'https://example.com/seoul-forest.jpg')
+    expect(screen.getByText('주변 장소·행사 1개')).toBeInTheDocument()
+    expect(screen.queryByText('주변 장소·행사 0개')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: '장소 목록 펼치기' }))
+    expect(document.querySelector('.map-content-sheet--expanded')).toBeInTheDocument()
+    expect(screen.getByText('주변 장소·행사 1개')).toBeInTheDocument()
+  })
+
+  it('선택 장소가 없는 1단계는 지도 이동 후 첫 번째 마커 정보를 표시한다', async () => {
+    const user = userEvent.setup()
+    localStorage.setItem('kgb.location-prompt-completed', 'true')
+    getMapMarkersMock.mockResolvedValue({
+      mode: 'MARKER',
+      clusters: [],
+      markers: [{
+        content_id: 'event-1',
+        title: '서울 축제',
+        content_type: 'EVENT',
+        latitude: 37.5665,
+        longitude: 126.978,
+        is_favorite: false,
+        is_in_guidebook: false,
+      }],
+    })
+    getMapContentsMock.mockResolvedValue({
+      items: [{
+        content_id: 'event-1',
+        title: '서울 축제',
+        content_type: 'EVENT',
+        address: '서울 중구',
+        latitude: 37.5665,
+        longitude: 126.978,
+        thumbnail_url: 'https://example.com/seoul-festival.jpg',
+        event_period: null,
+        is_favorite: false,
+        is_in_guidebook: false,
+      }],
+      next_cursor: null,
+      has_more: false,
+    })
+    render(<MemoryRouter><MapPage /></MemoryRouter>)
+
+    await user.click(screen.getByRole('button', { name: '지도 범위 조회' }))
+    await user.click(screen.getByRole('button', { name: '장소 목록 펼치기' }))
+    await screen.findByRole('region', { name: '주변 장소와 행사 목록' })
+    await user.click(screen.getByRole('button', { name: '지도 클릭' }))
+    expect(document.querySelector('.map-content-sheet--default')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: '지도 범위 조회' }))
+    expect(await screen.findByText('서울 축제')).toBeInTheDocument()
+    expect(document.querySelector('.map-content-card__thumbnail img'))
+      .toHaveAttribute('src', 'https://example.com/seoul-festival.jpg')
+    expect(screen.getByText('주변 장소·행사 1개')).toBeInTheDocument()
   })
 
   it('핸들바를 아래로 드래그하면 하단 탭 위까지 축소된다', () => {
