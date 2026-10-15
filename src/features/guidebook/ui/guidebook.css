@@ -38,8 +38,7 @@
 .book-card span:not(.book-cover) { color: #73737d; font-size: 11px; }
 .book-delete, .book-pdf { display: grid; min-width: 34px; min-height: 34px; place-items: center; padding: 7px; border: 1px solid #ededf0; border-radius: 6px; font-size: 11px; color: #61616b; background: #fff; cursor: pointer; }
 .book-pdf { margin-left: auto; text-decoration: none; }
-.book-pdf img { width: 18px; height: 18px; object-fit: contain; opacity: .72; }
-.book-delete img { width: 18px; height: 18px; object-fit: contain; opacity: .72; }
+.book-pdf img, .book-delete img { width: 18px; height: 18px; object-fit: contain; filter: brightness(0); opacity: .62; }
 .book-delete:hover, .book-delete:focus-visible, .book-pdf:hover, .book-pdf:focus-visible { border-color: #cfcfd5; background: #f5f5f7; }
 .book-delete:focus-visible, .book-pdf:focus-visible { outline: 3px solid #b8b8bd; outline-offset: 2px; }
 .book-delete:active, .book-pdf:active { transform: scale(.94); }
