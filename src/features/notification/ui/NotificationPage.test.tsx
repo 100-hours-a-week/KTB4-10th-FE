@@ -77,6 +77,16 @@ describe('NotificationPage', () => {
     deleteAllNotificationsMock.mockResolvedValue(undefined)
   })
 
+  it('알림을 기다리는 동안 카드 형태의 스켈레톤 세 개를 표시한다', () => {
+    getNotificationsMock.mockReturnValue(new Promise(() => undefined))
+
+    const { container } = renderPage()
+
+    expect(screen.getByRole('status', { name: '알림 목록 불러오는 중' })).toBeInTheDocument()
+    expect(container.querySelectorAll('.notification-card--skeleton')).toHaveLength(3)
+    expect(container.querySelector('.loading-indicator')).not.toBeInTheDocument()
+  })
+
   it('백엔드 응답 순서와 무관하게 최신 알림을 먼저 표시한다', async () => {
     renderPage()
 

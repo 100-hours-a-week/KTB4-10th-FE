@@ -37,6 +37,27 @@ function newestFirst(items: Notification[]): Notification[] {
   })
 }
 
+function NotificationListSkeleton() {
+  return (
+    <div role="status" aria-label="알림 목록 불러오는 중">
+      <ul className="notification-list notification-list--skeleton" aria-hidden="true">
+        {Array.from({ length: 3 }, (_, index) => (
+          <li className="notification-card notification-card--skeleton" key={index}>
+            <article className="notification-card__content">
+              <div>
+                <span className="notification-skeleton__block notification-skeleton__title" />
+                <span className="notification-skeleton__block notification-skeleton__time" />
+              </div>
+              <span className="notification-skeleton__block notification-skeleton__body" />
+              <span className="notification-skeleton__block notification-skeleton__hint" />
+            </article>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
 export function NotificationPage() {
   const navigate = useNavigate()
   const [items, setItems] = useState<Notification[]>([])
@@ -179,12 +200,7 @@ export function NotificationPage() {
       </header>
 
       <div className="notification-page__content">
-        {isLoading && (
-          <div className="notification-page__state" role="status">
-            <img className="loading-indicator" src="/assets/loading-indicator.svg" alt="" />
-            알림을 불러오고 있어요.
-          </div>
-        )}
+        {isLoading && <NotificationListSkeleton />}
 
         {!isLoading && loadError && (
           <div className="notification-page__state" role="alert">

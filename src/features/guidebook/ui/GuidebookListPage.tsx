@@ -196,7 +196,9 @@ export function GuidebookListPage() {
         >
           <img src="/assets/guidebook/paper.png" alt="" aria-hidden="true" />
         </a>
-        <button className="book-delete" onClick={() => { setDeleteError(''); setTarget(book) }} aria-label={`${book.title} 삭제`}>삭제</button>
+        <button className="book-delete" onClick={() => { setDeleteError(''); setTarget(book) }} aria-label={`${book.title} 삭제`}>
+          <img src="/assets/guidebook/bin.png" alt="" aria-hidden="true" />
+        </button>
       </li>)}</ul>
       {loading && <State>가이드북을 불러오고 있어요.</State>}
       {data?.has_more && !loading && <button className="secondary-button book-more" onClick={() => void loadMore()}>더 보기</button>}
