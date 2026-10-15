@@ -2,6 +2,10 @@ import { AxiosError } from 'axios'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { http } from '../../../shared/api/http.ts'
 import {
+  getMapNavigationState,
+  saveMapNavigationState,
+} from '../../map/model/mapNavigationState.ts'
+import {
   clearCachedCurrentMember,
   getCachedCurrentMember,
   getCurrentMember,
@@ -51,8 +55,17 @@ describe('회원 정보 메모리 캐시', () => {
       ))
 
     await getCurrentMember()
+    saveMapNavigationState(member.member_id, {
+      viewport: {
+        center: { latitude: 37.5, longitude: 127 },
+        level: 5,
+      },
+      selectedItem: null,
+      sheetLevel: 'collapsed',
+    })
     await expect(getCurrentMember()).rejects.toBeInstanceOf(AxiosError)
     expect(getCachedCurrentMember()).toBeNull()
+    expect(getMapNavigationState(member.member_id)).toBeNull()
   })
 
   it('일시적인 통신 실패에서는 현재 화면을 유지할 수 있도록 캐시를 보존한다', async () => {

@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MapPage } from './MapPage.tsx'
+import { clearMapNavigationStates } from '../model/mapNavigationState.ts'
 
 const {
   getMapContentsMock,
@@ -40,31 +41,45 @@ vi.mock('../api/favorites.ts', () => ({
   saveFavorite: saveFavoriteMock,
 }))
 
+vi.mock('../../auth/api/auth.ts', () => ({
+  getCachedCurrentMember: () => ({ member_id: 1 }),
+}))
+
 vi.mock('./KakaoMapCanvas.tsx', () => ({
   KakaoMapCanvas: ({
     onBoundsChange,
     onMapClick,
     onSelectItem,
     focusTarget,
+    center,
+    initialLevel,
+    onViewportChange,
   }: {
     onBoundsChange: (bounds: object) => void
     onMapClick: () => void
     onSelectItem: (item: object) => void
     focusTarget: { latitude: number; longitude: number; requestId: number } | null
+    center: { latitude: number; longitude: number }
+    initialLevel?: number
+    onViewportChange: (viewport: object) => void
   }) => (
     <div>
+      <output aria-label="지도 초기 상태">{`${center.latitude},${center.longitude},${initialLevel ?? 5}`}</output>
       <output aria-label="지도 이동 요청">
         {focusTarget
           ? `${focusTarget.latitude},${focusTarget.longitude},${focusTarget.requestId}`
           : '없음'}
       </output>
-      <button type="button" onClick={() => onBoundsChange({
-        south: 37.5,
-        west: 126.9,
-        north: 37.6,
-        east: 127,
-        zoom: 18,
-      })}>
+      <button type="button" onClick={() => {
+        onViewportChange({ center: { latitude: 37.55, longitude: 126.95 }, level: 4 })
+        onBoundsChange({
+          south: 37.5,
+          west: 126.9,
+          north: 37.6,
+          east: 127,
+          zoom: 18,
+        })
+      }}>
         지도 범위 조회
       </button>
       <button type="button" onClick={onMapClick}>지도 클릭</button>
@@ -88,6 +103,7 @@ describe('MapPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     localStorage.clear()
+    clearMapNavigationStates()
     getMapContentsMock.mockResolvedValue({
       items: [], next_cursor: null, has_more: false,
     })
@@ -161,6 +177,25 @@ describe('MapPage', () => {
     await user.click(screen.getByRole('button', { name: '지도 핀 선택' }))
     expect(await screen.findByText('서울숲')).toBeInTheDocument()
     expect(document.querySelector('.map-content-sheet--default')).toBeInTheDocument()
+  })
+
+  it('다른 페이지를 다녀오면 같은 탭 메모리에서 지도와 선택 상태를 복원한다', async () => {
+    const user = userEvent.setup()
+    localStorage.setItem('kgb.location-prompt-completed', 'true')
+    const firstRender = render(<MemoryRouter><MapPage /></MemoryRouter>)
+
+    await user.click(screen.getByRole('button', { name: '지도 범위 조회' }))
+    await user.click(screen.getByRole('button', { name: '지도 핀 선택' }))
+    expect(document.querySelector('.map-content-sheet--default')).toBeInTheDocument()
+
+    firstRender.unmount()
+    render(<MemoryRouter><MapPage /></MemoryRouter>)
+
+    expect(screen.getByLabelText('지도 초기 상태'))
+      .toHaveTextContent('37.55,126.95,4')
+    expect(screen.getByText('서울숲')).toBeInTheDocument()
+    expect(document.querySelector('.map-content-sheet--default')).toBeInTheDocument()
+    expect(localStorage.getItem('kgb.map-navigation-state')).toBeNull()
   })
 
   it('지도 화면 영역이 바뀌면 마커만 조회하고 목록을 펼칠 때 콘텐츠를 조회한다', async () => {

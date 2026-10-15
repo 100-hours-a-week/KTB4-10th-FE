@@ -14,7 +14,14 @@ import { removeFavorite, saveFavorite } from '../api/favorites.ts'
 import { updatePushEnabled } from '../../member/api/memberSettings.ts'
 import { notifyRealtimeNotificationSettingChanged } from '../../notification/model/events.ts'
 import { enableWebPush, webPushErrorMessage } from '../../notification/model/webPush.ts'
+import { getCachedCurrentMember } from '../../auth/api/auth.ts'
 import type { KakaoMap } from '../lib/kakaoMaps.ts'
+import {
+  getMapNavigationState,
+  saveMapNavigationState,
+  type MapSheetLevel,
+  type MapViewport,
+} from '../model/mapNavigationState.ts'
 import { KakaoMapCanvas } from './KakaoMapCanvas.tsx'
 import { PermissionModal } from './PermissionModal.tsx'
 
@@ -24,7 +31,7 @@ const NOTIFICATION_PROMPT_KEY = 'kgb.notification-prompt-completed'
 const NEXT_PAGE_LOADING_MINIMUM_MS = 350
 
 type PermissionStep = 'location' | 'notification' | null
-type SheetLevel = 'collapsed' | 'default' | 'expanded'
+type SheetLevel = MapSheetLevel
 type MapFocusTarget = typeof DEFAULT_CENTER & { requestId: number; level?: number }
 
 function initialPermissionStep(): PermissionStep {
@@ -101,15 +108,26 @@ function MapContentCard({
 }
 
 export function MapPage() {
+  const [initialNavigation] = useState(() => {
+    const memberId = getCachedCurrentMember()?.member_id ?? null
+    return {
+      memberId,
+      state: memberId === null ? null : getMapNavigationState(memberId),
+    }
+  })
+  const restoredNavigationState = initialNavigation.state
   const mapRef = useRef<KakaoMap | null>(null)
+  const viewportRef = useRef<MapViewport | null>(restoredNavigationState?.viewport ?? null)
   const focusRequestIdRef = useRef(0)
   const markerRequestIdRef = useRef(0)
   const [position, setPosition] = useState<{ latitude: number; longitude: number } | null>(null)
   const [focusTarget, setFocusTarget] = useState<MapFocusTarget | null>(null)
-  const [isRestoringPosition, setIsRestoringPosition] = useState(shouldRestoreCurrentPosition)
+  const [isRestoringPosition, setIsRestoringPosition] = useState(
+    () => !restoredNavigationState && shouldRestoreCurrentPosition(),
+  )
   const latestContentRequestRef = useRef(0)
   const currentBoundsRef = useRef<MapBounds | null>(null)
-  const sheetLevelRef = useRef<SheetLevel>('collapsed')
+  const sheetLevelRef = useRef<SheetLevel>(restoredNavigationState?.sheetLevel ?? 'collapsed')
   const lastRequestedCursorRef = useRef<string | null>(null)
   const [markers, setMarkers] = useState<MapMarkerItem[]>([])
   const [items, setItems] = useState<MapContentItem[]>([])
@@ -118,10 +136,15 @@ export function MapPage() {
   const [nextCursor, setNextCursor] = useState<string | null>(null)
   const [hasMore, setHasMore] = useState(false)
   const [isNextPageLoading, setIsNextPageLoading] = useState(false)
-  const [selectedItem, setSelectedItem] = useState<MapContentItem | null>(null)
+  const [selectedItem, setSelectedItem] = useState<MapContentItem | null>(
+    restoredNavigationState?.selectedItem ?? null,
+  )
+  const selectedItemRef = useRef<MapContentItem | null>(restoredNavigationState?.selectedItem ?? null)
   const [isContentsLoading, setIsContentsLoading] = useState(false)
   const [contentsError, setContentsError] = useState(false)
-  const [sheetLevel, setSheetLevel] = useState<SheetLevel>('collapsed')
+  const [sheetLevel, setSheetLevel] = useState<SheetLevel>(
+    restoredNavigationState?.sheetLevel ?? 'collapsed',
+  )
   const [sheetDragHeight, setSheetDragHeight] = useState<number | null>(null)
   const sheetRef = useRef<HTMLElement>(null)
   const sheetDragStart = useRef<{ pointerY: number; height: number } | null>(null)
@@ -130,6 +153,26 @@ export function MapPage() {
   const [toast, setToast] = useState<string | null>(null)
   const [mapError, setMapError] = useState<string | null>(null)
   const [favoritePendingId, setFavoritePendingId] = useState<string | null>(null)
+
+  useEffect(() => {
+    selectedItemRef.current = selectedItem
+  }, [selectedItem])
+
+  useEffect(() => () => {
+    const { memberId } = initialNavigation
+    const viewport = viewportRef.current
+    if (memberId === null || !viewport) return
+
+    saveMapNavigationState(memberId, {
+      viewport,
+      selectedItem: selectedItemRef.current,
+      sheetLevel: sheetLevelRef.current,
+    })
+  }, [initialNavigation])
+
+  const rememberViewport = useCallback((viewport: MapViewport) => {
+    viewportRef.current = viewport
+  }, [])
 
   const requestFirstContents = useCallback((bounds: MapBounds) => {
     const requestId = latestContentRequestRef.current + 1
@@ -432,7 +475,8 @@ export function MapPage() {
         </section>
       ) : (
         <KakaoMapCanvas
-          center={position ?? DEFAULT_CENTER}
+          center={restoredNavigationState?.viewport.center ?? position ?? DEFAULT_CENTER}
+          initialLevel={restoredNavigationState?.viewport.level}
           currentPosition={position}
           focusTarget={focusTarget}
           items={responseMode === 'MARKER' ? markers : []}
@@ -440,6 +484,7 @@ export function MapPage() {
           selectedContentId={selectedItem?.content_id ?? null}
           mapRef={mapRef}
           onBoundsChange={requestMapData}
+          onViewportChange={rememberViewport}
           onError={setMapError}
           onMapClick={handleMapClick}
           onSelectItem={(item) => {

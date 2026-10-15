@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { http } from '../../../shared/api/http.ts'
 import { isApiResponse } from '../../../shared/api/types.ts'
+import { clearMapNavigationStates } from '../../map/model/mapNavigationState.ts'
 
 const KAKAO_AUTHORIZE_PATH = '/api/v1/auth/oauth/authorize/kakao'
 const MEMBER_ME_PATH = '/api/v1/members/me'
@@ -29,6 +30,7 @@ export function updateCachedCurrentMemberStatus(status: MemberStatus): void {
 
 export function clearCachedCurrentMember(): void {
   cachedCurrentMember = null
+  clearMapNavigationStates()
 }
 
 function isCurrentMember(value: unknown): value is CurrentMember {
