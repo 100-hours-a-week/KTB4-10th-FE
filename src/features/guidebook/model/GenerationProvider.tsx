@@ -2,6 +2,10 @@ import axios from 'axios'
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useLocation } from 'react-router-dom'
 import { getCurrentMember, type CurrentMember } from '../../auth/api/auth.ts'
+import {
+  classifySessionFailure,
+  type SessionFailure,
+} from '../../auth/model/sessionFailure.ts'
 import { trackEvent } from '../../../shared/lib/analytics.ts'
 import { getJob, retryJob, type Job } from '../api/guidebooks.ts'
 import { message } from './conditions.ts'
@@ -34,7 +38,7 @@ function terminalEventKey(job: Job): string | null {
 export function GenerationProvider({ children }: { children: ReactNode }) {
   const [member, setMember] = useState<CurrentMember | null>(null)
   const [checking, setChecking] = useState(true)
-  const [sessionError, setSessionError] = useState('')
+  const [sessionFailure, setSessionFailure] = useState<SessionFailure | null>(null)
   const [sessionRevision, setSessionRevision] = useState(0)
   const [job, setJob] = useState<Job | null>(null)
   const [error, setError] = useState('')
@@ -54,7 +58,7 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
     lifecycle.current += 1
     // 인증 경계가 바뀌면 이전 회원의 작업을 지운 뒤 새 세션과 동기화합니다.
     // oxlint-disable-next-line react/set-state-in-effect
-    setMember(null); setJob(null); setError(''); setSessionError(''); setChecking(enabled)
+    setMember(null); setJob(null); setError(''); setSessionFailure(null); setChecking(enabled)
     trackedJobId.current = null; generationStartedAt.current = null; reportedTerminal.current = null
     if (enabled) {
       void getCurrentMember().then((next) => {
@@ -70,7 +74,7 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
           }
         }
       }).catch((reason: unknown) => {
-        if (active) setSessionError(message(reason))
+        if (active) setSessionFailure(classifySessionFailure(reason))
       }).finally(() => { if (active) setChecking(false) })
     }
     return () => { active = false; lifecycle.current += 1 }
@@ -105,9 +109,11 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
     setJob(null); setError('')
   }, [])
   const jobId = job?.job_id
+  const memberId = member?.member_id
+  const memberStatus = member?.status
 
   useEffect(() => {
-    if (!jobId || !enabled || member?.status !== 'ACTIVE') return
+    if (!jobId || !enabled || memberStatus !== 'ACTIVE') return
     const controller = new AbortController()
     let timer: ReturnType<typeof setTimeout> | undefined
     async function poll() {
@@ -128,7 +134,8 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
         if (controller.signal.aborted) return
         const status = axios.isAxiosError(reason) ? reason.response?.status : undefined
         if (status === 401) {
-          setSessionError('로그인이 만료되었어요. 다시 로그인해 주세요.')
+          if (memberId !== undefined) localStorage.removeItem(jobStorageKey(memberId))
+          setSessionFailure('UNAUTHORIZED')
           setMember(null); setJob(null)
         } else if (status === 403 || status === 404) {
           setJob(null); setError(message(reason))
@@ -140,7 +147,7 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
     void poll()
     return () => { controller.abort(); clearTimeout(timer) }
     // 상태 응답과 내부 화면 전환으로 루프를 재시작하지 않습니다.
-  }, [jobId, enabled, member?.member_id, member?.status, revision])
+  }, [jobId, enabled, memberId, memberStatus, revision])
 
   async function retry() {
     if (!job || retryLock.current || job.status !== 'FAILED' || (job.attempt_count ?? 3) >= 3) return
@@ -159,7 +166,7 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
   }
 
   return <GenerationContext.Provider value={{
-    member, checking, sessionError, checkSession: () => setSessionRevision((value) => value + 1),
+    member, checking, sessionFailure, checkSession: () => setSessionRevision((value) => value + 1),
     job, error, busy, track, retry, dismiss,
     refresh: () => { setError(''); setRevision((value) => value + 1) },
   }}>{children}</GenerationContext.Provider>

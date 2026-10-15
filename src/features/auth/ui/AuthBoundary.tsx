@@ -1,4 +1,3 @@
-import axios from 'axios'
 import { useEffect, useState, type ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { routes } from '../../../shared/config/routes.ts'
@@ -10,6 +9,10 @@ import {
 } from '../api/auth.ts'
 import { AuthCheckErrorView, SessionCheckLoadingView } from './AuthLoadingView.tsx'
 import { LoginPage } from './LoginPage.tsx'
+import {
+  classifySessionFailure,
+  type SessionFailure,
+} from '../model/sessionFailure.ts'
 
 export function HomeEntry() {
   const [member, setMember] = useState<CurrentMember | null>(null)
@@ -45,7 +48,7 @@ export function AuthBoundary({ children, allowOnboarding = false }: {
   const [authState, setAuthState] = useState<{
     pathname: string
     member: CurrentMember | null
-    failure: 'UNAUTHORIZED' | 'TEMPORARY' | null
+    failure: SessionFailure | null
   } | null>(() => {
     const member = getCachedCurrentMember()
     return member ? { pathname, member, failure: null } : null
@@ -60,10 +63,7 @@ export function AuthBoundary({ children, allowOnboarding = false }: {
       })
       .catch((error: unknown) => {
         if (!active) return
-        const failure = axios.isAxiosError(error) && error.response?.status === 401
-          ? 'UNAUTHORIZED'
-          : 'TEMPORARY'
-        setAuthState({ pathname, member: null, failure })
+        setAuthState({ pathname, member: null, failure: classifySessionFailure(error) })
       })
     return () => { active = false }
   }, [pathname, retryRevision])
