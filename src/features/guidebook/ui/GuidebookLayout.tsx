@@ -2,13 +2,24 @@ import { Navigate, Link } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { PageHeader } from '../../../shared/ui/PageHeader.tsx'
 import { useGeneration } from '../model/generation.ts'
+import { routes } from '../../../shared/config/routes.ts'
+import { AuthCheckErrorView, SessionCheckLoadingView } from '../../auth/ui/AuthLoadingView.tsx'
 
 export function GuidebookAccess({ children }: { children: ReactNode }) {
-  const { checking, member, sessionError, checkSession } = useGeneration()
-  if (checking) return <main className="app-shell"><State>화면을 준비하고 있어요.</State></main>
-  if (member?.status === 'ONBOARDING') return <Navigate to="/preferences" replace />
-  if (!member && sessionError) return <Navigate to="/" replace />
-  if (!member) return <main className="app-shell"><State error onRetry={checkSession}>로그인이 필요해요.<Link to="/">로그인으로</Link></State></main>
+  const { checking, member, sessionFailure, checkSession } = useGeneration()
+  if (checking) return <SessionCheckLoadingView />
+  if (sessionFailure === 'UNAUTHORIZED') {
+    return <Navigate
+      to={routes.home}
+      replace
+      state={{ authNotice: 'SESSION_EXPIRED' }}
+    />
+  }
+  if (sessionFailure === 'TEMPORARY') {
+    return <AuthCheckErrorView onRetry={checkSession} />
+  }
+  if (member?.status === 'ONBOARDING') return <Navigate to={routes.preferences} replace />
+  if (!member) return <SessionCheckLoadingView />
   return children
 }
 

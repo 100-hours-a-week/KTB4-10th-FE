@@ -1,3 +1,4 @@
+import { AxiosError } from 'axios'
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { Link, MemoryRouter, useLocation } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -12,13 +13,14 @@ vi.mock('../api/guidebooks.ts', () => ({ getJob, retryJob }))
 vi.mock('../../../shared/lib/analytics.ts', () => ({ trackEvent }))
 
 function Consumer() {
-  const { job, track, retry, error, refresh } = useGeneration()
+  const { job, track, retry, error, refresh, sessionFailure, checkSession } = useGeneration()
   const { pathname } = useLocation()
   return <><div data-testid="job">{job?.status ?? 'none'}</div><div>{pathname}</div>
-    <div>{error}</div>
+    <div>{error}</div><div data-testid="session-failure">{sessionFailure ?? 'none'}</div>
     <button onClick={() => track({ job_id: 31, status: 'PENDING', guidebook_id: null }, Date.now())}>생성 접수</button>
     <button onClick={() => void retry()}>재시도</button>
     <button onClick={refresh}>조회 재개</button>
+    <button onClick={checkSession}>세션 다시 확인</button>
     <Link to="/map">지도 이동</Link><Link to="/preferences">취향 이동</Link><Link to="/">로그아웃 이동</Link>
   </>
 }
@@ -111,5 +113,24 @@ describe('전역 생성 작업', () => {
     expect(getJob).toHaveBeenCalledTimes(1)
     await act(async () => { fireEvent.click(screen.getByText('조회 재개')) })
     expect(getJob).toHaveBeenCalledTimes(2)
+  })
+
+  it('회원 조회 401과 일시 오류를 구분하고 재확인한다', async () => {
+    getCurrentMember
+      .mockRejectedValueOnce(new Error('network error'))
+      .mockRejectedValueOnce(new AxiosError(
+        '인증 실패',
+        'ERR_BAD_REQUEST',
+        undefined,
+        undefined,
+        { status: 401 } as never,
+      ))
+
+    await mount()
+    expect(screen.getByTestId('session-failure')).toHaveTextContent('TEMPORARY')
+
+    await act(async () => { fireEvent.click(screen.getByText('세션 다시 확인')) })
+    expect(getCurrentMember).toHaveBeenCalledTimes(2)
+    expect(screen.getByTestId('session-failure')).toHaveTextContent('UNAUTHORIZED')
   })
 })
