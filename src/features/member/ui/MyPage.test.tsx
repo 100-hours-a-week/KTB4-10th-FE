@@ -30,6 +30,17 @@ describe('MyPage', () => {
     })
   })
 
+  it('회원 정보를 기다리는 동안 실제 레이아웃 형태의 스켈레톤을 표시한다', () => {
+    getCurrentMemberMock.mockReturnValue(new Promise(() => undefined))
+
+    const { container } = render(<MemoryRouter><MyPage /></MemoryRouter>)
+
+    expect(screen.getByRole('status', { name: '회원 정보 불러오는 중' })).toBeInTheDocument()
+    expect(container.querySelector('.mypage-skeleton__profile-image')).toBeInTheDocument()
+    expect(container.querySelectorAll('.mypage-skeleton__menu-item')).toHaveLength(3)
+    expect(container.querySelector('.loading-indicator')).not.toBeInTheDocument()
+  })
+
   it('회원 정보와 미읽음 알림 상태를 표시한다', async () => {
     render(<MemoryRouter><MyPage /></MemoryRouter>)
 

@@ -141,6 +141,16 @@ describe('가이드북 화면', () => {
     expect(printLink).toHaveAttribute('rel', 'noopener')
   })
 
+  it('목록의 삭제 버튼은 접근성 이름을 유지한 휴지통 아이콘으로 표시한다', async () => {
+    const book = { guidebook_id: 10, title: '경주 여행', start_date: '2026-10-01', end_date: '2026-10-03', companion: 'FRIEND' }
+    listBooks.mockResolvedValue({ items: [book], next_cursor: null, has_more: false })
+    render(<MemoryRouter><GuidebookListPage /></MemoryRouter>)
+
+    const deleteButton = await screen.findByRole('button', { name: '경주 여행 삭제' })
+    expect(deleteButton).not.toHaveTextContent('삭제')
+    expect(deleteButton.querySelector('img')).toHaveAttribute('src', '/assets/guidebook/bin.png')
+  })
+
   it('알림 토스트에서 이동하면 대상 가이드북 카드를 잠시 강조한다', async () => {
     const book = { guidebook_id: 10, title: '경주 여행', start_date: '2026-10-01', end_date: '2026-10-03', companion: 'FRIEND' }
     listBooks.mockResolvedValue({ items: [book], next_cursor: null, has_more: false })
