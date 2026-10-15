@@ -3,6 +3,7 @@ import { routes } from '../config/routes.ts'
 
 const tabs = [
   { to: routes.map, label: '지도', icon: '/assets/navigation/map.png' },
+  { to: routes.information, label: '정보', icon: '/assets/navigation/info.png' },
   { to: routes.guidebooks, label: '가이드북', icon: '/assets/navigation/guidebook.png' },
   { to: routes.myPage, label: '마이페이지', icon: '/assets/navigation/mypage.png' },
 ] as const
