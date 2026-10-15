@@ -83,6 +83,35 @@ describe('event information pages', () => {
     expect(screen.queryByText(/오늘 새로 등록된 행사/)).not.toBeInTheDocument()
   })
 
+  it('페이지 버튼을 누르면 해당 페이지를 조회한다', async () => {
+    const user = userEvent.setup()
+    getEventsMock
+      .mockResolvedValueOnce({
+        items: [{
+          content_id: 'event-1', title: '1페이지 행사', category: 'EVENT',
+          region: null, address: null, thumbnail_url: null, event_period: null,
+        }],
+        page: 1, size: 20, total_items: 45, total_pages: 3,
+      })
+      .mockResolvedValueOnce({
+        items: [{
+          content_id: 'event-2', title: '2페이지 행사', category: 'EVENT',
+          region: null, address: null, thumbnail_url: null, event_period: null,
+        }],
+        page: 2, size: 20, total_items: 45, total_pages: 3,
+      })
+    getNewEventsMock.mockResolvedValue({
+      date: '2026-10-15', items: [], page: 1, size: 20, total_items: 0, total_pages: 0,
+    })
+
+    render(<MemoryRouter initialEntries={['/information']}><EventListPage /></MemoryRouter>)
+
+    await user.click(await screen.findByRole('button', { name: '2' }))
+    expect(await screen.findByText('2페이지 행사')).toBeInTheDocument()
+    expect(getEventsMock).toHaveBeenLastCalledWith('', 2, expect.any(AbortSignal))
+    expect(screen.getByRole('button', { name: '2' })).toHaveAttribute('aria-current', 'page')
+  })
+
   it('행사 상세 정보와 이용 정보를 표시한다', async () => {
     getEventDetailMock.mockResolvedValue({
       content_id: 'event-1',

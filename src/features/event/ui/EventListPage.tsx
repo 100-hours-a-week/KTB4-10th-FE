@@ -20,6 +20,12 @@ function periodText(item: EventListItem): string {
   return `${dateText(start)} – ${dateText(end)}`
 }
 
+function pageNumbers(currentPage: number, totalPages: number): number[] {
+  const first = Math.max(1, Math.min(currentPage - 2, totalPages - 4))
+  const last = Math.min(totalPages, first + 4)
+  return Array.from({ length: last - first + 1 }, (_, index) => first + index)
+}
+
 function EventCard({ event, isNew }: { event: EventListItem; isNew: boolean }) {
   return (
     <li>
@@ -50,6 +56,7 @@ export function EventListPage() {
   const navigate = useNavigate()
   const [input, setInput] = useState('')
   const [query, setQuery] = useState('')
+  const [page, setPage] = useState(1)
   const [data, setData] = useState<EventList | null>(null)
   const [newIds, setNewIds] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
@@ -59,7 +66,7 @@ export function EventListPage() {
   useEffect(() => {
     const controller = new AbortController()
     void Promise.all([
-      getEvents(query, 1, controller.signal),
+      getEvents(query, page, controller.signal),
       getNewEvents(controller.signal).catch(() => null),
     ])
       .then(([events, newEvents]) => {
@@ -86,7 +93,7 @@ export function EventListPage() {
         if (!controller.signal.aborted) setLoading(false)
       })
     return () => controller.abort()
-  }, [query, revision])
+  }, [page, query, revision])
 
   const visibleNewCount = useMemo(
     () => data?.items.filter((event) => newIds.has(event.content_id)).length ?? 0,
@@ -97,7 +104,15 @@ export function EventListPage() {
     event.preventDefault()
     setLoading(true)
     setError(false)
+    setPage(1)
     setQuery(input.trim())
+  }
+
+  function movePage(nextPage: number) {
+    if (nextPage === page || nextPage < 1 || nextPage > (data?.total_pages ?? 0)) return
+    setLoading(true)
+    setError(false)
+    setPage(nextPage)
   }
 
   function retry() {
@@ -134,6 +149,23 @@ export function EventListPage() {
             <ul className="event-list">{data.items.map((event) => (
               <EventCard key={event.content_id} event={event} isNew={newIds.has(event.content_id)} />
             ))}</ul>
+            {data.total_pages > 1 && (
+              <nav className="event-pagination" aria-label="행사 목록 페이지">
+                <button type="button" onClick={() => movePage(page - 1)} disabled={page === 1} aria-label="이전 페이지">‹</button>
+                {pageNumbers(page, data.total_pages).map((pageNumber) => (
+                  <button
+                    type="button"
+                    key={pageNumber}
+                    className={pageNumber === page ? 'event-pagination__current' : undefined}
+                    aria-current={pageNumber === page ? 'page' : undefined}
+                    onClick={() => movePage(pageNumber)}
+                  >
+                    {pageNumber}
+                  </button>
+                ))}
+                <button type="button" onClick={() => movePage(page + 1)} disabled={page === data.total_pages} aria-label="다음 페이지">›</button>
+              </nav>
+            )}
           </section>
         )}
 

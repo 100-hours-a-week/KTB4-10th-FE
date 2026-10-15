@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { http } from '../../../shared/api/http.ts'
-import { getNewEvents, seoulYesterday } from './events.ts'
+import { getEvents, getNewEvents, seoulYesterday } from './events.ts'
 
 vi.mock('../../../shared/api/http.ts', () => ({
   http: { get: vi.fn() },
@@ -35,6 +35,22 @@ describe('event API', () => {
 
     expect(http.get).toHaveBeenCalledWith('/api/v1/events/new', {
       params: { date: '2026-10-14', page: 1, size: 20 },
+      signal: undefined,
+    })
+  })
+
+  it('선택한 행사 목록 페이지를 요청한다', async () => {
+    vi.mocked(http.get).mockResolvedValue({
+      data: {
+        message: 'content_list_success',
+        data: { items: [], page: 3, size: 20, total_items: 0, total_pages: 0 },
+      },
+    })
+
+    await getEvents('야행', 3)
+
+    expect(http.get).toHaveBeenCalledWith('/api/v1/contents', {
+      params: { category: 'EVENT', page: 3, size: 20, q: '야행' },
       signal: undefined,
     })
   })
