@@ -106,6 +106,7 @@ export function EventListPage() {
     setError(false)
     setPage(1)
     setQuery(input.trim())
+    setRevision((value) => value + 1)
   }
 
   function movePage(nextPage: number) {
@@ -123,7 +124,7 @@ export function EventListPage() {
 
   return (
     <main className="app-shell event-list-page">
-      <PageHeader title="이런 행사 어때요?">
+      <PageHeader title="행사 정보">
         <button className="app-page-header__notification" type="button" aria-label="알림 확인" onClick={() => navigate(routes.notifications)}>
           <img src="/assets/mypage/bell-empty.png" alt="" aria-hidden="true" />
         </button>

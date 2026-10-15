@@ -50,7 +50,7 @@ describe('event API', () => {
     await getEvents('야행', 3)
 
     expect(http.get).toHaveBeenCalledWith('/api/v1/contents', {
-      params: { category: 'EVENT', page: 3, size: 20, q: '야행' },
+      params: { category: 'EVENT', page: 3, size: 10, q: '야행' },
       signal: undefined,
     })
   })

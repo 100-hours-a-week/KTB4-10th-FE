@@ -1,7 +1,14 @@
 .event-list-page {
   min-height: 100svh;
+  overflow: visible;
   padding-bottom: calc(env(safe-area-inset-bottom) + 92px);
   background: #f6f6f3;
+}
+
+.event-list-page > .app-page-header {
+  position: sticky;
+  z-index: 20;
+  top: 0;
 }
 
 .event-list-content {
@@ -360,11 +367,15 @@
 
 .event-detail-page {
   min-height: 100svh;
+  overflow: visible;
   padding-bottom: calc(env(safe-area-inset-bottom) + 32px);
   background: #f6f6f3;
 }
 
 .event-detail-header {
+  position: sticky;
+  z-index: 20;
+  top: 0;
   display: grid;
   min-height: calc(env(safe-area-inset-top) + 58px);
   grid-template-columns: 44px 1fr 44px;

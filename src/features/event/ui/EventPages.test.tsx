@@ -112,6 +112,26 @@ describe('event information pages', () => {
     expect(screen.getByRole('button', { name: '2' })).toHaveAttribute('aria-current', 'page')
   })
 
+  it('같은 검색어나 공백 검색을 다시 제출해도 재조회한다', async () => {
+    const user = userEvent.setup()
+    const emptyPage = {
+      items: [], page: 1, size: 10, total_items: 0, total_pages: 0,
+    }
+    getEventsMock.mockResolvedValue(emptyPage)
+    getNewEventsMock.mockResolvedValue({
+      date: '2026-10-15', items: [], page: 1, size: 20, total_items: 0, total_pages: 0,
+    })
+
+    render(<MemoryRouter initialEntries={['/information']}><EventListPage /></MemoryRouter>)
+    await screen.findByText('검색 결과가 없어요')
+
+    const searchInput = screen.getByRole('textbox', { name: '행사명 검색' })
+    await user.type(searchInput, '   {Enter}')
+    await screen.findByText('검색 결과가 없어요')
+
+    expect(getEventsMock).toHaveBeenCalledTimes(2)
+  })
+
   it('행사 상세 정보와 이용 정보를 표시한다', async () => {
     getEventDetailMock.mockResolvedValue({
       content_id: 'event-1',
