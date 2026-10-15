@@ -18,6 +18,8 @@ import { NotificationCenter } from '../features/notification/ui/NotificationCent
 import { NotificationPage } from '../features/notification/ui/NotificationPage.tsx'
 import { NotificationOpenPage } from '../features/notification/ui/NotificationOpenPage.tsx'
 import { SettingsPage } from '../features/settings/ui/SettingsPage.tsx'
+import { EventListPage } from '../features/event/ui/EventListPage.tsx'
+import { EventDetailPage } from '../features/event/ui/EventDetailPage.tsx'
 import { routes } from '../shared/config/routes.ts'
 import '../features/guidebook/ui/guidebook.css'
 
@@ -33,6 +35,14 @@ function App() {
           element={<AuthBoundary allowOnboarding><PreferenceSelectionPage /></AuthBoundary>}
         />
         <Route path={routes.map} element={<AuthBoundary><MapPage /></AuthBoundary>} />
+        <Route
+          path={routes.information}
+          element={<AuthBoundary><EventListPage /></AuthBoundary>}
+        />
+        <Route
+          path={routes.eventDetail}
+          element={<AuthBoundary><EventDetailPage /></AuthBoundary>}
+        />
         <Route
           path={routes.guidebooks}
           element={<GuidebookAccess><GuidebookListPage /></GuidebookAccess>}

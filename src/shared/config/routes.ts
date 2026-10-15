@@ -4,6 +4,8 @@ export const routes = {
   authError: '/auth/error',
   preferences: '/preferences',
   map: '/map',
+  information: '/information',
+  eventDetail: '/events/:contentId',
   guidebooks: '/guidebooks',
   guidebookCreate: '/guidebooks/new',
   guidebookGenerating: '/guidebooks/generating/:jobId',
