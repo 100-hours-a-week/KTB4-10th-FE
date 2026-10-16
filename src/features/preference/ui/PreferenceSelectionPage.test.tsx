@@ -70,9 +70,9 @@ describe('PreferenceSelectionPage', () => {
     expect(nextButton).toBeDisabled()
 
     await user.click(screen.getByRole('button', { name: '산' }))
+    expect(nextButton).toBeEnabled()
     await user.click(screen.getByRole('button', { name: '여유롭게' }))
     await user.click(screen.getByRole('button', { name: '걷는거 좋아요' }))
-    expect(nextButton).toBeEnabled()
     await user.click(nextButton)
 
     await waitFor(() => expect(replaceMemberPreferencesMock).toHaveBeenCalledWith([
@@ -98,6 +98,19 @@ describe('PreferenceSelectionPage', () => {
     expect(screen.getByRole('button', { name: '체험' })).toHaveAttribute('aria-pressed', 'false')
     expect(screen.getByRole('button', { name: '도시·지역 문화' })).toBeInTheDocument()
     expect(screen.getByText('최대 3개까지 선택할 수 있어요.')).toBeInTheDocument()
+  })
+
+  it('같은 여행 스타일 그룹에서는 마지막으로 누른 하나만 선택한다', async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: '여유롭게' }))
+    await user.click(screen.getByRole('button', { name: '효율적으로' }))
+
+    expect(screen.getByRole('button', { name: '여유롭게' }))
+      .toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByRole('button', { name: '효율적으로' }))
+      .toHaveAttribute('aria-pressed', 'true')
   })
 
   it('저장된 취향이 있으면 수정 모드의 취소와 저장 버튼을 표시한다', async () => {

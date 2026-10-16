@@ -153,9 +153,6 @@ export function PreferenceSelectionPage() {
       const detailCount = selectedDetails[themeCode]?.length ?? 0
       return detailCount >= 1 && detailCount <= MAX_DETAIL_SELECTIONS
     })
-    && ['SCHEDULE_PACE', 'TRANSPORTATION'].every((group) => (
-      selectedStyles.filter((code) => travelStyleGroups.get(code) === group).length === 1
-    ))
   const currentSelections = useMemo(
     () => buildSelections(selectedThemes, selectedDetails, selectedStyles),
     [selectedDetails, selectedStyles, selectedThemes],
@@ -323,7 +320,7 @@ export function PreferenceSelectionPage() {
 
             <section className="preference-section preference-section--divided" aria-labelledby="style-title">
               <h2 id="style-title">어떤 여행 스타일인가요?</h2>
-              <p className="preference-guide">일정과 이동 성향을 하나씩 골라 주세요.</p>
+              <p className="preference-guide">선택하지 않아도 괜찮아요.</p>
               <div className="preference-chip-grid preference-chip-grid--two">
                 {travelStyles.map((option) => (
                   <button
