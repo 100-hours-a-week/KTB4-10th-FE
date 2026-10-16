@@ -21,16 +21,19 @@ vi.mock('../api/preferences.ts', () => ({
 }))
 
 const options = [
-  { preference_type: 'THEME', code: 'NATURE', label: '자연', parent_code: null, sort_order: 10 },
-  { preference_type: 'DETAIL', code: 'NATURE_MOUNTAIN', label: '산', parent_code: 'NATURE', sort_order: 10 },
-  { preference_type: 'THEME', code: 'HISTORY', label: '역사', parent_code: null, sort_order: 20 },
-  { preference_type: 'DETAIL', code: 'HISTORY_RELIC', label: '역사 유물', parent_code: 'HISTORY', sort_order: 10 },
-  { preference_type: 'THEME', code: 'ATTRACTION', label: '관광 명소', parent_code: null, sort_order: 30 },
-  { preference_type: 'DETAIL', code: 'ATTRACTION_LANDMARK', label: '랜드마크', parent_code: 'ATTRACTION', sort_order: 10 },
-  { preference_type: 'DETAIL', code: 'ATTRACTION_URBAN_CULTURE', label: '도시·지역 문화 관광', parent_code: 'ATTRACTION', sort_order: 20 },
-  { preference_type: 'THEME', code: 'EXPERIENCE', label: '체험', parent_code: null, sort_order: 40 },
-  { preference_type: 'DETAIL', code: 'EXPERIENCE_CRAFT', label: '공예 체험', parent_code: 'EXPERIENCE', sort_order: 10 },
-  { preference_type: 'TRAVEL_STYLE', code: 'RELAXING', label: '여유롭게', parent_code: null, sort_order: 10 },
+  { preference_type: 'THEME', code: 'NATURE', label: '자연', parent_code: null, selection_group: null, sort_order: 10 },
+  { preference_type: 'DETAIL', code: 'NATURE_MOUNTAIN', label: '산', parent_code: 'NATURE', selection_group: null, sort_order: 10 },
+  { preference_type: 'THEME', code: 'HISTORY', label: '역사', parent_code: null, selection_group: null, sort_order: 20 },
+  { preference_type: 'DETAIL', code: 'HISTORY_RELIC', label: '역사 유물', parent_code: 'HISTORY', selection_group: null, sort_order: 10 },
+  { preference_type: 'THEME', code: 'ATTRACTION', label: '관광 명소', parent_code: null, selection_group: null, sort_order: 30 },
+  { preference_type: 'DETAIL', code: 'ATTRACTION_LANDMARK', label: '랜드마크', parent_code: 'ATTRACTION', selection_group: null, sort_order: 10 },
+  { preference_type: 'DETAIL', code: 'ATTRACTION_URBAN_CULTURE', label: '도시·지역 문화 관광', parent_code: 'ATTRACTION', selection_group: null, sort_order: 20 },
+  { preference_type: 'THEME', code: 'EXPERIENCE', label: '체험', parent_code: null, selection_group: null, sort_order: 40 },
+  { preference_type: 'DETAIL', code: 'EXPERIENCE_CRAFT', label: '공예 체험', parent_code: 'EXPERIENCE', selection_group: null, sort_order: 10 },
+  { preference_type: 'TRAVEL_STYLE', code: 'RELAXING', label: '여유롭게', parent_code: null, selection_group: 'SCHEDULE_PACE', sort_order: 10 },
+  { preference_type: 'TRAVEL_STYLE', code: 'TIME_EFFICIENCY', label: '효율적으로', parent_code: null, selection_group: 'SCHEDULE_PACE', sort_order: 20 },
+  { preference_type: 'TRAVEL_STYLE', code: 'WALK_FRIENDLY', label: '걷는거 좋아요', parent_code: null, selection_group: 'TRANSPORTATION', sort_order: 30 },
+  { preference_type: 'TRAVEL_STYLE', code: 'CAR_TRAVEL', label: '차로 이동', parent_code: null, selection_group: 'TRANSPORTATION', sort_order: 40 },
 ]
 
 function renderPage(initialEntry: string | { pathname: string; state?: unknown } = '/preferences') {
@@ -67,12 +70,16 @@ describe('PreferenceSelectionPage', () => {
     expect(nextButton).toBeDisabled()
 
     await user.click(screen.getByRole('button', { name: '산' }))
+    await user.click(screen.getByRole('button', { name: '여유롭게' }))
+    await user.click(screen.getByRole('button', { name: '걷는거 좋아요' }))
     expect(nextButton).toBeEnabled()
     await user.click(nextButton)
 
     await waitFor(() => expect(replaceMemberPreferencesMock).toHaveBeenCalledWith([
       { preference_type: 'THEME', preference_code: 'NATURE' },
       { preference_type: 'DETAIL', preference_code: 'NATURE_MOUNTAIN' },
+      { preference_type: 'TRAVEL_STYLE', preference_code: 'RELAXING' },
+      { preference_type: 'TRAVEL_STYLE', preference_code: 'WALK_FRIENDLY' },
     ]))
     expect(await screen.findByRole('heading', { name: '지도' })).toBeInTheDocument()
   })
@@ -97,6 +104,8 @@ describe('PreferenceSelectionPage', () => {
     getMemberPreferencesMock.mockResolvedValue([
       { preference_type: 'THEME', preference_code: 'NATURE' },
       { preference_type: 'DETAIL', preference_code: 'NATURE_MOUNTAIN' },
+      { preference_type: 'TRAVEL_STYLE', preference_code: 'RELAXING' },
+      { preference_type: 'TRAVEL_STYLE', preference_code: 'WALK_FRIENDLY' },
     ])
 
     renderPage()
@@ -111,17 +120,19 @@ describe('PreferenceSelectionPage', () => {
     getMemberPreferencesMock.mockResolvedValue([
       { preference_type: 'THEME', preference_code: 'NATURE' },
       { preference_type: 'DETAIL', preference_code: 'NATURE_MOUNTAIN' },
+      { preference_type: 'TRAVEL_STYLE', preference_code: 'RELAXING' },
+      { preference_type: 'TRAVEL_STYLE', preference_code: 'WALK_FRIENDLY' },
     ])
     renderPage()
 
-    await user.click(await screen.findByRole('button', { name: '여유롭게' }))
+    await user.click(await screen.findByRole('button', { name: '효율적으로' }))
     await user.click(screen.getByRole('button', { name: '취소' }))
 
     const dialog = screen.getByRole('dialog', { name: '취향 수정을 취소할까요?' })
     expect(dialog).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: '아니요' }))
     expect(dialog).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '여유롭게' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: '효율적으로' })).toHaveAttribute('aria-pressed', 'true')
 
     await user.click(screen.getByRole('button', { name: '취소' }))
     await user.click(screen.getByRole('button', { name: '네' }))
@@ -133,6 +144,8 @@ describe('PreferenceSelectionPage', () => {
     getMemberPreferencesMock.mockResolvedValue([
       { preference_type: 'THEME', preference_code: 'NATURE' },
       { preference_type: 'DETAIL', preference_code: 'NATURE_MOUNTAIN' },
+      { preference_type: 'TRAVEL_STYLE', preference_code: 'RELAXING' },
+      { preference_type: 'TRAVEL_STYLE', preference_code: 'WALK_FRIENDLY' },
     ])
     renderPage()
 
@@ -147,6 +160,8 @@ describe('PreferenceSelectionPage', () => {
     getMemberPreferencesMock.mockResolvedValue([
       { preference_type: 'THEME', preference_code: 'NATURE' },
       { preference_type: 'DETAIL', preference_code: 'NATURE_MOUNTAIN' },
+      { preference_type: 'TRAVEL_STYLE', preference_code: 'RELAXING' },
+      { preference_type: 'TRAVEL_STYLE', preference_code: 'WALK_FRIENDLY' },
     ])
     renderPage({
       pathname: '/preferences',
