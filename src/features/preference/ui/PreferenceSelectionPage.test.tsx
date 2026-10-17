@@ -97,7 +97,7 @@ describe('PreferenceSelectionPage', () => {
     const user = userEvent.setup()
     renderPage()
 
-    const clearButton = await screen.findByRole('button', { name: '전체 해제' })
+    const clearButton = await screen.findByRole('button', { name: '선택 해제' })
     expect(clearButton).toBeDisabled()
 
     await user.click(screen.getByRole('button', { name: '자연' }))
@@ -132,7 +132,7 @@ describe('PreferenceSelectionPage', () => {
     expect(screen.queryByRole('button', { name: '다음' })).not.toBeInTheDocument()
   })
 
-  it('수정 화면에서 전체 해제하면 저장을 막고 기존 서버 값은 즉시 변경하지 않는다', async () => {
+  it('수정 화면에서 선택을 해제하면 저장을 막고 기존 서버 값은 즉시 변경하지 않는다', async () => {
     const user = userEvent.setup()
     getMemberPreferencesMock.mockResolvedValue([
       { preference_type: 'THEME', preference_code: 'NATURE' },
@@ -140,7 +140,7 @@ describe('PreferenceSelectionPage', () => {
     ])
     renderPage()
 
-    await user.click(await screen.findByRole('button', { name: '전체 해제' }))
+    await user.click(await screen.findByRole('button', { name: '선택 해제' }))
     await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: '해제하기' }))
 
     expect(screen.getByRole('button', { name: '저장' })).toBeDisabled()

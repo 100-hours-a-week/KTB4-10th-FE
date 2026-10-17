@@ -291,8 +291,7 @@ export function PreferenceSelectionPage() {
                   disabled={!hasSelections || isSubmitting}
                   onClick={() => setIsClearDialogOpen(true)}
                 >
-                  <img src="/assets/preferences/reset.png" alt="" aria-hidden="true" />
-                  전체 해제
+                  선택 해제
                 </button>
               </div>
               <p className="preference-guide">최소 1개, 최대 3개까지 선택할 수 있어요.</p>
@@ -405,12 +404,8 @@ export function PreferenceSelectionPage() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="preference-clear-title"
-            aria-describedby="preference-clear-description"
           >
             <h2 id="preference-clear-title">선택한 취향을 모두 해제할까요?</h2>
-            <p id="preference-clear-description">
-              현재 화면에서 선택한 항목이 모두 해제돼요.
-            </p>
             <div className="preference-cancel-dialog__actions">
               <button type="button" autoFocus onClick={() => setIsClearDialogOpen(false)}>취소</button>
               <button type="button" onClick={clearSelections}>해제하기</button>
