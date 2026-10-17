@@ -1099,6 +1099,10 @@ button:disabled {
   gap: 10px;
 }
 
+.preference-cancel-dialog--without-description .preference-cancel-dialog__actions {
+  margin-top: 22px;
+}
+
 .preference-cancel-dialog__actions button {
   min-height: 46px;
   border: 1px solid #d9d9de;

@@ -400,7 +400,7 @@ export function PreferenceSelectionPage() {
       {isClearDialogOpen && (
         <div className="preference-cancel-overlay" role="presentation">
           <section
-            className="preference-cancel-dialog"
+            className="preference-cancel-dialog preference-cancel-dialog--without-description"
             role="dialog"
             aria-modal="true"
             aria-labelledby="preference-clear-title"
