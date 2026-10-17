@@ -331,6 +331,54 @@ button:disabled {
   letter-spacing: -0.025em;
 }
 
+.preference-section__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.preference-clear-button {
+  display: flex;
+  min-height: 32px;
+  flex: none;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 9px;
+  border: 1px solid #dedee3;
+  border-radius: 9px;
+  background: #fff;
+  color: #61616b;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.preference-clear-button img {
+  width: 15px;
+  height: 15px;
+  object-fit: contain;
+  filter: brightness(0);
+  opacity: .62;
+}
+
+.preference-clear-button:active:not(:disabled) {
+  background: #ededf0;
+  transform: scale(.96);
+}
+
+.preference-clear-button:disabled {
+  border-color: #ededf0;
+  background: #f7f7f9;
+  color: #aaaab1;
+  cursor: not-allowed;
+}
+
+.preference-clear-button:disabled img {
+  opacity: .25;
+}
+
 .preference-guide {
   margin: 7px 0 18px;
   color: #797980;
@@ -388,7 +436,8 @@ button:disabled {
 }
 
 .preference-chip:focus-visible,
-.preference-state button:focus-visible {
+.preference-state button:focus-visible,
+.preference-clear-button:focus-visible {
   outline: 3px solid #b8b8bd;
   outline-offset: 2px;
 }

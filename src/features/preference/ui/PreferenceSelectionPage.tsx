@@ -71,6 +71,7 @@ export function PreferenceSelectionPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [initialSelectionKey, setInitialSelectionKey] = useState<string | null>(null)
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
+  const [isClearDialogOpen, setIsClearDialogOpen] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
 
@@ -156,6 +157,7 @@ export function PreferenceSelectionPage() {
   const hasUnsavedChanges = isEditMode
     && initialSelectionKey !== null
     && selectionKey(currentSelections) !== initialSelectionKey
+  const hasSelections = currentSelections.length > 0
 
   const showLimitFeedback = (code: string) => {
     setLimitFeedbackCode(code)
@@ -243,6 +245,16 @@ export function PreferenceSelectionPage() {
     navigate(returnTo, { state: returnState })
   }
 
+  const clearSelections = () => {
+    setSelectedThemes([])
+    setSelectedDetails({})
+    setSelectedStyles([])
+    setLimitFeedbackCode(null)
+    setLimitNotice(null)
+    setSubmitError(null)
+    setIsClearDialogOpen(false)
+  }
+
   return (
     <main className="app-shell preference-page">
       <header className="preference-header">
@@ -271,7 +283,18 @@ export function PreferenceSelectionPage() {
         {!isLoading && !loadError && (
           <>
             <section className="preference-section" aria-labelledby="theme-title">
-              <h2 id="theme-title">어떤 여행을 좋아하세요?</h2>
+              <div className="preference-section__heading">
+                <h2 id="theme-title">어떤 여행을 좋아하세요?</h2>
+                <button
+                  className="preference-clear-button"
+                  type="button"
+                  disabled={!hasSelections || isSubmitting}
+                  onClick={() => setIsClearDialogOpen(true)}
+                >
+                  <img src="/assets/preferences/reset.png" alt="" aria-hidden="true" />
+                  전체 해제
+                </button>
+              </div>
               <p className="preference-guide">최소 1개, 최대 3개까지 선택할 수 있어요.</p>
               <div className="preference-chip-grid preference-chip-grid--three">
                 {themes.map((option) => (
@@ -371,6 +394,26 @@ export function PreferenceSelectionPage() {
             <div className="preference-cancel-dialog__actions">
               <button type="button" onClick={() => navigate(returnTo, { state: returnState })}>네</button>
               <button type="button" autoFocus onClick={() => setIsCancelDialogOpen(false)}>아니요</button>
+            </div>
+          </section>
+        </div>
+      )}
+      {isClearDialogOpen && (
+        <div className="preference-cancel-overlay" role="presentation">
+          <section
+            className="preference-cancel-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="preference-clear-title"
+            aria-describedby="preference-clear-description"
+          >
+            <h2 id="preference-clear-title">선택한 취향을 모두 해제할까요?</h2>
+            <p id="preference-clear-description">
+              현재 화면에서 선택한 항목이 모두 해제돼요.
+            </p>
+            <div className="preference-cancel-dialog__actions">
+              <button type="button" autoFocus onClick={() => setIsClearDialogOpen(false)}>취소</button>
+              <button type="button" onClick={clearSelections}>해제하기</button>
             </div>
           </section>
         </div>
