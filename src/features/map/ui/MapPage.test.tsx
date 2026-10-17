@@ -405,6 +405,7 @@ describe('MapPage', () => {
         content_type: 'EVENT' as const,
         latitude: 37.5665,
         longitude: 126.978,
+        thumbnail_url: 'https://example.com/seoul-festival.jpg',
         is_favorite: false,
         is_in_guidebook: false,
       },
@@ -469,6 +470,7 @@ describe('MapPage', () => {
         content_type: 'EVENT',
         latitude: 37.5665,
         longitude: 126.978,
+        thumbnail_url: 'https://example.com/seoul-festival.jpg',
         is_favorite: false,
         is_in_guidebook: false,
       }],
@@ -492,6 +494,9 @@ describe('MapPage', () => {
     render(<MemoryRouter><MapPage /></MemoryRouter>)
 
     await user.click(screen.getByRole('button', { name: '지도 범위 조회' }))
+    expect(await screen.findByText('서울 축제')).toBeInTheDocument()
+    expect(document.querySelector('.map-content-card__thumbnail img'))
+      .toHaveAttribute('src', 'https://example.com/seoul-festival.jpg')
     await user.click(screen.getByRole('button', { name: '장소 목록 펼치기' }))
     await screen.findByRole('region', { name: '주변 장소와 행사 목록' })
     await user.click(screen.getByRole('button', { name: '지도 클릭' }))
