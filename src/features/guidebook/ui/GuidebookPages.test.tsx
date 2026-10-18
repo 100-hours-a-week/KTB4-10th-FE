@@ -89,6 +89,23 @@ describe('가이드북 화면', () => {
     expect(screen.getByLabelText('시·군·구')).toHaveValue('')
   })
 
+  it('시도와 시군구를 가나다순으로 표시한다', () => {
+    render(<MemoryRouter><GuidebookCreatePage /></MemoryRouter>)
+
+    const provinceOptions = Array.from(screen.getByLabelText('시·도').querySelectorAll('option'))
+      .map((option) => option.textContent)
+    expect(provinceOptions.slice(0, 5)).toEqual([
+      '시·도 선택', '강원특별자치도', '경기도', '경상남도', '경상북도',
+    ])
+
+    fireEvent.change(screen.getByLabelText('시·도'), { target: { value: '서울특별시' } })
+    const districtOptions = Array.from(screen.getByLabelText('시·군·구').querySelectorAll('option'))
+      .map((option) => option.textContent)
+    expect(districtOptions.slice(0, 6)).toEqual([
+      '시·군·구 선택', '강남구', '강동구', '강북구', '강서구', '관악구',
+    ])
+  })
+
   it('필수 조건 전에는 생성 버튼을 비활성화하고 단체는 5명부터 선택한다', () => {
     render(<MemoryRouter><GuidebookCreatePage /></MemoryRouter>)
 
