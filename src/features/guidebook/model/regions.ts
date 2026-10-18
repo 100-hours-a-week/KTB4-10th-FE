@@ -263,3 +263,13 @@ export const regions: Record<string, string[]> = {
     "부안군"
   ]
 }
+
+const koreanCollator = new Intl.Collator('ko-KR')
+
+export const provinceNames = Object.keys(regions)
+  .sort((left, right) => koreanCollator.compare(left, right))
+
+export function districtNames(province: string) {
+  return [...(regions[province] ?? [])]
+    .sort((left, right) => koreanCollator.compare(left, right))
+}
