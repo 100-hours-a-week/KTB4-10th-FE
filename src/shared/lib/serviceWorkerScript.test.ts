@@ -63,6 +63,13 @@ const guidebookPayload = {
   reference_id: '101',
 }
 
+const tripStartingPayload = {
+  notification_id: '302',
+  type: 'TRIP_STARTING',
+  reference_type: 'GUIDEBOOK',
+  reference_id: '102',
+}
+
 describe('Web Push Service Worker', () => {
   beforeEach(() => vi.clearAllMocks())
 
@@ -91,12 +98,36 @@ describe('Web Push Service Worker', () => {
     })
   })
 
+  it('검증된 여행 일정 임박 payload를 일정 안내 시스템 알림으로 표시한다', async () => {
+    const harness = createHarness()
+
+    await harness.push(tripStartingPayload)
+
+    expect(harness.showNotification).toHaveBeenCalledWith('여행 일정이 곧 시작돼요', {
+      body: '내일 시작하는 여행 가이드북을 확인해 주세요.',
+      icon: '/favicon.png',
+      badge: '/assets/mypage/bell-unread.png',
+      tag: 'kgb-notification-302',
+      renotify: false,
+      data: {
+        target: '/notifications/open?notificationId=302&guidebookId=102',
+        notificationId: '302',
+        referenceType: 'GUIDEBOOK',
+        referenceId: '102',
+      },
+    })
+  })
+
   it('필수 ID나 지원 타입이 잘못된 payload는 표시하지 않는다', async () => {
     const harness = createHarness()
 
     const waitUntil = await harness.push({ ...guidebookPayload, reference_id: 'invalid' })
 
     expect(waitUntil).not.toHaveBeenCalled()
+    expect(harness.showNotification).not.toHaveBeenCalled()
+
+    await harness.push({ ...guidebookPayload, type: 'UNSUPPORTED' })
+
     expect(harness.showNotification).not.toHaveBeenCalled()
   })
 
