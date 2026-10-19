@@ -47,10 +47,38 @@ describe('event API', () => {
       },
     })
 
-    await getEvents('야행', 3)
+    await getEvents({
+      query: '야행',
+      regionCode: '11',
+      month: '2026-10',
+      page: 3,
+    })
 
     expect(http.get).toHaveBeenCalledWith('/api/v1/contents', {
-      params: { category: 'EVENT', page: 3, size: 10, q: '야행' },
+      params: {
+        category: 'EVENT',
+        page: 3,
+        size: 10,
+        q: '야행',
+        region_code: '11',
+        month: '2026-10',
+      },
+      signal: undefined,
+    })
+  })
+
+  it('전체 필터는 선택 query를 생략한다', async () => {
+    vi.mocked(http.get).mockResolvedValue({
+      data: {
+        message: 'content_list_success',
+        data: { items: [], page: 1, size: 10, total_items: 0, total_pages: 0 },
+      },
+    })
+
+    await getEvents()
+
+    expect(http.get).toHaveBeenCalledWith('/api/v1/contents', {
+      params: { category: 'EVENT', page: 1, size: 10 },
       signal: undefined,
     })
   })
