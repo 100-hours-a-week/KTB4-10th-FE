@@ -1,6 +1,6 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { EventDetailPage } from './EventDetailPage.tsx'
 import { EventListPage } from './EventListPage.tsx'
@@ -39,6 +39,11 @@ const preview = {
 function SearchProbe() {
   const { search } = useLocation()
   return <output aria-label="현재 query">{search}</output>
+}
+
+function HistoryBackButton() {
+  const navigate = useNavigate()
+  return <button type="button" onClick={() => navigate(-1)}>테스트 뒤로가기</button>
 }
 
 describe('event information pages', () => {
@@ -246,6 +251,34 @@ describe('event information pages', () => {
     expect(screen.getByRole('status', { name: '현재 query' })).toHaveTextContent('')
     expect(getEventsMock).toHaveBeenLastCalledWith({
       query: '', regionCode: '', month: '', page: 1,
+    }, expect.any(AbortSignal))
+  })
+
+  it('뒤로가기로 이전 필터 상태를 복원한다', async () => {
+    const user = userEvent.setup()
+    getEventsMock.mockResolvedValue({
+      items: [], page: 1, size: 10, total_items: 0, total_pages: 0,
+    })
+    getNewEventsMock.mockResolvedValue({
+      date: '2026-10-15', items: [], page: 1, size: 20, total_items: 0, total_pages: 0,
+    })
+
+    render(
+      <MemoryRouter initialEntries={['/information']}>
+        <EventListPage />
+        <HistoryBackButton />
+      </MemoryRouter>,
+    )
+    await screen.findByText('검색 결과가 없어요')
+    const regionGroup = screen.getByRole('group', { name: '행사 지역' })
+    await user.click(within(regionGroup).getByRole('button', { name: '서울' }))
+    await user.click(within(regionGroup).getByRole('button', { name: '부산' }))
+    await user.click(screen.getByRole('button', { name: '테스트 뒤로가기' }))
+
+    expect(await within(regionGroup).findByRole('button', { name: '서울', pressed: true }))
+      .toBeInTheDocument()
+    expect(getEventsMock).toHaveBeenLastCalledWith({
+      query: '', regionCode: '11', month: '', page: 1,
     }, expect.any(AbortSignal))
   })
 
