@@ -55,7 +55,6 @@ function markerAsContentItem(marker: MapMarkerItem): MapContentItem {
   return {
     ...marker,
     address: '',
-    thumbnail_url: null,
     event_period: null,
   }
 }

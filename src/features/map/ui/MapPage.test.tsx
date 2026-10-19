@@ -90,11 +90,9 @@ vi.mock('./KakaoMapCanvas.tsx', () => ({
         content_id: 'place-1',
         title: '서울숲',
         content_type: 'PLACE',
-        address: '서울 성동구',
         latitude: 37.5444,
         longitude: 127.0374,
         thumbnail_url: 'https://example.com/seoul-forest.jpg',
-        event_period: null,
         is_favorite: false,
         is_in_guidebook: false,
       })}>지도 핀 선택</button>
@@ -314,6 +312,42 @@ describe('MapPage', () => {
       east: 127,
     }, 'cursor-10')
     expect(await screen.findByText('장소 11', {}, { timeout: 1_000 })).toBeInTheDocument()
+  })
+
+  it('첫 10개 목록에 없는 마커를 선택해도 마커 응답의 이미지를 표시한다', async () => {
+    const user = userEvent.setup()
+    localStorage.setItem('kgb.location-prompt-completed', 'true')
+    const markers = Array.from({ length: 15 }, (_, index) => ({
+      content_id: `place-${index + 1}`,
+      title: `장소 ${index + 1}`,
+      content_type: 'PLACE' as const,
+      latitude: 37.5444,
+      longitude: 127.0374 + index * 0.001,
+      thumbnail_url: `https://example.com/place-${index + 1}.jpg`,
+      is_favorite: false,
+      is_in_guidebook: false,
+    }))
+    getMapMarkersMock.mockResolvedValue({ mode: 'MARKER', clusters: [], markers })
+    getMapContentsMock.mockResolvedValue({
+      items: markers.slice(0, 10).map((marker) => ({
+        ...marker,
+        address: '서울',
+        event_period: null,
+      })),
+      next_cursor: 'cursor-10',
+      has_more: true,
+    })
+    render(<MemoryRouter><MapPage /></MemoryRouter>)
+
+    await user.click(screen.getByRole('button', { name: '지도 범위 조회' }))
+    await waitFor(() => expect(getMapMarkersMock).toHaveBeenCalledTimes(1))
+    const onSelectItem = mapCanvasCallbacksMock.mock.calls.at(-1)?.[2]
+    onSelectItem(markers[10])
+
+    expect(await screen.findByText('장소 11')).toBeInTheDocument()
+    expect(document.querySelector('.map-content-card__thumbnail img'))
+      .toHaveAttribute('src', 'https://example.com/place-11.jpg')
+    expect(document.querySelector('.map-content-sheet--default')).toBeInTheDocument()
   })
 
   it('조회한 장소와 행사를 바텀시트에서 펼쳐 볼 수 있다', async () => {
