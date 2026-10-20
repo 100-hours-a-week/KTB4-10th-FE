@@ -56,6 +56,16 @@ const notification = {
   created_at: '2026-10-06T00:00:00Z',
 }
 
+const tripStartingNotification = {
+  notification_id: '52',
+  title: '여행 일정이 곧 시작돼요',
+  body: "'제주 여행' 여행이 내일 시작됩니다.",
+  type: 'TRIP_STARTING',
+  reference_type: 'GUIDEBOOK',
+  reference_id: '11',
+  created_at: '2026-10-18T00:00:00Z',
+}
+
 function LocationProbe() {
   const location = useLocation()
   return <output aria-label="현재 경로">{location.pathname}:{JSON.stringify(location.state)}</output>
@@ -126,6 +136,26 @@ describe('전역 SSE 알림 센터', () => {
       name: '경주 여행 가이드북 생성 완료!',
     })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '가이드북 보기' })).toBeInTheDocument()
+  })
+
+  it('SSE로 도착한 여행 일정 임박 알림을 서버 문구와 가이드북 동작으로 표시한다', async () => {
+    renderCenter()
+    await waitFor(() => expect(openNotificationStream).toHaveBeenCalledOnce())
+
+    act(() => stream.dispatchEvent(new MessageEvent('notification', {
+      data: JSON.stringify(tripStartingNotification),
+    })))
+
+    expect(await screen.findByRole('status', {
+      name: "여행 일정이 곧 시작돼요 '제주 여행' 여행이 내일 시작됩니다.",
+    })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '가이드북 보기' }))
+
+    await waitFor(() => expect(deleteNotification).toHaveBeenCalledWith('52'))
+    await waitFor(() => {
+      expect(screen.getByRole('status', { name: '현재 경로' }))
+        .toHaveTextContent('/guidebooks:{"highlightGuidebookId":11}')
+    })
   })
 
   it('Web Push로 먼저 받은 같은 알림 ID의 SSE 토스트는 중복 표시하지 않는다', async () => {

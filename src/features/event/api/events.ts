@@ -30,6 +30,13 @@ export type EventList = {
   total_pages: number
 }
 
+export type EventListRequest = {
+  query?: string
+  regionCode?: string
+  month?: string
+  page?: number
+}
+
 export type NewEventItem = {
   content_id: string
   title: string
@@ -148,12 +155,19 @@ export async function getNewEvents(signal?: AbortSignal): Promise<NewEventList> 
 }
 
 export async function getEvents(
-  query: string,
-  page = 1,
+  request: EventListRequest = {},
   signal?: AbortSignal,
 ): Promise<EventList> {
+  const { query = '', regionCode = '', month = '', page = 1 } = request
   const response = await http.get<unknown>(EVENTS_PATH, {
-    params: { category: 'EVENT', page, size: EVENT_PAGE_SIZE, ...(query ? { q: query } : {}) },
+    params: {
+      category: 'EVENT',
+      page,
+      size: EVENT_PAGE_SIZE,
+      ...(query ? { q: query } : {}),
+      ...(regionCode ? { region_code: regionCode } : {}),
+      ...(month ? { month } : {}),
+    },
     signal,
   })
   if (!isApiResponse(response.data) || !isEventList(response.data.data)) {

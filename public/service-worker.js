@@ -1,7 +1,6 @@
 const GUIDEBOOK_COMPLETED_TYPE = 'GUIDEBOOK_COMPLETED'
+const TRIP_STARTING_TYPE = 'TRIP_STARTING'
 const GUIDEBOOK_REFERENCE_TYPE = 'GUIDEBOOK'
-const GUIDEBOOK_NOTIFICATION_TITLE = '가이드북 생성 완료'
-const GUIDEBOOK_NOTIFICATION_BODY = '새로운 여행 가이드북이 완성됐어요.'
 const NOTIFICATION_LIST_PATH = '/mypage/notifications'
 const NOTIFICATION_OPEN_PATH = '/notifications/open'
 const WEB_PUSH_RECEIVED_MESSAGE = 'KGB_WEB_PUSH_RECEIVED'
@@ -24,6 +23,22 @@ function positiveInteger(value) {
   return Number.isSafeInteger(number) && number > 0 ? number : null
 }
 
+function notificationCopy(type) {
+  if (type === GUIDEBOOK_COMPLETED_TYPE) {
+    return {
+      title: '가이드북 생성 완료',
+      body: '새로운 여행 가이드북이 완성됐어요.',
+    }
+  }
+  if (type === TRIP_STARTING_TYPE) {
+    return {
+      title: '여행 일정이 곧 시작돼요',
+      body: '내일 시작하는 여행 가이드북을 확인해 주세요.',
+    }
+  }
+  return null
+}
+
 function parseGuidebookPushPayload(event) {
   if (!event.data) return null
   let raw
@@ -36,15 +51,16 @@ function parseGuidebookPushPayload(event) {
   const payload = isRecord(raw.data) ? raw.data : raw
   const notificationId = boundedId(payload.notification_id)
   const guidebookId = positiveInteger(payload.reference_id)
+  const copy = notificationCopy(payload.type)
   if (
     !notificationId ||
-    payload.type !== GUIDEBOOK_COMPLETED_TYPE ||
+    !copy ||
     payload.reference_type !== GUIDEBOOK_REFERENCE_TYPE ||
     !guidebookId
   ) {
     return null
   }
-  return { notificationId, guidebookId }
+  return { notificationId, guidebookId, copy }
 }
 
 function notificationTarget(notificationId, guidebookId) {
@@ -80,8 +96,8 @@ async function displayGuidebookNotification(payload) {
 
   rememberNotification(payload.notificationId)
   await broadcastWebPushReceived(payload.notificationId).catch(() => undefined)
-  await self.registration.showNotification(GUIDEBOOK_NOTIFICATION_TITLE, {
-    body: GUIDEBOOK_NOTIFICATION_BODY,
+  await self.registration.showNotification(payload.copy.title, {
+    body: payload.copy.body,
     icon: '/favicon.png',
     badge: '/assets/mypage/bell-unread.png',
     tag,
