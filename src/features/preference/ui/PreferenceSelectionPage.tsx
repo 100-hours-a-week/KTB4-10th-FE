@@ -131,6 +131,10 @@ export function PreferenceSelectionPage() {
     () => sortOptions(options.filter(({ preference_type }) => preference_type === 'TRAVEL_STYLE')),
     [options],
   )
+  const travelStyleGroups = useMemo(
+    () => new Map(travelStyles.map(({ code, selection_group }) => [code, selection_group])),
+    [travelStyles],
+  )
   const detailsByTheme = useMemo(
     () => Object.fromEntries(selectedThemes.map((themeCode) => [
       themeCode,
@@ -211,11 +215,12 @@ export function PreferenceSelectionPage() {
 
   const toggleStyle = (styleCode: string) => {
     setSubmitError(null)
-    setSelectedStyles((current) => (
-      current.includes(styleCode)
-        ? current.filter((code) => code !== styleCode)
-        : [...current, styleCode]
-    ))
+    const selectionGroup = travelStyleGroups.get(styleCode)
+    if (!selectionGroup) return
+    setSelectedStyles((current) => [
+      ...current.filter((code) => travelStyleGroups.get(code) !== selectionGroup),
+      styleCode,
+    ])
   }
 
   const handleSubmit = async () => {

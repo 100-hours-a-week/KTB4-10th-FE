@@ -6,12 +6,14 @@ const PREFERENCE_OPTIONS_PATH = '/api/v1/preference-options'
 const MEMBER_PREFERENCES_PATH = '/api/v1/members/me/preferences'
 
 export type PreferenceType = 'THEME' | 'DETAIL' | 'TRAVEL_STYLE'
+export type PreferenceSelectionGroup = 'SCHEDULE_PACE' | 'TRANSPORTATION'
 
 export type PreferenceOption = {
   preference_type: PreferenceType
   code: string
   label: string
   parent_code: string | null
+  selection_group: PreferenceSelectionGroup | null
   sort_order: number
 }
 
@@ -41,6 +43,9 @@ function isPreferenceOption(value: unknown): value is PreferenceOption {
     typeof value.code === 'string' &&
     typeof value.label === 'string' &&
     (typeof value.parent_code === 'string' || value.parent_code === null) &&
+    (value.selection_group === 'SCHEDULE_PACE' ||
+      value.selection_group === 'TRANSPORTATION' ||
+      value.selection_group === null) &&
     typeof value.sort_order === 'number'
   )
 }
