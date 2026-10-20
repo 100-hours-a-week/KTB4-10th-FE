@@ -57,6 +57,11 @@ function GuidebookDestination() {
   return <output aria-label="가이드북 이동 정보">{JSON.stringify(location.state)}</output>
 }
 
+function InformationDestination() {
+  const location = useLocation()
+  return <output aria-label="정보 페이지 query">{location.search}</output>
+}
+
 function renderPage() {
   return render(
     <MemoryRouter initialEntries={['/mypage/notifications']}>
@@ -93,6 +98,25 @@ describe('NotificationPage', () => {
     const cards = await screen.findAllByRole('button', { name: /가이드북 보기/ })
     expect(cards[0]).toHaveTextContent('서울 가이드북 생성 완료')
     expect(cards[1]).toHaveTextContent('부산 가이드북 생성 완료')
+  })
+
+  it('정보 페이지에서 진입하면 뒤로가기 버튼으로 기존 필터 query를 복원한다', async () => {
+    const user = userEvent.setup()
+    render(
+      <MemoryRouter initialEntries={[{
+        pathname: '/mypage/notifications',
+        state: { returnTo: '/information?region_code=11&month=2026-10' },
+      }]}>
+        <Routes>
+          <Route path="/mypage/notifications" element={<NotificationPage />} />
+          <Route path="/information" element={<InformationDestination />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    await user.click(screen.getByRole('button', { name: '이전 화면으로 돌아가기' }))
+    expect(await screen.findByRole('status', { name: '정보 페이지 query' }))
+      .toHaveTextContent('?region_code=11&month=2026-10')
   })
 
   it('알림이 없으면 이미지와 빈 상태 문구를 표시한다', async () => {

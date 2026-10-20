@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { routes } from '../../../shared/config/routes.ts'
 import { Toast } from '../../../shared/ui/Toast.tsx'
 import {
@@ -17,6 +17,17 @@ import './notification-page.css'
 const SWIPE_LIMIT = 88
 const SWIPE_DELETE_THRESHOLD = 56
 const REMOVE_ANIMATION_MS = 180
+
+type NotificationLocationState = {
+  returnTo?: string
+}
+
+function notificationReturnTo(state: unknown): string {
+  const returnTo = (state as NotificationLocationState | null)?.returnTo
+  if (returnTo === routes.myPage || returnTo === routes.information) return returnTo
+  if (returnTo?.startsWith(`${routes.information}?`)) return returnTo
+  return routes.myPage
+}
 
 function formatCreatedAt(createdAt: string): string {
   const date = new Date(createdAt)
@@ -60,6 +71,8 @@ function NotificationListSkeleton() {
 
 export function NotificationPage() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const returnTo = notificationReturnTo(location.state)
   const [items, setItems] = useState<Notification[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -194,7 +207,7 @@ export function NotificationPage() {
   return (
     <main className="app-shell notification-page">
       <header className="notification-page__header">
-        <button type="button" aria-label="마이페이지로 돌아가기" onClick={() => navigate(routes.myPage)}>‹</button>
+        <button type="button" aria-label="이전 화면으로 돌아가기" onClick={() => navigate(returnTo)}>‹</button>
         <h1>알림</h1>
         <span aria-hidden="true" />
       </header>

@@ -89,7 +89,9 @@ export function MyPage() {
           aria-label={hasUnreadNotifications
             ? `읽지 않은 알림 ${member?.unread_count}개 확인`
             : '알림 확인'}
-          onClick={() => navigate(routes.notifications)}
+          onClick={() => navigate(routes.notifications, {
+            state: { returnTo: routes.myPage },
+          })}
         >
           <img
             src={hasUnreadNotifications

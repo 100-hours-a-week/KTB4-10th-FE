@@ -1,6 +1,6 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { EventDetailPage } from './EventDetailPage.tsx'
 import { EventListPage } from './EventListPage.tsx'
@@ -34,6 +34,21 @@ const preview = {
   start_date: '2026-08-14',
   end_date: '2026-08-30',
   source_created_at: '2026-10-15T08:30:00',
+}
+
+function SearchProbe() {
+  const { search } = useLocation()
+  return <output aria-label="현재 query">{search}</output>
+}
+
+function HistoryBackButton() {
+  const navigate = useNavigate()
+  return <button type="button" onClick={() => navigate(-1)}>테스트 뒤로가기</button>
+}
+
+function NotificationDestination() {
+  const location = useLocation()
+  return <output aria-label="알림 이동 정보">{JSON.stringify(location.state)}</output>
 }
 
 describe('event information pages', () => {
@@ -111,6 +126,29 @@ describe('event information pages', () => {
       .toBeInTheDocument()
   })
 
+  it('정보 페이지의 알림 버튼은 현재 필터 query를 반환 경로로 전달한다', async () => {
+    const user = userEvent.setup()
+    getEventsMock.mockResolvedValue({
+      items: [], page: 1, size: 10, total_items: 0, total_pages: 0,
+    })
+    getNewEventsMock.mockResolvedValue({
+      date: '2026-10-15', items: [], page: 1, size: 20, total_items: 0, total_pages: 0,
+    })
+
+    render(
+      <MemoryRouter initialEntries={['/information?region_code=11&month=2026-10']}>
+        <Routes>
+          <Route path="/information" element={<EventListPage />} />
+          <Route path="/mypage/notifications" element={<NotificationDestination />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    await user.click(await screen.findByRole('button', { name: '알림 확인' }))
+    expect(screen.getByRole('status', { name: '알림 이동 정보' }))
+      .toHaveTextContent('{"returnTo":"/information?region_code=11&month=2026-10"}')
+  })
+
   it('페이지 버튼을 누르면 해당 페이지를 조회한다', async () => {
     const user = userEvent.setup()
     getEventsMock
@@ -136,7 +174,9 @@ describe('event information pages', () => {
 
     await user.click(await screen.findByRole('button', { name: '2' }))
     expect(await screen.findByText('2페이지 행사')).toBeInTheDocument()
-    expect(getEventsMock).toHaveBeenLastCalledWith('', 2, expect.any(AbortSignal))
+    expect(getEventsMock).toHaveBeenLastCalledWith({
+      query: '', regionCode: '', month: '', page: 2,
+    }, expect.any(AbortSignal))
     expect(screen.getByRole('button', { name: '2' })).toHaveAttribute('aria-current', 'page')
   })
 
@@ -158,6 +198,222 @@ describe('event information pages', () => {
     await screen.findByText('검색 결과가 없어요')
 
     expect(getEventsMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('지역과 월을 선택하면 검색어와 함께 첫 페이지를 즉시 조회한다', async () => {
+    const user = userEvent.setup()
+    getEventsMock.mockResolvedValue({
+      items: [], page: 1, size: 10, total_items: 0, total_pages: 0,
+    })
+    getNewEventsMock.mockResolvedValue({
+      date: '2026-10-15', items: [], page: 1, size: 20, total_items: 0, total_pages: 0,
+    })
+
+    render(
+      <MemoryRouter initialEntries={['/information?q=야행&page=3']}>
+        <EventListPage />
+        <SearchProbe />
+      </MemoryRouter>,
+    )
+    await screen.findByText('검색 결과가 없어요')
+
+    await user.click(screen.getByRole('button', { name: '지역 필터: 전체' }))
+    await user.click(within(screen.getByRole('listbox', { name: '행사 지역' }))
+      .getByRole('option', { name: '서울' }))
+    expect(getEventsMock).toHaveBeenLastCalledWith({
+      query: '야행', regionCode: '11', month: '', page: 1,
+    }, expect.any(AbortSignal))
+
+    await user.click(screen.getByRole('button', { name: '월 필터: 전체' }))
+    await user.click(within(screen.getByRole('listbox', { name: '행사 개최 월' }))
+      .getByRole('option', { name: '10월' }))
+    expect(getEventsMock).toHaveBeenLastCalledWith({
+      query: '야행', regionCode: '11', month: '2026-10', page: 1,
+    }, expect.any(AbortSignal))
+    expect(screen.getByRole('status', { name: '현재 query' }))
+      .toHaveTextContent('?q=%EC%95%BC%ED%96%89&region_code=11&month=2026-10')
+  })
+
+  it('URL의 필터를 복구하고 비정상 query는 기본 상태로 정규화한다', async () => {
+    getEventsMock.mockResolvedValue({
+      items: [], page: 1, size: 10, total_items: 0, total_pages: 0,
+    })
+    getNewEventsMock.mockResolvedValue({
+      date: '2026-10-15', items: [], page: 1, size: 20, total_items: 0, total_pages: 0,
+    })
+
+    render(
+      <MemoryRouter initialEntries={['/information?q=봄&q=가을&region_code=999&month=2025-13&page=0&size=100']}>
+        <EventListPage />
+        <SearchProbe />
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByRole('status', { name: '현재 query' })).toHaveTextContent('')
+    expect(getEventsMock).toHaveBeenLastCalledWith({
+      query: '', regionCode: '', month: '', page: 1,
+    }, expect.any(AbortSignal))
+    expect(screen.getByRole('button', { name: '지역 필터: 전체' })).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.getByRole('button', { name: '월 필터: 전체' })).toHaveAttribute('aria-expanded', 'false')
+  })
+
+  it('전체를 선택하면 해당 필터 query를 제거한다', async () => {
+    const user = userEvent.setup()
+    getEventsMock.mockResolvedValue({
+      items: [], page: 1, size: 10, total_items: 0, total_pages: 0,
+    })
+    getNewEventsMock.mockResolvedValue({
+      date: '2026-10-15', items: [], page: 1, size: 20, total_items: 0, total_pages: 0,
+    })
+
+    render(
+      <MemoryRouter initialEntries={['/information?region_code=11&month=2026-10']}>
+        <EventListPage />
+        <SearchProbe />
+      </MemoryRouter>,
+    )
+    await screen.findByText('검색 결과가 없어요')
+
+    await user.click(screen.getByRole('button', { name: '지역 필터: 서울' }))
+    await user.click(within(screen.getByRole('listbox', { name: '행사 지역' }))
+      .getByRole('option', { name: '전체' }))
+    expect(screen.getByRole('button', { name: '지역 필터: 전체' })).toHaveAttribute('aria-expanded', 'false')
+    await user.click(screen.getByRole('button', { name: '월 필터: 10월' }))
+    await user.click(within(screen.getByRole('listbox', { name: '행사 개최 월' }))
+      .getByRole('option', { name: '전체' }))
+
+    expect(screen.getByRole('button', { name: '지역 필터: 전체' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '월 필터: 전체' })).toBeInTheDocument()
+
+    expect(screen.getByRole('status', { name: '현재 query' })).toHaveTextContent('')
+    expect(getEventsMock).toHaveBeenLastCalledWith({
+      query: '', regionCode: '', month: '', page: 1,
+    }, expect.any(AbortSignal))
+  })
+
+  it('월 필터에서 앞자리 0을 제외한 월 이름을 표시한다', async () => {
+    const user = userEvent.setup()
+    getEventsMock.mockResolvedValue({
+      items: [], page: 1, size: 10, total_items: 0, total_pages: 0,
+    })
+    getNewEventsMock.mockResolvedValue({
+      date: '2026-10-15', items: [], page: 1, size: 20, total_items: 0, total_pages: 0,
+    })
+
+    render(
+      <MemoryRouter initialEntries={['/information']}>
+        <EventListPage />
+      </MemoryRouter>,
+    )
+    await screen.findByText('검색 결과가 없어요')
+
+    await user.click(screen.getByRole('button', { name: '월 필터: 전체' }))
+    expect(within(screen.getByRole('listbox', { name: '행사 개최 월' }))
+      .getByRole('option', { name: '1월' })).toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: '01월' })).not.toBeInTheDocument()
+  })
+
+  it('뒤로가기로 이전 필터 상태를 복원한다', async () => {
+    const user = userEvent.setup()
+    getEventsMock.mockResolvedValue({
+      items: [], page: 1, size: 10, total_items: 0, total_pages: 0,
+    })
+    getNewEventsMock.mockResolvedValue({
+      date: '2026-10-15', items: [], page: 1, size: 20, total_items: 0, total_pages: 0,
+    })
+
+    render(
+      <MemoryRouter initialEntries={['/information']}>
+        <EventListPage />
+        <HistoryBackButton />
+      </MemoryRouter>,
+    )
+    await screen.findByText('검색 결과가 없어요')
+    await user.click(screen.getByRole('button', { name: '지역 필터: 전체' }))
+    await user.click(within(screen.getByRole('listbox', { name: '행사 지역' }))
+      .getByRole('option', { name: '서울' }))
+    await user.click(screen.getByRole('button', { name: '지역 필터: 서울' }))
+    await user.click(within(screen.getByRole('listbox', { name: '행사 지역' }))
+      .getByRole('option', { name: '부산' }))
+    await user.click(screen.getByRole('button', { name: '테스트 뒤로가기' }))
+
+    expect(await screen.findByRole('button', { name: '지역 필터: 서울' })).toBeInTheDocument()
+    expect(getEventsMock).toHaveBeenLastCalledWith({
+      query: '', regionCode: '11', month: '', page: 1,
+    }, expect.any(AbortSignal))
+  })
+
+  it('빠른 필터 변경은 앞선 목록 요청을 취소한다', async () => {
+    const user = userEvent.setup()
+    const signals: AbortSignal[] = []
+    getEventsMock.mockImplementation((_request, signal: AbortSignal) => {
+      signals.push(signal)
+      return Promise.resolve({
+        items: [], page: 1, size: 10, total_items: 0, total_pages: 0,
+      })
+    })
+    getNewEventsMock.mockResolvedValue({
+      date: '2026-10-15', items: [], page: 1, size: 20, total_items: 0, total_pages: 0,
+    })
+
+    render(<MemoryRouter initialEntries={['/information']}><EventListPage /></MemoryRouter>)
+    await screen.findByText('검색 결과가 없어요')
+    await user.click(screen.getByRole('button', { name: '지역 필터: 전체' }))
+    await user.click(within(screen.getByRole('listbox', { name: '행사 지역' }))
+      .getByRole('option', { name: '서울' }))
+    const seoulSignal = signals.at(-1)
+    await user.click(screen.getByRole('button', { name: '지역 필터: 서울' }))
+    await user.click(within(screen.getByRole('listbox', { name: '행사 지역' }))
+      .getByRole('option', { name: '부산' }))
+
+    expect(seoulSignal?.aborted).toBe(true)
+    expect(getEventsMock).toHaveBeenLastCalledWith({
+      query: '', regionCode: '26', month: '', page: 1,
+    }, expect.any(AbortSignal))
+  })
+
+  it('지역과 월 드롭다운은 하나만 열리고 바깥 선택 시 값을 바꾸지 않고 닫힌다', async () => {
+    const user = userEvent.setup()
+    getEventsMock.mockResolvedValue({
+      items: [], page: 1, size: 10, total_items: 0, total_pages: 0,
+    })
+    getNewEventsMock.mockResolvedValue({
+      date: '2026-10-15', items: [], page: 1, size: 20, total_items: 0, total_pages: 0,
+    })
+
+    render(<MemoryRouter initialEntries={['/information']}><EventListPage /></MemoryRouter>)
+    await screen.findByText('검색 결과가 없어요')
+
+    await user.click(screen.getByRole('button', { name: '지역 필터: 전체' }))
+    expect(screen.getByRole('listbox', { name: '행사 지역' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '월 필터: 전체' }))
+    expect(screen.queryByRole('listbox', { name: '행사 지역' })).not.toBeInTheDocument()
+    expect(screen.getByRole('listbox', { name: '행사 개최 월' })).toBeInTheDocument()
+
+    await user.click(document.body)
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '월 필터: 전체' })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: '지역 필터: 전체' }))
+    await user.click(within(screen.getByRole('listbox', { name: '행사 지역' }))
+      .getByRole('option', { name: '서울' }))
+    await user.click(screen.getByRole('button', { name: '지역 필터: 서울' }))
+    await user.click(document.body)
+
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '지역 필터: 서울' })).toHaveAttribute('aria-expanded', 'false')
+  })
+
+  it('개발 환경에서도 목록 API 오류를 fixture로 숨기지 않는다', async () => {
+    getEventsMock.mockRejectedValue(new Error('network'))
+    getNewEventsMock.mockResolvedValue({
+      date: '2026-10-15', items: [], page: 1, size: 20, total_items: 0, total_pages: 0,
+    })
+
+    render(<MemoryRouter initialEntries={['/information']}><EventListPage /></MemoryRouter>)
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('행사 정보를 불러오지 못했어요')
+    expect(screen.queryByText('수원 국가유산 야행')).not.toBeInTheDocument()
   })
 
   it('행사 상세 정보와 이용 정보를 표시한다', async () => {
