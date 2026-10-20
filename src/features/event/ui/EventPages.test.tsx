@@ -46,6 +46,11 @@ function HistoryBackButton() {
   return <button type="button" onClick={() => navigate(-1)}>테스트 뒤로가기</button>
 }
 
+function NotificationDestination() {
+  const location = useLocation()
+  return <output aria-label="알림 이동 정보">{JSON.stringify(location.state)}</output>
+}
+
 describe('event information pages', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -119,6 +124,29 @@ describe('event information pages', () => {
     }))
     expect(await screen.findByRole('button', { name: '읽지 않은 알림 3개 확인' }))
       .toBeInTheDocument()
+  })
+
+  it('정보 페이지의 알림 버튼은 현재 필터 query를 반환 경로로 전달한다', async () => {
+    const user = userEvent.setup()
+    getEventsMock.mockResolvedValue({
+      items: [], page: 1, size: 10, total_items: 0, total_pages: 0,
+    })
+    getNewEventsMock.mockResolvedValue({
+      date: '2026-10-15', items: [], page: 1, size: 20, total_items: 0, total_pages: 0,
+    })
+
+    render(
+      <MemoryRouter initialEntries={['/information?region_code=11&month=2026-10']}>
+        <Routes>
+          <Route path="/information" element={<EventListPage />} />
+          <Route path="/mypage/notifications" element={<NotificationDestination />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    await user.click(await screen.findByRole('button', { name: '알림 확인' }))
+    expect(screen.getByRole('status', { name: '알림 이동 정보' }))
+      .toHaveTextContent('{"returnTo":"/information?region_code=11&month=2026-10"}')
   })
 
   it('페이지 버튼을 누르면 해당 페이지를 조회한다', async () => {

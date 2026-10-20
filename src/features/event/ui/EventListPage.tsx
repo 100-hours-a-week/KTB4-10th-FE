@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { BottomNavigation } from '../../../shared/ui/BottomNavigation.tsx'
 import { PageHeader } from '../../../shared/ui/PageHeader.tsx'
 import { routes } from '../../../shared/config/routes.ts'
@@ -67,6 +67,7 @@ function EventCard({ event, isNew }: { event: EventListItem; isNew: boolean }) {
 
 export function EventListPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const filters = useMemo(() => readEventFilters(searchParams), [searchParams])
   const canonicalSearchParams = useMemo(
@@ -220,7 +221,9 @@ export function EventListPage() {
           className="app-page-header__notification"
           type="button"
           aria-label={unreadCount > 0 ? `읽지 않은 알림 ${unreadCount}개 확인` : '알림 확인'}
-          onClick={() => navigate(routes.notifications)}
+          onClick={() => navigate(routes.notifications, {
+            state: { returnTo: `${location.pathname}${location.search}` },
+          })}
         >
           <img
             src={unreadCount > 0
