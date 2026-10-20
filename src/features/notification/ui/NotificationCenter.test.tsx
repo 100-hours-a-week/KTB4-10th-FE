@@ -158,7 +158,7 @@ describe('전역 SSE 알림 센터', () => {
     })
   })
 
-  it('Web Push로 먼저 받은 같은 알림 ID의 SSE 토스트는 중복 표시하지 않는다', async () => {
+  it('Web Push로 먼저 받은 같은 알림 ID의 SSE 토스트도 독립 표시한다', async () => {
     const serviceWorker = new EventTarget() as EventTarget & {
       controller: { postMessage: ReturnType<typeof vi.fn> }
     }
@@ -174,8 +174,22 @@ describe('전역 SSE 알림 센터', () => {
       data: JSON.stringify(notification),
     })))
 
-    expect(screen.queryByRole('button', { name: '가이드북 보기' })).not.toBeInTheDocument()
-    await waitFor(() => expect(getNotifications).toHaveBeenCalledOnce())
+    expect(await screen.findByRole('button', { name: '가이드북 보기' })).toBeInTheDocument()
+    await waitFor(() => expect(getNotifications).toHaveBeenCalledTimes(2))
+  })
+
+  it('같은 알림 ID의 SSE 이벤트가 반복되면 토스트를 한 번만 대기열에 담는다', async () => {
+    renderCenter()
+    await waitFor(() => expect(openNotificationStream).toHaveBeenCalledOnce())
+
+    act(() => stream.dispatchEvent(new MessageEvent('notification', {
+      data: JSON.stringify(notification),
+    })))
+    act(() => stream.dispatchEvent(new MessageEvent('notification', {
+      data: JSON.stringify(notification),
+    })))
+
+    expect(await screen.findAllByRole('button', { name: '가이드북 보기' })).toHaveLength(1)
   })
 
   it('토스트를 선택하면 읽음 처리 후 대상 가이드북 정보를 담아 목록으로 이동한다', async () => {

@@ -18,10 +18,7 @@ import {
   type RealtimeNotificationSettingChangedDetail,
 } from '../model/events.ts'
 import { restoreWebPushSubscription } from '../model/webPush.ts'
-import {
-  markServiceWorkerNotificationSeen,
-  parseWebPushReceivedMessage,
-} from '../model/webPushMessages.ts'
+import { parseWebPushReceivedMessage } from '../model/webPushMessages.ts'
 
 const NOTIFICATION_EVENT_NAME = 'notification'
 const CONNECTED_EVENT_NAME = 'connected'
@@ -59,7 +56,7 @@ export function NotificationCenter() {
   const [pendingNotifications, setPendingNotifications] = useState<Notification[]>([])
   const [feedback, setFeedback] = useState<string | null>(null)
   const [actingNotificationId, setActingNotificationId] = useState<string | null>(null)
-  const seenNotificationIds = useRef(new Set<string>())
+  const seenSseNotificationIds = useRef(new Set<string>())
   const settingsRequestRevision = useRef(0)
   const completedId = job?.status === 'COMPLETED' ? job.guidebook_id : null
   const currentNotification = pendingNotifications[0] ?? null
@@ -75,10 +72,7 @@ export function NotificationCenter() {
     const handleWebPushMessage = (event: MessageEvent<unknown>) => {
       const message = parseWebPushReceivedMessage(event.data)
       if (!message) return
-      seenNotificationIds.current.add(message.notificationId)
-      setPendingNotifications((current) => current.filter(
-        ({ notification_id: notificationId }) => notificationId !== message.notificationId,
-      ))
+      // Web Push는 SSE 토스트와 독립된 채널이므로 배지만 동기화합니다.
       void syncNotifications().catch(() => undefined)
     }
     serviceWorker.addEventListener('message', handleWebPushMessage)
@@ -103,7 +97,7 @@ export function NotificationCenter() {
   }, [])
 
   useEffect(() => {
-    seenNotificationIds.current.clear()
+    seenSseNotificationIds.current.clear()
     // 회원 경계가 바뀌면 이전 회원의 토스트·수신 설정을 즉시 폐기합니다.
     // oxlint-disable-next-line react/set-state-in-effect
     setPendingNotifications([])
@@ -146,9 +140,8 @@ export function NotificationCenter() {
     }
     const handleNotification = (event: Event) => {
       const notification = parseNotificationEvent((event as MessageEvent<string>).data)
-      if (!notification || seenNotificationIds.current.has(notification.notification_id)) return
-      seenNotificationIds.current.add(notification.notification_id)
-      markServiceWorkerNotificationSeen(notification.notification_id)
+      if (!notification || seenSseNotificationIds.current.has(notification.notification_id)) return
+      seenSseNotificationIds.current.add(notification.notification_id)
       setPendingNotifications((current) => [...current, notification])
       void syncNotifications(controller.signal).catch(() => undefined)
     }
