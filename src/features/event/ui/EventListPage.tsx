@@ -100,7 +100,6 @@ export function EventListPage() {
   const error = failedRequestKey === requestKey
   const [unreadCount, setUnreadCount] = useState(0)
   const [openFilter, setOpenFilter] = useState<'region' | 'month' | null>(null)
-  const [allSelected, setAllSelected] = useState({ region: false, month: false })
   const filterRef = useRef<HTMLElement>(null)
 
   const selectedRegionLabel = EVENT_REGION_OPTIONS.find(
@@ -192,13 +191,11 @@ export function EventListPage() {
 
   function selectRegion(regionCode: string) {
     updateFilters({ regionCode, page: 1 })
-    setAllSelected((current) => ({ ...current, region: !regionCode }))
     setOpenFilter(null)
   }
 
   function selectMonth(month: string) {
     updateFilters({ month, page: 1 })
-    setAllSelected((current) => ({ ...current, month: !month }))
     setOpenFilter(null)
   }
 
@@ -270,9 +267,13 @@ export function EventListPage() {
               type="button"
               aria-haspopup="listbox"
               aria-expanded={openFilter === 'region'}
+              aria-label={`지역 필터: ${selectedRegionLabel ?? '전체'}`}
               onClick={() => setOpenFilter((current) => current === 'region' ? null : 'region')}
             >
-              <span>{selectedRegionLabel ?? (allSelected.region ? '전체' : '지역')}</span>
+              <span className="event-filter-dropdown__copy">
+                <span className="event-filter-dropdown__label">지역</span>
+                <strong>{selectedRegionLabel ?? '전체'}</strong>
+              </span>
               <span className="event-filter-dropdown__chevron" aria-hidden="true" />
             </button>
             {openFilter === 'region' && (
@@ -302,9 +303,13 @@ export function EventListPage() {
               type="button"
               aria-haspopup="listbox"
               aria-expanded={openFilter === 'month'}
+              aria-label={`월 필터: ${selectedMonthLabel ?? '전체'}`}
               onClick={() => setOpenFilter((current) => current === 'month' ? null : 'month')}
             >
-              <span>{selectedMonthLabel ?? (allSelected.month ? '전체' : '월')}</span>
+              <span className="event-filter-dropdown__copy">
+                <span className="event-filter-dropdown__label">월</span>
+                <strong>{selectedMonthLabel ?? '전체'}</strong>
+              </span>
               <span className="event-filter-dropdown__chevron" aria-hidden="true" />
             </button>
             {openFilter === 'month' && (
