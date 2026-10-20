@@ -4,9 +4,8 @@ const GUIDEBOOK_REFERENCE_TYPE = 'GUIDEBOOK'
 const NOTIFICATION_LIST_PATH = '/mypage/notifications'
 const NOTIFICATION_OPEN_PATH = '/notifications/open'
 const WEB_PUSH_RECEIVED_MESSAGE = 'KGB_WEB_PUSH_RECEIVED'
-const NOTIFICATION_SEEN_MESSAGE = 'KGB_NOTIFICATION_SEEN'
 const MAX_SEEN_NOTIFICATION_IDS = 200
-const seenNotificationIds = new Set()
+const seenWebPushNotificationIds = new Set()
 
 function isRecord(value) {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -71,11 +70,11 @@ function notificationTarget(notificationId, guidebookId) {
   return `${NOTIFICATION_OPEN_PATH}?${query.toString()}`
 }
 
-function rememberNotification(notificationId) {
-  seenNotificationIds.delete(notificationId)
-  seenNotificationIds.add(notificationId)
-  if (seenNotificationIds.size > MAX_SEEN_NOTIFICATION_IDS) {
-    seenNotificationIds.delete(seenNotificationIds.values().next().value)
+function rememberWebPushNotification(notificationId) {
+  seenWebPushNotificationIds.delete(notificationId)
+  seenWebPushNotificationIds.add(notificationId)
+  if (seenWebPushNotificationIds.size > MAX_SEEN_NOTIFICATION_IDS) {
+    seenWebPushNotificationIds.delete(seenWebPushNotificationIds.values().next().value)
   }
 }
 
@@ -92,9 +91,9 @@ async function broadcastWebPushReceived(notificationId) {
 async function displayGuidebookNotification(payload) {
   const tag = `kgb-notification-${payload.notificationId}`
   const displayed = await self.registration.getNotifications({ tag }).catch(() => [])
-  if (seenNotificationIds.has(payload.notificationId) || displayed.length > 0) return
+  if (seenWebPushNotificationIds.has(payload.notificationId) || displayed.length > 0) return
 
-  rememberNotification(payload.notificationId)
+  rememberWebPushNotification(payload.notificationId)
   await broadcastWebPushReceived(payload.notificationId).catch(() => undefined)
   await self.registration.showNotification(payload.copy.title, {
     body: payload.copy.body,
@@ -119,12 +118,6 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim())
 })
 
-self.addEventListener('message', (event) => {
-  if (!isRecord(event.data) || event.data.type !== NOTIFICATION_SEEN_MESSAGE) return
-  const notificationId = boundedId(event.data.notificationId)
-  if (notificationId) rememberNotification(notificationId)
-})
-
 self.addEventListener('push', (event) => {
   const payload = parseGuidebookPushPayload(event)
   if (!payload) return
@@ -134,7 +127,7 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
   const notificationId = boundedId(event.notification.data?.notificationId)
-  if (notificationId) rememberNotification(notificationId)
+  if (notificationId) rememberWebPushNotification(notificationId)
   const targetPath = typeof event.notification.data?.target === 'string'
     ? event.notification.data.target
     : NOTIFICATION_LIST_PATH

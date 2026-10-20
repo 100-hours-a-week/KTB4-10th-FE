@@ -131,13 +131,22 @@ describe('Web Push Service Worker', () => {
     expect(harness.showNotification).not.toHaveBeenCalled()
   })
 
-  it('SSE에서 이미 본 동일 알림 ID는 Web Push로 다시 표시하지 않는다', async () => {
+  it('SSE에서 먼저 본 동일 알림 ID도 Web Push로 독립 표시한다', async () => {
     const harness = createHarness()
     harness.message({ type: 'KGB_NOTIFICATION_SEEN', notificationId: '301' })
 
     await harness.push(guidebookPayload)
 
-    expect(harness.showNotification).not.toHaveBeenCalled()
+    expect(harness.showNotification).toHaveBeenCalledOnce()
+  })
+
+  it('같은 알림 ID의 Web Push가 반복되면 한 번만 표시한다', async () => {
+    const harness = createHarness()
+
+    await harness.push(guidebookPayload)
+    await harness.push(guidebookPayload)
+
+    expect(harness.showNotification).toHaveBeenCalledOnce()
   })
 
   it('알림 클릭 시 열린 동일 origin 창을 이동하고 포커스한다', async () => {
