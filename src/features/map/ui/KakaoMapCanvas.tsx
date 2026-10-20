@@ -25,6 +25,9 @@ import {
 } from '../lib/mapMarkers.ts'
 
 import {
+  clampKakaoMapLevel,
+  MAX_KAKAO_MAP_LEVEL,
+  MIN_KAKAO_MAP_LEVEL,
   panMapToCoordinate,
   type Coordinate,
 } from '../lib/mapViewport.ts'
@@ -240,13 +243,13 @@ export function KakaoMapCanvas({
             initialCenterRef.current.latitude,
             initialCenterRef.current.longitude,
           ),
-          level: initialLevelRef.current,
+          level: clampKakaoMapLevel(initialLevelRef.current),
         })
 
         mapRef.current = map
 
-        map.setMinLevel(1)
-        map.setMaxLevel(16)
+        map.setMinLevel(MIN_KAKAO_MAP_LEVEL)
+        map.setMaxLevel(MAX_KAKAO_MAP_LEVEL)
 
         if (focusTargetRef.current) {
           lastFocusRequestIdRef.current =
