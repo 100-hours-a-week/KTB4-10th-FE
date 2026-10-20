@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { BottomNavigation } from '../../../shared/ui/BottomNavigation.tsx'
 import { PageHeader } from '../../../shared/ui/PageHeader.tsx'
@@ -18,7 +18,6 @@ import {
   seoulCurrentYear,
   type EventFilters,
 } from '../model/eventFilters.ts'
-import { eventListFixture } from '../model/eventFixtures.ts'
 import './event.css'
 
 function dateText(value: string | null | undefined): string {
@@ -38,34 +37,6 @@ function pageNumbers(currentPage: number, totalPages: number): number[] {
   const first = Math.max(1, Math.min(currentPage - 2, totalPages - 4))
   const last = Math.min(totalPages, first + 4)
   return Array.from({ length: last - first + 1 }, (_, index) => first + index)
-}
-
-function matchesMonth(item: EventListItem, month: string): boolean {
-  if (!month) return true
-  const startDate = item.event_period?.start_date
-  const endDate = item.event_period?.end_date
-  if (!startDate && !endDate) return false
-  const monthStart = `${month}-01`
-  const monthEnd = `${month}-31`
-  return (!startDate || startDate <= monthEnd) && (!endDate || endDate >= monthStart)
-}
-
-function fixtureEvents(filters: EventFilters): EventList {
-  const normalizedQuery = filters.query.toLocaleLowerCase('ko-KR')
-  const filteredItems = eventListFixture.items.filter((event) => (
-    (!normalizedQuery || event.title.toLocaleLowerCase('ko-KR').includes(normalizedQuery)) &&
-    (!filters.regionCode || event.region?.administrative_code.startsWith(filters.regionCode)) &&
-    matchesMonth(event, filters.month)
-  ))
-  const offset = (filters.page - 1) * 10
-  return {
-    ...eventListFixture,
-    items: filteredItems.slice(offset, offset + 10),
-    page: filters.page,
-    size: 10,
-    total_items: filteredItems.length,
-    total_pages: Math.ceil(filteredItems.length / 10),
-  }
 }
 
 function EventCard({ event, isNew }: { event: EventListItem; isNew: boolean }) {
@@ -123,12 +94,36 @@ export function EventListPage() {
   const loading = settledRequestKey !== requestKey
   const error = failedRequestKey === requestKey
   const [unreadCount, setUnreadCount] = useState(0)
+  const [openFilter, setOpenFilter] = useState<'region' | 'month' | null>(null)
+  const filterRef = useRef<HTMLElement>(null)
+
+  const selectedRegionLabel = EVENT_REGION_OPTIONS.find(
+    ({ code }) => code === filters.regionCode,
+  )?.label
+  const selectedMonthLabel = filters.month ? `${filters.month.slice(-2)}월` : undefined
 
   useEffect(() => {
     if (!isCanonicalEventSearch(searchParams, canonicalSearchParams)) {
       setSearchParams(canonicalSearchParams, { replace: true })
     }
   }, [canonicalSearchParams, searchParams, setSearchParams])
+
+  useEffect(() => {
+    function closeOnOutsidePointer(event: PointerEvent) {
+      if (!filterRef.current?.contains(event.target as Node)) setOpenFilter(null)
+    }
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape') setOpenFilter(null)
+    }
+
+    document.addEventListener('pointerdown', closeOnOutsidePointer)
+    document.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.removeEventListener('pointerdown', closeOnOutsidePointer)
+      document.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [])
 
   useEffect(() => {
     let active = true
@@ -177,12 +172,7 @@ export function EventListPage() {
       })
       .catch(() => {
         if (controller.signal.aborted) return
-        if (import.meta.env.DEV) {
-          setData(fixtureEvents(filters))
-          setNewIds(new Set([eventListFixture.items[0].content_id]))
-        } else {
-          setFailedRequestKey(requestKey)
-        }
+        setFailedRequestKey(requestKey)
       })
       .finally(() => {
         if (!controller.signal.aborted) setSettledRequestKey(requestKey)
@@ -192,6 +182,16 @@ export function EventListPage() {
 
   function updateFilters(next: Partial<EventFilters>) {
     setSearchParams(eventFiltersToSearchParams({ ...filters, ...next }))
+  }
+
+  function selectRegion(regionCode: string) {
+    updateFilters({ regionCode, page: 1 })
+    setOpenFilter(null)
+  }
+
+  function selectMonth(month: string) {
+    updateFilters({ month, page: 1 })
+    setOpenFilter(null)
   }
 
   function search(event: FormEvent<HTMLFormElement>) {
@@ -253,45 +253,72 @@ export function EventListPage() {
           <button type="submit" aria-label="검색"><span aria-hidden="true" /></button>
         </form>
 
-        <section className="event-filters" aria-label="행사 필터">
-          <div className="event-filter-group">
-            <h2>지역</h2>
-            <div className="event-filter-options" role="group" aria-label="행사 지역">
-              <button
-                type="button"
-                aria-pressed={!filters.regionCode}
-                onClick={() => updateFilters({ regionCode: '', page: 1 })}
-              >전체</button>
-              {EVENT_REGION_OPTIONS.map(({ code, label }) => (
+        <section ref={filterRef} className="event-filters" aria-label="행사 필터">
+          <div className="event-filter-dropdown">
+            <button
+              className="event-filter-dropdown__trigger"
+              type="button"
+              aria-haspopup="listbox"
+              aria-expanded={openFilter === 'region'}
+              onClick={() => setOpenFilter((current) => current === 'region' ? null : 'region')}
+            >
+              <span>{selectedRegionLabel ?? '지역'}</span>
+              <span className="event-filter-dropdown__chevron" aria-hidden="true" />
+            </button>
+            {openFilter === 'region' && (
+              <div className="event-filter-dropdown__menu" role="listbox" aria-label="행사 지역">
                 <button
                   type="button"
-                  key={code}
-                  aria-pressed={filters.regionCode === code}
-                  onClick={() => updateFilters({ regionCode: code, page: 1 })}
-                >{label}</button>
-              ))}
-            </div>
-          </div>
-          <div className="event-filter-group">
-            <h2>월</h2>
-            <div className="event-filter-options" role="group" aria-label="행사 개최 월">
-              <button
-                type="button"
-                aria-pressed={!filters.month}
-                onClick={() => updateFilters({ month: '', page: 1 })}
-              >전체</button>
-              {EVENT_MONTH_OPTIONS.map((month) => {
-                const value = `${seoulCurrentYear()}-${month}`
-                return (
+                  role="option"
+                  aria-selected={!filters.regionCode}
+                  onClick={() => selectRegion('')}
+                >전체</button>
+                {EVENT_REGION_OPTIONS.map(({ code, label }) => (
                   <button
                     type="button"
-                    key={month}
-                    aria-pressed={filters.month === value}
-                    onClick={() => updateFilters({ month: value, page: 1 })}
-                  >{month}</button>
-                )
-              })}
-            </div>
+                    role="option"
+                    key={code}
+                    aria-selected={filters.regionCode === code}
+                    onClick={() => selectRegion(code)}
+                  >{label}</button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="event-filter-dropdown">
+            <button
+              className="event-filter-dropdown__trigger"
+              type="button"
+              aria-haspopup="listbox"
+              aria-expanded={openFilter === 'month'}
+              onClick={() => setOpenFilter((current) => current === 'month' ? null : 'month')}
+            >
+              <span>{selectedMonthLabel ?? '월'}</span>
+              <span className="event-filter-dropdown__chevron" aria-hidden="true" />
+            </button>
+            {openFilter === 'month' && (
+              <div className="event-filter-dropdown__menu" role="listbox" aria-label="행사 개최 월">
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={!filters.month}
+                  onClick={() => selectMonth('')}
+                >전체</button>
+                {EVENT_MONTH_OPTIONS.map((month) => {
+                  const value = `${seoulCurrentYear()}-${month}`
+                  return (
+                    <button
+                      type="button"
+                      role="option"
+                      key={month}
+                      aria-selected={filters.month === value}
+                      onClick={() => selectMonth(value)}
+                    >{month}월</button>
+                  )
+                })}
+              </div>
+            )}
           </div>
         </section>
 

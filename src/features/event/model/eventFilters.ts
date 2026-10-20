@@ -11,7 +11,7 @@ export const EVENT_REGION_OPTIONS: readonly EventRegionOption[] = [
   { code: '28', label: '인천' },
   { code: '30', label: '대전' },
   { code: '31', label: '울산' },
-  { code: '36', label: '세종' },
+  { code: '36110', label: '세종' },
   { code: '41', label: '경기' },
   { code: '43', label: '충북' },
   { code: '44', label: '충남' },

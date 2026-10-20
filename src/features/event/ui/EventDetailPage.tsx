@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { getEventDetail, type EventDetail } from '../api/events.ts'
-import { fixtureEventDetail } from '../model/eventFixtures.ts'
 import './event.css'
 
 type DetailLocationState = { isNew?: boolean }
@@ -38,9 +37,7 @@ export function EventDetailPage() {
       })
       .catch(() => {
         if (controller.signal.aborted) return
-        const fixture = import.meta.env.DEV ? fixtureEventDetail(contentId) : null
-        if (fixture) setDetail(fixture)
-        else setError(true)
+        setError(true)
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false)
