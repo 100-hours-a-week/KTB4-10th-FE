@@ -16,6 +16,7 @@ import { notifyRealtimeNotificationSettingChanged } from '../../notification/mod
 import { enableWebPush, webPushErrorMessage } from '../../notification/model/webPush.ts'
 import { getCachedCurrentMember } from '../../auth/api/auth.ts'
 import type { KakaoMap } from '../lib/kakaoMaps.ts'
+import { clampKakaoMapLevel } from '../lib/mapViewport.ts'
 import {
   getMapNavigationState,
   saveMapNavigationState,
@@ -388,7 +389,7 @@ export function MapPage() {
   const changeZoom = (difference: number) => {
     const map = mapRef.current
     if (!map) return
-    map.setLevel(Math.min(16, Math.max(1, map.getLevel() + difference)), {
+    map.setLevel(clampKakaoMapLevel(map.getLevel() + difference), {
       anchor: map.getCenter(),
     })
   }
