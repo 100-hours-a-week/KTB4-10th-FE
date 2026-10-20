@@ -277,14 +277,39 @@ describe('event information pages', () => {
     await user.click(screen.getByRole('button', { name: '서울' }))
     await user.click(within(screen.getByRole('listbox', { name: '행사 지역' }))
       .getByRole('option', { name: '전체' }))
+    expect(screen.getByRole('button', { name: '전체' })).toHaveAttribute('aria-expanded', 'false')
     await user.click(screen.getByRole('button', { name: '10월' }))
     await user.click(within(screen.getByRole('listbox', { name: '행사 개최 월' }))
       .getByRole('option', { name: '전체' }))
+
+    expect(screen.getAllByRole('button', { name: '전체' })).toHaveLength(2)
 
     expect(screen.getByRole('status', { name: '현재 query' })).toHaveTextContent('')
     expect(getEventsMock).toHaveBeenLastCalledWith({
       query: '', regionCode: '', month: '', page: 1,
     }, expect.any(AbortSignal))
+  })
+
+  it('월 필터에서 앞자리 0을 제외한 월 이름을 표시한다', async () => {
+    const user = userEvent.setup()
+    getEventsMock.mockResolvedValue({
+      items: [], page: 1, size: 10, total_items: 0, total_pages: 0,
+    })
+    getNewEventsMock.mockResolvedValue({
+      date: '2026-10-15', items: [], page: 1, size: 20, total_items: 0, total_pages: 0,
+    })
+
+    render(
+      <MemoryRouter initialEntries={['/information']}>
+        <EventListPage />
+      </MemoryRouter>,
+    )
+    await screen.findByText('검색 결과가 없어요')
+
+    await user.click(screen.getByRole('button', { name: '월' }))
+    expect(within(screen.getByRole('listbox', { name: '행사 개최 월' }))
+      .getByRole('option', { name: '1월' })).toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: '01월' })).not.toBeInTheDocument()
   })
 
   it('뒤로가기로 이전 필터 상태를 복원한다', async () => {

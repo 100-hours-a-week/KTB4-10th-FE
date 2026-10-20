@@ -33,6 +33,10 @@ function periodText(item: EventListItem): string {
   return `${dateText(start)} – ${dateText(end)}`
 }
 
+function monthLabel(month: string): string {
+  return `${Number(month)}월`
+}
+
 function pageNumbers(currentPage: number, totalPages: number): number[] {
   const first = Math.max(1, Math.min(currentPage - 2, totalPages - 4))
   const last = Math.min(totalPages, first + 4)
@@ -96,12 +100,13 @@ export function EventListPage() {
   const error = failedRequestKey === requestKey
   const [unreadCount, setUnreadCount] = useState(0)
   const [openFilter, setOpenFilter] = useState<'region' | 'month' | null>(null)
+  const [allSelected, setAllSelected] = useState({ region: false, month: false })
   const filterRef = useRef<HTMLElement>(null)
 
   const selectedRegionLabel = EVENT_REGION_OPTIONS.find(
     ({ code }) => code === filters.regionCode,
   )?.label
-  const selectedMonthLabel = filters.month ? `${filters.month.slice(-2)}월` : undefined
+  const selectedMonthLabel = filters.month ? monthLabel(filters.month.slice(-2)) : undefined
 
   useEffect(() => {
     if (!isCanonicalEventSearch(searchParams, canonicalSearchParams)) {
@@ -187,11 +192,13 @@ export function EventListPage() {
 
   function selectRegion(regionCode: string) {
     updateFilters({ regionCode, page: 1 })
+    setAllSelected((current) => ({ ...current, region: !regionCode }))
     setOpenFilter(null)
   }
 
   function selectMonth(month: string) {
     updateFilters({ month, page: 1 })
+    setAllSelected((current) => ({ ...current, month: !month }))
     setOpenFilter(null)
   }
 
@@ -265,7 +272,7 @@ export function EventListPage() {
               aria-expanded={openFilter === 'region'}
               onClick={() => setOpenFilter((current) => current === 'region' ? null : 'region')}
             >
-              <span>{selectedRegionLabel ?? '지역'}</span>
+              <span>{selectedRegionLabel ?? (allSelected.region ? '전체' : '지역')}</span>
               <span className="event-filter-dropdown__chevron" aria-hidden="true" />
             </button>
             {openFilter === 'region' && (
@@ -297,7 +304,7 @@ export function EventListPage() {
               aria-expanded={openFilter === 'month'}
               onClick={() => setOpenFilter((current) => current === 'month' ? null : 'month')}
             >
-              <span>{selectedMonthLabel ?? '월'}</span>
+              <span>{selectedMonthLabel ?? (allSelected.month ? '전체' : '월')}</span>
               <span className="event-filter-dropdown__chevron" aria-hidden="true" />
             </button>
             {openFilter === 'month' && (
@@ -317,7 +324,7 @@ export function EventListPage() {
                       key={month}
                       aria-selected={filters.month === value}
                       onClick={() => selectMonth(value)}
-                    >{month}월</button>
+                    >{monthLabel(month)}</button>
                   )
                 })}
               </div>
