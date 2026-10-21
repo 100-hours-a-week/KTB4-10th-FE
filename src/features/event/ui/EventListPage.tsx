@@ -8,7 +8,14 @@ import {
   NOTIFICATIONS_UPDATED_EVENT,
   type NotificationsUpdatedDetail,
 } from '../../notification/model/events.ts'
-import { getEvents, getNewEvents, type EventList, type EventListItem } from '../api/events.ts'
+import {
+  getEvents,
+  getNewEvents,
+  type EventList,
+  type EventListItem,
+  type NewEventItem,
+  type NewEventList,
+} from '../api/events.ts'
 import {
   EVENT_MONTH_OPTIONS,
   EVENT_REGION_OPTIONS,
@@ -41,6 +48,21 @@ function pageNumbers(currentPage: number, totalPages: number): number[] {
   const first = Math.max(1, Math.min(currentPage - 2, totalPages - 4))
   const last = Math.min(totalPages, first + 4)
   return Array.from({ length: last - first + 1 }, (_, index) => first + index)
+}
+
+function newEventToListItem(event: NewEventItem): EventListItem {
+  return {
+    content_id: event.content_id,
+    title: event.title,
+    category: 'EVENT',
+    region: null,
+    address: event.address,
+    thumbnail_url: event.thumbnail_url,
+    event_period: {
+      start_date: event.start_date,
+      end_date: event.end_date,
+    },
+  }
 }
 
 function EventCard({ event, isNew }: { event: EventListItem; isNew: boolean }) {
@@ -84,6 +106,8 @@ export function EventListPage() {
   })
   const input = searchDraft.source === filters.query ? searchDraft.value : filters.query
   const [data, setData] = useState<EventList | null>(null)
+  const [newData, setNewData] = useState<NewEventList | null>(null)
+  const [newEventFailed, setNewEventFailed] = useState(false)
   const [newIds, setNewIds] = useState<Set<string>>(new Set())
   const [newEventCount, setNewEventCount] = useState(0)
   const [revision, setRevision] = useState(0)
@@ -98,6 +122,7 @@ export function EventListPage() {
   const [failedRequestKey, setFailedRequestKey] = useState('')
   const loading = settledRequestKey !== requestKey
   const error = failedRequestKey === requestKey
+  const isNewView = filters.view === 'new'
   const [unreadCount, setUnreadCount] = useState(0)
   const [openFilter, setOpenFilter] = useState<'region' | 'month' | null>(null)
   const filterRef = useRef<HTMLElement>(null)
@@ -155,10 +180,14 @@ export function EventListPage() {
     void getNewEvents(controller.signal)
       .then((newEvents) => {
         if (controller.signal.aborted) return
+        setNewData(newEvents)
         setNewIds(new Set(newEvents.items.map((event) => event.content_id)))
         setNewEventCount(newEvents.total_items)
+        setNewEventFailed(false)
       })
-      .catch(() => undefined)
+      .catch(() => {
+        if (!controller.signal.aborted) setNewEventFailed(true)
+      })
     return () => controller.abort()
   }, [])
 
@@ -218,6 +247,21 @@ export function EventListPage() {
     setRevision((value) => value + 1)
   }
 
+  function showNewEvents() {
+    updateFilters({ view: 'new' })
+  }
+
+  function showAllEvents() {
+    updateFilters({ view: 'all' })
+  }
+
+  const visibleItems = isNewView
+    ? newData?.items.map(newEventToListItem) ?? []
+    : data?.items ?? []
+  const visibleCount = isNewView ? newEventCount : data?.total_items ?? 0
+  const viewLoading = isNewView ? newData === null && !newEventFailed : loading
+  const viewError = isNewView ? newEventFailed : error
+
   return (
     <main className="app-shell event-list-page">
       <PageHeader title="행사 정보">
@@ -240,11 +284,21 @@ export function EventListPage() {
         </button>
       </PageHeader>
 
-      <div className="event-list-content">
-        {newEventCount > 0 && (
-          <div className="event-new-note"><strong>NEW</strong> 오늘 새로 등록된 행사 {newEventCount}개</div>
+      <div className={`event-list-content${isNewView ? ' event-list-content--new' : ''}`}>
+        {!isNewView && newEventCount > 0 && (
+          <button className="event-new-note event-new-note--button" type="button" onClick={showNewEvents}>
+            <span><strong>NEW</strong>{` 오늘 새로 등록된 행사 ${newEventCount}개`}</span>
+            <span className="event-new-note__arrow" aria-hidden="true">›</span>
+          </button>
         )}
 
+        {isNewView && (
+          <button className="event-new-back" type="button" onClick={showAllEvents}>
+            <span aria-hidden="true">‹</span> 전체 행사로 돌아가기
+          </button>
+        )}
+
+        {!isNewView && <>
         <form className="event-search" role="search" onSubmit={search}>
           <label className="visually-hidden" htmlFor="event-search-input">행사명 검색</label>
           <input
@@ -336,8 +390,21 @@ export function EventListPage() {
             )}
           </div>
         </section>
+        </>}
 
-        {!loading && !error && data && data.items.length > 0 && (
+        {isNewView && !viewLoading && !viewError && visibleItems.length > 0 && (
+          <section className="event-new-section" aria-labelledby="new-events-title">
+            <div className="event-section-heading">
+              <div><span>New Events</span><h2 id="new-events-title">오늘 새로 등록된 행사</h2></div>
+              <strong>{visibleCount}</strong>
+            </div>
+            <ul className="event-list">{visibleItems.map((event) => (
+              <EventCard key={event.content_id} event={event} isNew />
+            ))}</ul>
+          </section>
+        )}
+
+        {!isNewView && !loading && !error && data && data.items.length > 0 && (
           <section className="event-new-section" aria-labelledby="events-title">
             <div className="event-section-heading">
               <div><span>Events</span><h2 id="events-title">행사 둘러보기</h2></div>
@@ -366,9 +433,12 @@ export function EventListPage() {
           </section>
         )}
 
-        {loading && <div className="event-state" role="status"><img className="loading-indicator" src="/assets/loading-indicator.svg" alt="" /><strong>행사를 찾고 있어요</strong><span>잠시만 기다려 주세요.</span></div>}
-        {!loading && error && <div className="event-state" role="alert"><span className="event-state__symbol" aria-hidden="true">!</span><strong>행사 정보를 불러오지 못했어요</strong><span>잠시 후 다시 시도해 주세요.</span><button type="button" onClick={retry}>다시 불러오기</button></div>}
-        {!loading && !error && data?.items.length === 0 && <div className="event-state"><span className="event-state__symbol" aria-hidden="true">⌕</span><strong>검색 결과가 없어요</strong><span>검색어나 필터를 바꿔 다시 찾아보세요.</span></div>}
+        {!isNewView && loading && <div className="event-state" role="status"><img className="loading-indicator" src="/assets/loading-indicator.svg" alt="" /><strong>행사를 찾고 있어요</strong><span>잠시만 기다려 주세요.</span></div>}
+        {!isNewView && !loading && error && <div className="event-state" role="alert"><span className="event-state__symbol" aria-hidden="true">!</span><strong>행사 정보를 불러오지 못했어요</strong><span>잠시 후 다시 시도해 주세요.</span><button type="button" onClick={retry}>다시 불러오기</button></div>}
+        {!isNewView && !loading && !error && data?.items.length === 0 && <div className="event-state"><span className="event-state__symbol" aria-hidden="true">⌕</span><strong>검색 결과가 없어요</strong><span>검색어나 필터를 바꿔 다시 찾아보세요.</span></div>}
+        {isNewView && viewLoading && <div className="event-state event-state--new" role="status"><img className="loading-indicator" src="/assets/loading-indicator.svg" alt="" /><strong>새로운 행사를 찾고 있어요</strong><span>잠시만 기다려 주세요.</span></div>}
+        {isNewView && !viewLoading && viewError && <div className="event-state event-state--new" role="alert"><span className="event-state__symbol" aria-hidden="true">!</span><strong>새로운 행사를 불러오지 못했어요</strong><span>잠시 후 다시 시도해 주세요.</span></div>}
+        {isNewView && !viewLoading && !viewError && visibleItems.length === 0 && <div className="event-state event-state--new"><span className="event-state__symbol" aria-hidden="true">⌕</span><strong>오늘 새로 등록된 행사가 없어요</strong><span>전체 행사로 돌아가 다른 행사를 살펴보세요.</span></div>}
       </div>
       <BottomNavigation />
     </main>

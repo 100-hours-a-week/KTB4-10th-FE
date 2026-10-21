@@ -38,6 +38,7 @@ export type EventFilters = {
   regionCode: string
   month: string
   page: number
+  view: 'all' | 'new'
 }
 
 export function seoulCurrentYear(now = Date.now()): string {
@@ -52,6 +53,7 @@ export function readEventFilters(
   const regionValues = searchParams.getAll('region_code')
   const monthValues = searchParams.getAll('month')
   const pageValues = searchParams.getAll('page')
+  const viewValues = searchParams.getAll('view')
   const query = queryValues.length === 1 ? queryValues[0].trim().slice(0, 10) : ''
   const regionCode = regionValues.length === 1 && REGION_CODES.has(regionValues[0])
     ? regionValues[0]
@@ -62,12 +64,14 @@ export function readEventFilters(
     : ''
   const rawPage = pageValues.length === 1 ? pageValues[0] : ''
   const page = /^[1-9]\d*$/.test(rawPage) ? Number(rawPage) : 1
+  const view = viewValues.length === 1 && viewValues[0] === 'new' ? 'new' : 'all'
 
   return {
     query,
     regionCode,
     month,
     page: Number.isSafeInteger(page) ? page : 1,
+    view,
   }
 }
 
@@ -77,6 +81,7 @@ export function eventFiltersToSearchParams(filters: EventFilters): URLSearchPara
   if (filters.regionCode) searchParams.set('region_code', filters.regionCode)
   if (filters.month) searchParams.set('month', filters.month)
   if (filters.page > 1) searchParams.set('page', String(filters.page))
+  if (filters.view === 'new') searchParams.set('view', 'new')
   return searchParams
 }
 

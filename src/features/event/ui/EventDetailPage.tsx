@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { removeFavorite, saveFavorite } from '../../map/api/favorites.ts'
 import { getEventDetail, type EventDetail } from '../api/events.ts'
 import './event.css'
 
@@ -28,6 +29,9 @@ export function EventDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [revision, setRevision] = useState(0)
+  const [isFavorite, setIsFavorite] = useState(false)
+  const [favoritePending, setFavoritePending] = useState(false)
+  const [favoriteError, setFavoriteError] = useState(false)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -53,6 +57,24 @@ export function EventDetailPage() {
   const title = detail?.title ?? '행사 정보'
   const address = detail?.event_detail?.event_place ?? detail?.address
 
+  async function toggleFavorite() {
+    if (!detail || favoritePending) return
+    setFavoritePending(true)
+    setFavoriteError(false)
+    try {
+      if (isFavorite) {
+        await removeFavorite(detail.content_id)
+      } else {
+        await saveFavorite(detail.content_id)
+      }
+      setIsFavorite((favorite) => !favorite)
+    } catch {
+      setFavoriteError(true)
+    } finally {
+      setFavoritePending(false)
+    }
+  }
+
   return (
     <main className="app-shell event-detail-page">
       <header className="event-detail-header">
@@ -73,6 +95,23 @@ export function EventDetailPage() {
         <h1>{title}</h1>
         <p>{displayPeriod(detail)}</p>
         <p>{address || '장소 정보 확인 중'}</p>
+        {detail && (
+          <button
+            className={`event-detail-favorite${isFavorite ? ' event-detail-favorite--active' : ''}`}
+            type="button"
+            aria-label={isFavorite ? `${title} 즐겨찾기 해제` : `${title} 즐겨찾기 저장`}
+            aria-pressed={isFavorite}
+            disabled={favoritePending}
+            onClick={() => void toggleFavorite()}
+          >
+            <span aria-hidden="true">{isFavorite ? '★' : '☆'}</span>
+          </button>
+        )}
+        {favoriteError && (
+          <p className="event-detail-favorite-message" role="alert">
+            즐겨찾기 상태를 변경하지 못했어요.
+          </p>
+        )}
       </section>
 
       {loading && (
@@ -128,8 +167,6 @@ export function EventDetailPage() {
           </p>
         </div>
       )}
-
-      <Link className="event-detail-back-link" to="/information">다른 행사 둘러보기</Link>
     </main>
   )
 }

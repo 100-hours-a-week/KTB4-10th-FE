@@ -14,4 +14,12 @@ describe('event filters', () => {
     expect(filters.regionCode).toBe('36110')
     expect(eventFiltersToSearchParams(filters).get('region_code')).toBe('36110')
   })
+
+  it('신규 행사 보기 상태를 query로 저장하고 복구한다', () => {
+    const filters = readEventFilters(new URLSearchParams('view=new'))
+
+    expect(filters.view).toBe('new')
+    expect(eventFiltersToSearchParams(filters).toString()).toBe('view=new')
+    expect(readEventFilters(new URLSearchParams('view=unknown')).view).toBe('all')
+  })
 })
