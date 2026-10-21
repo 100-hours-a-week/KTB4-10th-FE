@@ -186,7 +186,7 @@ export function GuidebookListPage() {
           else cardElements.current.delete(book.guidebook_id)
         }}
       >
-        <Link to={`/guidebooks/${book.guidebook_id}/viewer`} className="book-card-main"><BookCover /><div><h2>{book.title}</h2><p>{book.start_date.replaceAll('-', '.')} – {book.end_date.replaceAll('-', '.')}</p><span>{companions[book.companion]?.[0]}</span></div></Link>
+        <Link to={`/guidebooks/${book.guidebook_id}/viewer`} className="book-card-main"><BookCover thumbnailUrl={book.thumbnail_url} /><div><h2>{book.title}</h2><p>{book.start_date.replaceAll('-', '.')} – {book.end_date.replaceAll('-', '.')}</p><span>{companions[book.companion]?.[0]}</span></div></Link>
         <a
           className="book-pdf"
           href={`/guidebooks/${book.guidebook_id}/print`}

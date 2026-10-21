@@ -5,7 +5,7 @@ import type { ApiResponse } from '../../../shared/api/types.ts'
 export type Companion = 'ALONE' | 'FRIEND' | 'COUPLE' | 'FAMILY' | 'GROUP'
 export type GenerationRequest = { province: string; city: string; start_date: string; end_date: string; companion: Companion; people_count: number }
 export type Job = { job_id: number; status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELED'; guidebook_id: number | null; attempt_count?: number; error?: { code: string; message: string } | null }
-export type Book = { guidebook_id: number; title: string; start_date: string; end_date: string; companion: Companion }
+export type Book = { guidebook_id: number; title: string; start_date: string; end_date: string; thumbnail_url: string | null; companion: Companion }
 export type BookList = { items: Book[]; next_cursor: string | null; has_more: boolean }
 export type Detail = Omit<Book, 'companion'> & { people_count: number; itinerary: { day_number: number; itinerary_date: string; items: { item_id: number; sequence: number; scheduled_time: string | null; place_snapshot: { title?: string } | null }[] }[] }
 export type Viewer = { guidebook_id: number; content_html: string; version: number; updated_at: string }
