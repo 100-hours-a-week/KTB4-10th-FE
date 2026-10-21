@@ -5,11 +5,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { EventDetailPage } from './EventDetailPage.tsx'
 import { EventListPage } from './EventListPage.tsx'
 
-const { getCurrentMemberMock, getEventDetailMock, getEventsMock, getNewEventsMock } = vi.hoisted(() => ({
+const { getCurrentMemberMock, getEventDetailMock, getEventsMock, getNewEventsMock, removeFavoriteMock, saveFavoriteMock } = vi.hoisted(() => ({
   getCurrentMemberMock: vi.fn(),
   getEventDetailMock: vi.fn(),
   getEventsMock: vi.fn(),
   getNewEventsMock: vi.fn(),
+  removeFavoriteMock: vi.fn(),
+  saveFavoriteMock: vi.fn(),
 }))
 
 vi.mock('../../auth/api/auth.ts', () => ({
@@ -25,6 +27,11 @@ vi.mock('../api/events.ts', async () => {
     getNewEvents: getNewEventsMock,
   }
 })
+
+vi.mock('../../map/api/favorites.ts', () => ({
+  removeFavorite: removeFavoriteMock,
+  saveFavorite: saveFavoriteMock,
+}))
 
 const preview = {
   content_id: 'event-1',
@@ -55,6 +62,8 @@ describe('event information pages', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     getCurrentMemberMock.mockResolvedValue({ unread_count: 0 })
+    removeFavoriteMock.mockResolvedValue(undefined)
+    saveFavoriteMock.mockResolvedValue({ content_id: 'event-1' })
   })
 
   it('전체 행사와 오늘 등록된 행사 표시를 함께 제공한다', async () => {
@@ -104,6 +113,41 @@ describe('event information pages', () => {
 
     expect(await screen.findByText('계속 진행 중인 행사')).toBeInTheDocument()
     expect(screen.queryByText(/오늘 새로 등록된 행사/)).not.toBeInTheDocument()
+  })
+
+  it('NEW 안내를 누르면 오늘 등록된 행사만 보고 전체 목록으로 돌아간다', async () => {
+    const user = userEvent.setup()
+    getEventsMock.mockResolvedValue({
+      items: [{
+        content_id: 'event-old', title: '기존 행사', category: 'EVENT', region: null,
+        address: '서울특별시', thumbnail_url: null, event_period: null,
+      }],
+      page: 1, size: 20, total_items: 1, total_pages: 1,
+    })
+    getNewEventsMock.mockResolvedValue({
+      date: '2026-10-21', items: [preview], page: 1, size: 20, total_items: 1, total_pages: 1,
+    })
+
+    render(
+      <MemoryRouter initialEntries={['/information']}>
+        <EventListPage />
+        <SearchProbe />
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByText('기존 행사')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /오늘 새로 등록된 행사 1개/ }))
+
+    expect(await screen.findByRole('heading', { name: '오늘 새로 등록된 행사' })).toBeInTheDocument()
+    expect(screen.getByText(preview.title)).toBeInTheDocument()
+    expect(screen.queryByText('기존 행사')).not.toBeInTheDocument()
+    expect(screen.queryByRole('textbox', { name: '행사명 검색' })).not.toBeInTheDocument()
+    expect(screen.getByRole('status', { name: '현재 query' })).toHaveTextContent('?view=new')
+
+    await user.click(screen.getByRole('button', { name: /전체 행사로 돌아가기/ }))
+    expect(await screen.findByText('기존 행사')).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: '행사명 검색' })).toBeInTheDocument()
+    expect(screen.getByRole('status', { name: '현재 query' })).toHaveTextContent('')
   })
 
   it('행사 헤더에 읽지 않은 알림 상태를 반영한다', async () => {
@@ -452,6 +496,53 @@ describe('event information pages', () => {
     expect(screen.getByText('18:00~23:00')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /공식 홈페이지/ }))
       .toHaveAttribute('href', 'https://example.com')
+    expect(screen.queryByRole('link', { name: '다른 행사 둘러보기' })).not.toBeInTheDocument()
+  })
+
+  it('상세 페이지에서 별 버튼으로 즐겨찾기를 등록하고 해제한다', async () => {
+    const user = userEvent.setup()
+    getEventDetailMock.mockResolvedValue({
+      content_id: 'event-1', title: '관심 행사', category: 'EVENT', region: null,
+      latitude: 37.2, longitude: 127.0, thumbnail_url: null, description: null,
+      address: '서울특별시', phone: null, homepage_url: null, images: [], event_detail: null,
+    })
+
+    render(
+      <MemoryRouter initialEntries={['/events/event-1']}>
+        <Routes><Route path="/events/:contentId" element={<EventDetailPage />} /></Routes>
+      </MemoryRouter>,
+    )
+
+    const favoriteButton = await screen.findByRole('button', { name: '관심 행사 즐겨찾기 저장' })
+    expect(favoriteButton).toHaveTextContent('☆')
+    await user.click(favoriteButton)
+    expect(saveFavoriteMock).toHaveBeenCalledWith('event-1')
+
+    const removeButton = await screen.findByRole('button', { name: '관심 행사 즐겨찾기 해제' })
+    expect(removeButton).toHaveTextContent('★')
+    await user.click(removeButton)
+    expect(removeFavoriteMock).toHaveBeenCalledWith('event-1')
+    expect(await screen.findByRole('button', { name: '관심 행사 즐겨찾기 저장' }))
+      .toHaveTextContent('☆')
+  })
+
+  it('관심 장소 등록 실패를 안내한다', async () => {
+    const user = userEvent.setup()
+    saveFavoriteMock.mockRejectedValue(new Error('network'))
+    getEventDetailMock.mockResolvedValue({
+      content_id: 'event-1', title: '관심 행사', category: 'EVENT', region: null,
+      latitude: null, longitude: null, thumbnail_url: null, description: null,
+      address: null, phone: null, homepage_url: null, images: [], event_detail: null,
+    })
+
+    render(
+      <MemoryRouter initialEntries={['/events/event-1']}>
+        <Routes><Route path="/events/:contentId" element={<EventDetailPage />} /></Routes>
+      </MemoryRouter>,
+    )
+
+    await user.click(await screen.findByRole('button', { name: '관심 행사 즐겨찾기 저장' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('즐겨찾기 상태를 변경하지 못했어요.')
   })
 
   it('상세 조회 실패 후 다시 요청한다', async () => {
