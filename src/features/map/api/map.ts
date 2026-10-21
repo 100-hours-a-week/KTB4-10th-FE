@@ -20,6 +20,7 @@ export type MapMarkerItem = {
   content_type: 'PLACE' | 'EVENT'
   latitude: number
   longitude: number
+  thumbnail_url: string | null
   is_favorite: boolean
   is_in_guidebook: boolean
 }
@@ -124,6 +125,7 @@ function isMapMarkerItem(value: unknown): value is MapMarkerItem {
     (value.content_type === 'PLACE' || value.content_type === 'EVENT') &&
     typeof value.latitude === 'number' &&
     typeof value.longitude === 'number' &&
+    (typeof value.thumbnail_url === 'string' || value.thumbnail_url === null) &&
     typeof value.is_favorite === 'boolean' &&
     typeof value.is_in_guidebook === 'boolean'
   )

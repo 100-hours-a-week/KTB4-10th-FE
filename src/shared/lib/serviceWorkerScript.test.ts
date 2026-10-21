@@ -63,6 +63,13 @@ const guidebookPayload = {
   reference_id: '101',
 }
 
+const tripStartingPayload = {
+  notification_id: '302',
+  type: 'TRIP_STARTING',
+  reference_type: 'GUIDEBOOK',
+  reference_id: '102',
+}
+
 describe('Web Push Service Worker', () => {
   beforeEach(() => vi.clearAllMocks())
 
@@ -79,7 +86,7 @@ describe('Web Push Service Worker', () => {
       tag: 'kgb-notification-301',
       renotify: false,
       data: {
-        target: '/guidebooks?highlightGuidebookId=101',
+        target: '/notifications/open?notificationId=301&guidebookId=101',
         notificationId: '301',
         referenceType: 'GUIDEBOOK',
         referenceId: '101',
@@ -91,6 +98,26 @@ describe('Web Push Service Worker', () => {
     })
   })
 
+  it('검증된 여행 일정 임박 payload를 일정 안내 시스템 알림으로 표시한다', async () => {
+    const harness = createHarness()
+
+    await harness.push(tripStartingPayload)
+
+    expect(harness.showNotification).toHaveBeenCalledWith('여행 일정이 곧 시작돼요', {
+      body: '내일 시작하는 여행 가이드북을 확인해 주세요.',
+      icon: '/favicon.png',
+      badge: '/assets/mypage/bell-unread.png',
+      tag: 'kgb-notification-302',
+      renotify: false,
+      data: {
+        target: '/notifications/open?notificationId=302&guidebookId=102',
+        notificationId: '302',
+        referenceType: 'GUIDEBOOK',
+        referenceId: '102',
+      },
+    })
+  })
+
   it('필수 ID나 지원 타입이 잘못된 payload는 표시하지 않는다', async () => {
     const harness = createHarness()
 
@@ -98,15 +125,28 @@ describe('Web Push Service Worker', () => {
 
     expect(waitUntil).not.toHaveBeenCalled()
     expect(harness.showNotification).not.toHaveBeenCalled()
+
+    await harness.push({ ...guidebookPayload, type: 'UNSUPPORTED' })
+
+    expect(harness.showNotification).not.toHaveBeenCalled()
   })
 
-  it('SSE에서 이미 본 동일 알림 ID는 Web Push로 다시 표시하지 않는다', async () => {
+  it('SSE에서 먼저 본 동일 알림 ID도 Web Push로 독립 표시한다', async () => {
     const harness = createHarness()
     harness.message({ type: 'KGB_NOTIFICATION_SEEN', notificationId: '301' })
 
     await harness.push(guidebookPayload)
 
-    expect(harness.showNotification).not.toHaveBeenCalled()
+    expect(harness.showNotification).toHaveBeenCalledOnce()
+  })
+
+  it('같은 알림 ID의 Web Push가 반복되면 한 번만 표시한다', async () => {
+    const harness = createHarness()
+
+    await harness.push(guidebookPayload)
+    await harness.push(guidebookPayload)
+
+    expect(harness.showNotification).toHaveBeenCalledOnce()
   })
 
   it('알림 클릭 시 열린 동일 origin 창을 이동하고 포커스한다', async () => {
@@ -120,12 +160,12 @@ describe('Web Push Service Worker', () => {
     const harness = createHarness([visibleClient])
 
     await harness.notificationClick({
-      target: '/guidebooks?highlightGuidebookId=101',
+      target: '/notifications/open?notificationId=301&guidebookId=101',
       notificationId: '301',
     })
 
     expect(visibleClient.navigate).toHaveBeenCalledWith(
-      'https://kguidebook.site/guidebooks?highlightGuidebookId=101',
+      'https://kguidebook.site/notifications/open?notificationId=301&guidebookId=101',
     )
     expect(focused.focus).toHaveBeenCalledOnce()
     expect(harness.openWindow).not.toHaveBeenCalled()
@@ -135,12 +175,12 @@ describe('Web Push Service Worker', () => {
     const harness = createHarness()
 
     await harness.notificationClick({
-      target: '/guidebooks?highlightGuidebookId=101',
+      target: '/notifications/open?notificationId=301&guidebookId=101',
       notificationId: '301',
     })
 
     expect(harness.openWindow).toHaveBeenCalledWith(
-      'https://kguidebook.site/guidebooks?highlightGuidebookId=101',
+      'https://kguidebook.site/notifications/open?notificationId=301&guidebookId=101',
     )
   })
 })

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { MapContentItem } from '../api/map.ts'
 import { clusterLabel, pinColor, serverClusterStyle } from '../lib/mapMarkers.ts'
-import { panMapToCoordinate } from '../lib/mapViewport.ts'
+import { clampKakaoMapLevel, panMapToCoordinate } from '../lib/mapViewport.ts'
 
 function item(
   contentType: MapContentItem['content_type'],
@@ -84,6 +84,12 @@ describe('지도 클러스터 표기', () => {
 })
 
 describe('지도 중심 이동', () => {
+  it('저장된 지도 레벨과 축소 버튼을 허용 범위로 제한한다', () => {
+    expect(clampKakaoMapLevel(16)).toBe(13)
+    expect(clampKakaoMapLevel(13)).toBe(13)
+    expect(clampKakaoMapLevel(0)).toBe(1)
+  })
+
   it('현재 줌 레벨을 변경하지 않고 지정 좌표로 이동한다', () => {
     const position = { latitude: 37.3952969470752, longitude: 127.110449292622 }
     const latLng = { position }

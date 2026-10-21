@@ -1,13 +1,11 @@
 const GUIDEBOOK_COMPLETED_TYPE = 'GUIDEBOOK_COMPLETED'
+const TRIP_STARTING_TYPE = 'TRIP_STARTING'
 const GUIDEBOOK_REFERENCE_TYPE = 'GUIDEBOOK'
-const GUIDEBOOK_NOTIFICATION_TITLE = '가이드북 생성 완료'
-const GUIDEBOOK_NOTIFICATION_BODY = '새로운 여행 가이드북이 완성됐어요.'
 const NOTIFICATION_LIST_PATH = '/mypage/notifications'
-const GUIDEBOOK_LIST_PATH = '/guidebooks'
+const NOTIFICATION_OPEN_PATH = '/notifications/open'
 const WEB_PUSH_RECEIVED_MESSAGE = 'KGB_WEB_PUSH_RECEIVED'
-const NOTIFICATION_SEEN_MESSAGE = 'KGB_NOTIFICATION_SEEN'
 const MAX_SEEN_NOTIFICATION_IDS = 200
-const seenNotificationIds = new Set()
+const seenWebPushNotificationIds = new Set()
 
 function isRecord(value) {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -24,6 +22,22 @@ function positiveInteger(value) {
   return Number.isSafeInteger(number) && number > 0 ? number : null
 }
 
+function notificationCopy(type) {
+  if (type === GUIDEBOOK_COMPLETED_TYPE) {
+    return {
+      title: '가이드북 생성 완료',
+      body: '새로운 여행 가이드북이 완성됐어요.',
+    }
+  }
+  if (type === TRIP_STARTING_TYPE) {
+    return {
+      title: '여행 일정이 곧 시작돼요',
+      body: '내일 시작하는 여행 가이드북을 확인해 주세요.',
+    }
+  }
+  return null
+}
+
 function parseGuidebookPushPayload(event) {
   if (!event.data) return null
   let raw
@@ -36,26 +50,31 @@ function parseGuidebookPushPayload(event) {
   const payload = isRecord(raw.data) ? raw.data : raw
   const notificationId = boundedId(payload.notification_id)
   const guidebookId = positiveInteger(payload.reference_id)
+  const copy = notificationCopy(payload.type)
   if (
     !notificationId ||
-    payload.type !== GUIDEBOOK_COMPLETED_TYPE ||
+    !copy ||
     payload.reference_type !== GUIDEBOOK_REFERENCE_TYPE ||
     !guidebookId
   ) {
     return null
   }
-  return { notificationId, guidebookId }
+  return { notificationId, guidebookId, copy }
 }
 
-function notificationTarget(guidebookId) {
-  return `${GUIDEBOOK_LIST_PATH}?highlightGuidebookId=${guidebookId}`
+function notificationTarget(notificationId, guidebookId) {
+  const query = new URLSearchParams({
+    notificationId,
+    guidebookId: String(guidebookId),
+  })
+  return `${NOTIFICATION_OPEN_PATH}?${query.toString()}`
 }
 
-function rememberNotification(notificationId) {
-  seenNotificationIds.delete(notificationId)
-  seenNotificationIds.add(notificationId)
-  if (seenNotificationIds.size > MAX_SEEN_NOTIFICATION_IDS) {
-    seenNotificationIds.delete(seenNotificationIds.values().next().value)
+function rememberWebPushNotification(notificationId) {
+  seenWebPushNotificationIds.delete(notificationId)
+  seenWebPushNotificationIds.add(notificationId)
+  if (seenWebPushNotificationIds.size > MAX_SEEN_NOTIFICATION_IDS) {
+    seenWebPushNotificationIds.delete(seenWebPushNotificationIds.values().next().value)
   }
 }
 
@@ -72,18 +91,18 @@ async function broadcastWebPushReceived(notificationId) {
 async function displayGuidebookNotification(payload) {
   const tag = `kgb-notification-${payload.notificationId}`
   const displayed = await self.registration.getNotifications({ tag }).catch(() => [])
-  if (seenNotificationIds.has(payload.notificationId) || displayed.length > 0) return
+  if (seenWebPushNotificationIds.has(payload.notificationId) || displayed.length > 0) return
 
-  rememberNotification(payload.notificationId)
+  rememberWebPushNotification(payload.notificationId)
   await broadcastWebPushReceived(payload.notificationId).catch(() => undefined)
-  await self.registration.showNotification(GUIDEBOOK_NOTIFICATION_TITLE, {
-    body: GUIDEBOOK_NOTIFICATION_BODY,
+  await self.registration.showNotification(payload.copy.title, {
+    body: payload.copy.body,
     icon: '/favicon.png',
     badge: '/assets/mypage/bell-unread.png',
     tag,
     renotify: false,
     data: {
-      target: notificationTarget(payload.guidebookId),
+      target: notificationTarget(payload.notificationId, payload.guidebookId),
       notificationId: payload.notificationId,
       referenceType: GUIDEBOOK_REFERENCE_TYPE,
       referenceId: String(payload.guidebookId),
@@ -99,12 +118,6 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim())
 })
 
-self.addEventListener('message', (event) => {
-  if (!isRecord(event.data) || event.data.type !== NOTIFICATION_SEEN_MESSAGE) return
-  const notificationId = boundedId(event.data.notificationId)
-  if (notificationId) rememberNotification(notificationId)
-})
-
 self.addEventListener('push', (event) => {
   const payload = parseGuidebookPushPayload(event)
   if (!payload) return
@@ -114,7 +127,7 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
   const notificationId = boundedId(event.notification.data?.notificationId)
-  if (notificationId) rememberNotification(notificationId)
+  if (notificationId) rememberWebPushNotification(notificationId)
   const targetPath = typeof event.notification.data?.target === 'string'
     ? event.notification.data.target
     : NOTIFICATION_LIST_PATH

@@ -11,11 +11,16 @@ import { GuidebookAccess } from '../features/guidebook/ui/GuidebookLayout.tsx'
 import { GuidebookListPage } from '../features/guidebook/ui/GuidebookListPage.tsx'
 import { GuidebookCreatePage } from '../features/guidebook/ui/GuidebookCreatePage.tsx'
 import { GuidebookGeneratingPage } from '../features/guidebook/ui/GuidebookGeneratingPage.tsx'
+import { GuidebookRegeneratePage } from '../features/guidebook/ui/GuidebookRegeneratePage.tsx'
 import { GuidebookDetailPage } from '../features/guidebook/ui/GuidebookDetailPage.tsx'
 import { GuidebookViewerPage } from '../features/guidebook/ui/GuidebookViewerPage.tsx'
+import { GuidebookPrintPage } from '../features/guidebook/ui/GuidebookPrintPage.tsx'
 import { NotificationCenter } from '../features/notification/ui/NotificationCenter.tsx'
 import { NotificationPage } from '../features/notification/ui/NotificationPage.tsx'
+import { NotificationOpenPage } from '../features/notification/ui/NotificationOpenPage.tsx'
 import { SettingsPage } from '../features/settings/ui/SettingsPage.tsx'
+import { EventListPage } from '../features/event/ui/EventListPage.tsx'
+import { EventDetailPage } from '../features/event/ui/EventDetailPage.tsx'
 import { routes } from '../shared/config/routes.ts'
 import '../features/guidebook/ui/guidebook.css'
 
@@ -32,17 +37,31 @@ function App() {
         />
         <Route path={routes.map} element={<AuthBoundary><MapPage /></AuthBoundary>} />
         <Route
+          path={routes.information}
+          element={<AuthBoundary><EventListPage /></AuthBoundary>}
+        />
+        <Route
+          path={routes.eventDetail}
+          element={<AuthBoundary><EventDetailPage /></AuthBoundary>}
+        />
+        <Route
           path={routes.guidebooks}
           element={<GuidebookAccess><GuidebookListPage /></GuidebookAccess>}
         />
         <Route path={routes.guidebookCreate} element={<GuidebookAccess><GuidebookCreatePage /></GuidebookAccess>} />
         <Route path={routes.guidebookGenerating} element={<GuidebookAccess><GuidebookGeneratingPage /></GuidebookAccess>} />
+        <Route path={routes.guidebookRegenerate} element={<GuidebookAccess><GuidebookRegeneratePage /></GuidebookAccess>} />
         <Route path={routes.guidebookViewer} element={<GuidebookAccess><GuidebookViewerPage /></GuidebookAccess>} />
+        <Route path={routes.guidebookPrint} element={<GuidebookAccess><GuidebookPrintPage /></GuidebookAccess>} />
         <Route path={routes.myPage} element={<AuthBoundary><MyPage /></AuthBoundary>} />
         <Route path={routes.coupon} element={<AuthBoundary><CouponPage /></AuthBoundary>} />
         <Route
           path={routes.notifications}
           element={<AuthBoundary><NotificationPage /></AuthBoundary>}
+        />
+        <Route
+          path={routes.notificationOpen}
+          element={<AuthBoundary><NotificationOpenPage /></AuthBoundary>}
         />
         <Route
           path={routes.settings}
