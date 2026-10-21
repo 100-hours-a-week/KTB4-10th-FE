@@ -99,14 +99,16 @@
 .book-generation-steps .is-done::before { content: '✓'; }
 .book-generation-steps .is-done, .book-generation-steps .is-active { color: #242428; }
 .book-generation .secondary-button { padding: 0 18px; }
-.book-result { padding: 36px 22px 26px; }
+.book-result { padding: 36px 22px calc(34px + env(safe-area-inset-bottom)); }
 .book-result > h2 { margin: 0; font-size: 24px; letter-spacing: -.04em; }
 .book-result > .book-hint { margin-top: 10px; }
-.book-summary { margin: 56px 0 40px; padding: 18px; border: 1px solid #ededf0; border-radius: 14px; background: #fff; }
+.book-summary { margin: 56px 0 34px; padding: 18px; border: 1px solid #ededf0; border-radius: 14px; background: #fff; }
 .book-summary-heading { display: flex; align-items: center; gap: 14px; }
 .book-summary-heading h3 { margin: 0 0 8px; font-size: 17px; }
 .book-summary-heading p, .book-summary-heading small { margin: 4px 0; color: #73737d; font-size: 10px; }
 .book-days { margin-top: 22px; }
+.book-day-row { display: flex; gap: 12px; justify-content: space-between; padding: 11px 0; border-top: 1px solid #f0f0f3; font-size: 12px; }
+.book-day-row span { color: #73737d; text-align: right; }
 .book-days details { padding: 11px 0; border-top: 1px solid #f0f0f3; }
 .book-days summary { display: flex; gap: 12px; justify-content: space-between; font-size: 12px; cursor: pointer; }
 .book-days summary span { color: #73737d; text-align: right; }
@@ -114,6 +116,19 @@
 .book-days ol { padding: 0; list-style: none; display: grid; gap: 12px; }
 .book-days li { display: flex; gap: 16px; font-size: 12px; }
 .book-days time { color: #81818a; flex-shrink: 0; }
+.book-list-button { margin-top: 12px; border-color: #141417; background: #fff; color: #141417; }
+.book-regenerate-link { width: fit-content; margin-top: 4px; text-decoration: underline; text-underline-offset: 5px; }
+.book-regenerate { padding: 36px 22px calc(32px + env(safe-area-inset-bottom)); }
+.book-regenerate h2 { margin: 0 0 42px; font-size: 20px; line-height: 1.45; letter-spacing: -.035em; }
+.book-regenerate label { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; font-size: 14px; font-weight: 700; }
+.book-feedback-count { color: #81818a; font-size: 11px; font-weight: 400; }
+.book-regenerate textarea { display: block; width: 100%; min-height: 260px; padding: 16px; resize: vertical; border: 1px solid #d9d9df; border-radius: 14px; background: #fff; color: #242428; font: inherit; font-size: 14px; line-height: 1.7; }
+.book-regenerate textarea::placeholder { color: #aaaab2; }
+.book-regenerate textarea:focus { border-color: #242428; outline: 2px solid rgb(36 36 40 / 12%); outline-offset: 2px; }
+.book-regenerate textarea:disabled { background: #f5f5f7; color: #777781; }
+.book-feedback-hint { min-height: 38px; margin: 9px 0 22px; color: #81818a; font-size: 11px; line-height: 1.7; }
+.book-regenerate > .primary-button { width: 100%; }
+.book-regenerate > .book-error { margin: -8px 0 16px; }
 .book-viewer-page { position: fixed; z-index: 20; inset: 0; display: flex; width: 100%; height: 100dvh; flex-direction: column; overflow: hidden; background: #fff; }
 .book-viewer-page > .book-state { min-height: 100%; place-content: center; }
 .book-viewer { display: block; width: 100%; height: 100%; min-height: 0; flex: 1; border: 0; background: #fff; }

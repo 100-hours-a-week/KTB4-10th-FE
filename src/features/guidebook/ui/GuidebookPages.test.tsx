@@ -5,14 +5,16 @@ import { GuidebookCreatePage } from './GuidebookCreatePage.tsx'
 import { GuidebookListPage } from './GuidebookListPage.tsx'
 import { GuidebookViewerPage } from './GuidebookViewerPage.tsx'
 import { GuidebookPrintPage } from './GuidebookPrintPage.tsx'
+import { GuidebookDetailPage } from './GuidebookDetailPage.tsx'
+import { GuidebookRegeneratePage } from './GuidebookRegeneratePage.tsx'
 import { today, dayOffset } from '../model/conditions.ts'
 
-const { createBook, listBooks, deleteBook, getViewer, track, trackEvent, getCreditWallet, getMemberPreferences, getPreferenceOptions } = vi.hoisted(() => ({
-  createBook: vi.fn(), listBooks: vi.fn(), deleteBook: vi.fn(), getViewer: vi.fn(), track: vi.fn(), trackEvent: vi.fn(), getCreditWallet: vi.fn(), getMemberPreferences: vi.fn(), getPreferenceOptions: vi.fn(),
+const { createBook, listBooks, deleteBook, getBook, getViewer, regenerateBook, track, trackEvent, getCreditWallet, getMemberPreferences, getPreferenceOptions } = vi.hoisted(() => ({
+  createBook: vi.fn(), listBooks: vi.fn(), deleteBook: vi.fn(), getBook: vi.fn(), getViewer: vi.fn(), regenerateBook: vi.fn(), track: vi.fn(), trackEvent: vi.fn(), getCreditWallet: vi.fn(), getMemberPreferences: vi.fn(), getPreferenceOptions: vi.fn(),
 }))
 vi.mock('../../../shared/lib/analytics.ts', () => ({ trackEvent }))
 vi.mock('../api/credits.ts', () => ({ getCreditWallet }))
-vi.mock('../api/guidebooks.ts', () => ({ createBook, listBooks, deleteBook, getViewer }))
+vi.mock('../api/guidebooks.ts', () => ({ createBook, listBooks, deleteBook, getBook, getViewer, regenerateBook }))
 vi.mock('../../preference/api/preferences.ts', () => ({ getMemberPreferences, getPreferenceOptions }))
 vi.mock('../model/generation.ts', () => ({
   isRunning: () => false,
@@ -260,6 +262,78 @@ describe('가이드북 화면', () => {
     expect(screen.queryByRole('link', { name: '가이드북 뷰어 닫기' })).not.toBeInTheDocument()
     await act(async () => { window.dispatchEvent(new MessageEvent('message', { data: 'kgb:guidebook-interaction', source: viewer.contentWindow })) })
     expect(screen.getByRole('link', { name: '가이드북 뷰어 닫기' })).toBeVisible()
+  })
+
+  it('완료 화면에서 연 뷰어를 닫으면 완료 화면으로 돌아간다', async () => {
+    getViewer.mockResolvedValue({ guidebook_id: 10, content_html: '<p>여행</p>', version: 1, updated_at: '2026-09-29T00:00:00Z' })
+    render(<MemoryRouter initialEntries={[{
+      pathname: '/guidebooks/10/viewer',
+      state: { returnTo: '/guidebooks/10' },
+    }]}><Routes>
+      <Route path="/guidebooks/:guidebookId/viewer" element={<GuidebookViewerPage />} />
+      <Route path="/guidebooks/:guidebookId" element={<p>가이드북 완료 화면</p>} />
+    </Routes></MemoryRouter>)
+
+    const viewer = await screen.findByTitle('가이드북 본문') as HTMLIFrameElement
+    await act(async () => { window.dispatchEvent(new MessageEvent('message', { data: 'kgb:guidebook-interaction', source: viewer.contentWindow })) })
+    fireEvent.click(screen.getByRole('link', { name: '가이드북 뷰어 닫기' }))
+    expect(await screen.findByText('가이드북 완료 화면')).toBeInTheDocument()
+  })
+
+  it('완료 화면은 재생성 진입과 일자별 대표 장소를 표시한다', async () => {
+    getBook.mockResolvedValue({
+      guidebook_id: 10,
+      title: '경주 여행',
+      start_date: '2026-10-20',
+      end_date: '2026-10-21',
+      people_count: 2,
+      itinerary: [{ day_number: 1, itinerary_date: '2026-10-20', items: [
+        { item_id: 1, sequence: 1, scheduled_time: null, place_snapshot: { title: '첨성대' } },
+        { item_id: 2, sequence: 2, scheduled_time: null, place_snapshot: { title: '대릉원' } },
+      ] }],
+    })
+    render(<MemoryRouter initialEntries={['/guidebooks/10']}><Routes>
+      <Route path="/guidebooks/:guidebookId" element={<GuidebookDetailPage />} />
+    </Routes></MemoryRouter>)
+
+    expect(await screen.findByText('경주 여행')).toBeInTheDocument()
+    expect(screen.getByText('첨성대 외 1곳')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '재생성' })).toHaveAttribute('href', '/guidebooks/10/regenerate')
+  })
+
+  it('재생성은 수정 요청만 필수로 접수하고 기존 진행 화면으로 이동한다', async () => {
+    regenerateBook.mockResolvedValue({ job_id: 41, job_type: 'REGENERATION', status: 'PENDING', guidebook_id: 10, current_version: 1 })
+    render(<MemoryRouter initialEntries={[{
+      pathname: '/guidebooks/10/regenerate',
+      state: { returnTo: '/guidebooks/10' },
+    }]}><Routes>
+      <Route path="/guidebooks/:guidebookId/regenerate" element={<GuidebookRegeneratePage />} />
+      <Route path="/guidebooks/generating/:jobId" element={<p>재생성 진행 화면</p>} />
+    </Routes></MemoryRouter>)
+
+    expect(screen.queryByLabelText('표지 제목')).not.toBeInTheDocument()
+    const submit = screen.getByRole('button', { name: '수정 요청' })
+    expect(submit).toBeDisabled()
+    fireEvent.change(screen.getByRole('textbox', { name: /수정 요청/ }), { target: { value: '  둘째 날은 더 여유롭게 해 주세요.  ' } })
+    fireEvent.click(submit)
+
+    expect(await screen.findByText('재생성 진행 화면')).toBeInTheDocument()
+    expect(regenerateBook).toHaveBeenCalledWith(10, '둘째 날은 더 여유롭게 해 주세요.', expect.stringContaining('guidebook-10-regeneration-'))
+    expect(track).toHaveBeenCalledWith(expect.objectContaining({ job_id: 41, status: 'PENDING' }), expect.any(Number))
+  })
+
+  it('수정 취소는 재생성을 시작하지 않고 완료 화면으로 돌아간다', async () => {
+    render(<MemoryRouter initialEntries={[{
+      pathname: '/guidebooks/10/regenerate',
+      state: { returnTo: '/guidebooks/10' },
+    }]}><Routes>
+      <Route path="/guidebooks/:guidebookId/regenerate" element={<GuidebookRegeneratePage />} />
+      <Route path="/guidebooks/:guidebookId" element={<p>가이드북 완료 화면</p>} />
+    </Routes></MemoryRouter>)
+
+    fireEvent.click(screen.getByRole('button', { name: '수정 취소' }))
+    expect(await screen.findByText('가이드북 완료 화면')).toBeInTheDocument()
+    expect(regenerateBook).not.toHaveBeenCalled()
   })
 
   it('인쇄 화면은 가이드북 HTML을 정제해 격리된 문서로 준비한다', async () => {

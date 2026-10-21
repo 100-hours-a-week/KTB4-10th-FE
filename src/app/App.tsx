@@ -11,6 +11,7 @@ import { GuidebookAccess } from '../features/guidebook/ui/GuidebookLayout.tsx'
 import { GuidebookListPage } from '../features/guidebook/ui/GuidebookListPage.tsx'
 import { GuidebookCreatePage } from '../features/guidebook/ui/GuidebookCreatePage.tsx'
 import { GuidebookGeneratingPage } from '../features/guidebook/ui/GuidebookGeneratingPage.tsx'
+import { GuidebookRegeneratePage } from '../features/guidebook/ui/GuidebookRegeneratePage.tsx'
 import { GuidebookDetailPage } from '../features/guidebook/ui/GuidebookDetailPage.tsx'
 import { GuidebookViewerPage } from '../features/guidebook/ui/GuidebookViewerPage.tsx'
 import { GuidebookPrintPage } from '../features/guidebook/ui/GuidebookPrintPage.tsx'
@@ -49,6 +50,7 @@ function App() {
         />
         <Route path={routes.guidebookCreate} element={<GuidebookAccess><GuidebookCreatePage /></GuidebookAccess>} />
         <Route path={routes.guidebookGenerating} element={<GuidebookAccess><GuidebookGeneratingPage /></GuidebookAccess>} />
+        <Route path={routes.guidebookRegenerate} element={<GuidebookAccess><GuidebookRegeneratePage /></GuidebookAccess>} />
         <Route path={routes.guidebookViewer} element={<GuidebookAccess><GuidebookViewerPage /></GuidebookAccess>} />
         <Route path={routes.guidebookPrint} element={<GuidebookAccess><GuidebookPrintPage /></GuidebookAccess>} />
         <Route path={routes.myPage} element={<AuthBoundary><MyPage /></AuthBoundary>} />

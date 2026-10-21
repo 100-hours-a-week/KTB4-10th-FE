@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import { getViewer, type Viewer } from '../api/guidebooks.ts'
 import { message } from '../model/conditions.ts'
 import { State } from './GuidebookLayout.tsx'
@@ -15,10 +15,12 @@ function withInteractionBridge(contentHtml: string) {
 
 export function GuidebookViewerPage() {
   const { guidebookId = '' } = useParams()
-  return <ViewerContent key={guidebookId} guidebookId={guidebookId} />
+  const location = useLocation()
+  const returnTo = (location.state as { returnTo?: unknown } | null)?.returnTo
+  return <ViewerContent key={guidebookId} guidebookId={guidebookId} returnTo={typeof returnTo === 'string' ? returnTo : '/guidebooks'} />
 }
 
-function ViewerContent({ guidebookId }: { guidebookId: string }) {
+function ViewerContent({ guidebookId, returnTo }: { guidebookId: string; returnTo: string }) {
   const [data, setData] = useState<Viewer | null>(null)
   const [error, setError] = useState(/^[1-9]\d*$/.test(guidebookId) ? '' : '잘못된 가이드북 주소예요.')
   const [revision, setRevision] = useState(0)
@@ -58,7 +60,7 @@ function ViewerContent({ guidebookId }: { guidebookId: string }) {
     {!data && !error && <State>가이드북을 펼치고 있어요.</State>}
     {data && (data.content_html ? <iframe ref={viewerRef} className="book-viewer" title="가이드북 본문" srcDoc={viewerHtml} sandbox="allow-scripts" referrerPolicy="no-referrer" /> : <State>아직 가이드북 본문이 준비되지 않았어요.</State>)}
     <div className={`book-viewer-controls${controlsVisible ? ' is-visible' : ''}`} aria-hidden={!controlsVisible}>
-      <Link className="book-viewer-close" to="/guidebooks" aria-label="가이드북 뷰어 닫기" tabIndex={controlsVisible ? 0 : -1}>
+      <Link className="book-viewer-close" to={returnTo} aria-label="가이드북 뷰어 닫기" tabIndex={controlsVisible ? 0 : -1}>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
       </Link>
     </div>

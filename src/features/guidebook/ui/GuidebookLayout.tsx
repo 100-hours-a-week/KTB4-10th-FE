@@ -23,11 +23,11 @@ export function GuidebookAccess({ children }: { children: ReactNode }) {
   return children
 }
 
-export function BookHeader({ title, children }: { title: string; children?: ReactNode }) {
+export function BookHeader({ title, children, backTo = '/guidebooks' }: { title: string; children?: ReactNode; backTo?: string }) {
   return (
     <PageHeader
       title={title}
-      leading={<Link className="book-back" to="/guidebooks" aria-label="가이드북 목록">‹</Link>}
+      leading={<Link className="book-back" to={backTo} aria-label="이전 화면">‹</Link>}
     >
       {children}
     </PageHeader>
