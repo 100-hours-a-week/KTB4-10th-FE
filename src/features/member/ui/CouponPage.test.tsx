@@ -57,15 +57,15 @@ describe('CouponPage', () => {
 
     expect(screen.getByText(/1분 35초 후 다시 시도해 주세요/)).toBeInTheDocument()
     expect(input).toBeDisabled()
-    expect(screen.getByRole('button', { name: '등록 제한 중' })).toBeDisabled()
-    fireEvent.click(screen.getByRole('button', { name: '등록 제한 중' }))
+    expect(screen.getByRole('button', { name: '쿠폰 등록하기' })).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: '쿠폰 등록하기' }))
     expect(redeemCouponMock).toHaveBeenCalledOnce()
 
     act(() => vi.advanceTimersByTime(95_000))
 
     expect(input).toBeEnabled()
     expect(screen.getByRole('button', { name: '쿠폰 등록하기' })).toBeEnabled()
-    expect(screen.queryByText(/쿠폰 입력이 잠시 제한됐어요/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/쿠폰 입력이 잠시 제한 됐어요/)).not.toBeInTheDocument()
   })
 
   it('제한 중 화면을 벗어나면 카운트다운 타이머를 정리한다', async () => {

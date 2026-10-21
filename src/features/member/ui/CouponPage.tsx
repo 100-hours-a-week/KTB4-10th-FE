@@ -109,13 +109,14 @@ export function CouponPage() {
               {error && <p id="coupon-error" className="coupon-form-error" role="alert">{error}</p>}
               {isRateLimited && (
                 <p id="coupon-error" className="coupon-form-error">
-                  <span role="alert">쿠폰 입력이 잠시 제한됐어요.</span>{' '}
+                  <span role="alert">쿠폰 입력이 잠시 제한 됐어요</span>
+                  <br />
                   <span aria-hidden="true">{remainingTimeText(remainingSeconds)} 후 다시 시도해 주세요.</span>
                   <span className="visually-hidden">잠시 후 다시 시도해 주세요.</span>
                 </p>
               )}
               <button className="coupon-primary-button" type="submit" disabled={!couponCode.trim() || isSubmitting || isRateLimited}>
-                {isRateLimited ? '등록 제한 중' : isSubmitting ? '등록 중...' : '쿠폰 등록하기'}
+                {isSubmitting ? '등록 중...' : '쿠폰 등록하기'}
               </button>
             </form>
           </section>
