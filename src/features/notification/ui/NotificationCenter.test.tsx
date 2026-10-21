@@ -56,6 +56,16 @@ const notification = {
   created_at: '2026-10-06T00:00:00Z',
 }
 
+const tripStartingNotification = {
+  notification_id: '52',
+  title: '여행 일정이 곧 시작돼요',
+  body: "'제주 여행' 여행이 내일 시작됩니다.",
+  type: 'TRIP_STARTING',
+  reference_type: 'GUIDEBOOK',
+  reference_id: '11',
+  created_at: '2026-10-18T00:00:00Z',
+}
+
 function LocationProbe() {
   const location = useLocation()
   return <output aria-label="현재 경로">{location.pathname}:{JSON.stringify(location.state)}</output>
@@ -128,7 +138,27 @@ describe('전역 SSE 알림 센터', () => {
     expect(screen.getByRole('button', { name: '가이드북 보기' })).toBeInTheDocument()
   })
 
-  it('Web Push로 먼저 받은 같은 알림 ID의 SSE 토스트는 중복 표시하지 않는다', async () => {
+  it('SSE로 도착한 여행 일정 임박 알림을 서버 문구와 가이드북 동작으로 표시한다', async () => {
+    renderCenter()
+    await waitFor(() => expect(openNotificationStream).toHaveBeenCalledOnce())
+
+    act(() => stream.dispatchEvent(new MessageEvent('notification', {
+      data: JSON.stringify(tripStartingNotification),
+    })))
+
+    expect(await screen.findByRole('status', {
+      name: "여행 일정이 곧 시작돼요 '제주 여행' 여행이 내일 시작됩니다.",
+    })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '가이드북 보기' }))
+
+    await waitFor(() => expect(deleteNotification).toHaveBeenCalledWith('52'))
+    await waitFor(() => {
+      expect(screen.getByRole('status', { name: '현재 경로' }))
+        .toHaveTextContent('/guidebooks:{"highlightGuidebookId":11}')
+    })
+  })
+
+  it('Web Push로 먼저 받은 같은 알림 ID의 SSE 토스트도 독립 표시한다', async () => {
     const serviceWorker = new EventTarget() as EventTarget & {
       controller: { postMessage: ReturnType<typeof vi.fn> }
     }
@@ -144,8 +174,22 @@ describe('전역 SSE 알림 센터', () => {
       data: JSON.stringify(notification),
     })))
 
-    expect(screen.queryByRole('button', { name: '가이드북 보기' })).not.toBeInTheDocument()
-    await waitFor(() => expect(getNotifications).toHaveBeenCalledOnce())
+    expect(await screen.findByRole('button', { name: '가이드북 보기' })).toBeInTheDocument()
+    await waitFor(() => expect(getNotifications).toHaveBeenCalledTimes(2))
+  })
+
+  it('같은 알림 ID의 SSE 이벤트가 반복되면 토스트를 한 번만 대기열에 담는다', async () => {
+    renderCenter()
+    await waitFor(() => expect(openNotificationStream).toHaveBeenCalledOnce())
+
+    act(() => stream.dispatchEvent(new MessageEvent('notification', {
+      data: JSON.stringify(notification),
+    })))
+    act(() => stream.dispatchEvent(new MessageEvent('notification', {
+      data: JSON.stringify(notification),
+    })))
+
+    expect(await screen.findAllByRole('button', { name: '가이드북 보기' })).toHaveLength(1)
   })
 
   it('토스트를 선택하면 읽음 처리 후 대상 가이드북 정보를 담아 목록으로 이동한다', async () => {

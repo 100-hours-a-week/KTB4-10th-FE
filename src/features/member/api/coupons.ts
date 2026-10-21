@@ -9,11 +9,20 @@ export type CouponRedemption = {
 
 export class CouponRedemptionError extends Error {
   readonly code: string
+  readonly retryAfterSeconds: number | null
 
-  constructor(code: string) {
+  constructor(code: string, retryAfterSeconds: number | null = null) {
     super(code)
     this.code = code
+    this.retryAfterSeconds = retryAfterSeconds
   }
+}
+
+export function parseRetryAfterSeconds(value: unknown): number | null {
+  if (typeof value !== 'string' && typeof value !== 'number') return null
+  const seconds = Number(value)
+  if (!Number.isFinite(seconds) || seconds <= 0) return null
+  return Math.ceil(seconds)
 }
 
 export async function redeemCoupon(couponCode: string): Promise<CouponRedemption> {
@@ -29,7 +38,11 @@ export async function redeemCoupon(couponCode: string): Promise<CouponRedemption
   } catch (error) {
     if (error instanceof CouponRedemptionError) throw error
     if (axios.isAxiosError(error) && isErrorResponse(error.response?.data)) {
-      throw new CouponRedemptionError(error.response.data.error.code)
+      const code = error.response.data.error.code
+      const retryAfter = code === 'RATE_LIMIT_EXCEEDED'
+        ? parseRetryAfterSeconds(error.response?.headers?.['retry-after'])
+        : null
+      throw new CouponRedemptionError(code, retryAfter)
     }
     throw new CouponRedemptionError('NETWORK_ERROR')
   }

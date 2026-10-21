@@ -1,5 +1,4 @@
 const WEB_PUSH_RECEIVED_MESSAGE = 'KGB_WEB_PUSH_RECEIVED'
-const NOTIFICATION_SEEN_MESSAGE = 'KGB_NOTIFICATION_SEEN'
 
 type WebPushReceivedMessage = {
   type: typeof WEB_PUSH_RECEIVED_MESSAGE
@@ -23,12 +22,4 @@ export function parseWebPushReceivedMessage(value: unknown): WebPushReceivedMess
     type: WEB_PUSH_RECEIVED_MESSAGE,
     notificationId: message.notificationId,
   }
-}
-
-export function markServiceWorkerNotificationSeen(notificationId: string): void {
-  if (!('serviceWorker' in navigator) || !validNotificationId(notificationId)) return
-  navigator.serviceWorker.controller?.postMessage({
-    type: NOTIFICATION_SEEN_MESSAGE,
-    notificationId,
-  })
 }

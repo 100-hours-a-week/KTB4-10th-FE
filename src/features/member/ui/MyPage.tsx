@@ -17,6 +17,32 @@ function ProfileFallback({ nickname }: { nickname: string }) {
   )
 }
 
+function MyPageSkeleton() {
+  return (
+    <div className="mypage-skeleton" role="status" aria-label="회원 정보 불러오는 중">
+      <section className="mypage-profile" aria-hidden="true">
+        <span className="mypage-skeleton__block mypage-skeleton__profile-image" />
+        <div className="mypage-profile__details">
+          <span className="mypage-skeleton__block mypage-skeleton__nickname" />
+          <span className="mypage-skeleton__block mypage-skeleton__email" />
+        </div>
+      </section>
+
+      <div className="mypage-menu" aria-hidden="true">
+        {Array.from({ length: 3 }, (_, index) => (
+          <div className="mypage-skeleton__menu-item" key={index}>
+            <span>
+              <span className="mypage-skeleton__block mypage-skeleton__menu-title" />
+              <span className="mypage-skeleton__block mypage-skeleton__menu-description" />
+            </span>
+            <span className="mypage-skeleton__block mypage-skeleton__menu-arrow" />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export function MyPage() {
   const navigate = useNavigate()
   const [member, setMember] = useState<CurrentMember | null>(null)
@@ -63,7 +89,9 @@ export function MyPage() {
           aria-label={hasUnreadNotifications
             ? `읽지 않은 알림 ${member?.unread_count}개 확인`
             : '알림 확인'}
-          onClick={() => navigate(routes.notifications)}
+          onClick={() => navigate(routes.notifications, {
+            state: { returnTo: routes.myPage },
+          })}
         >
           <img
             src={hasUnreadNotifications
@@ -77,12 +105,7 @@ export function MyPage() {
       </PageHeader>
 
       <div className="mypage-content">
-        {isLoading && (
-          <div className="mypage-state" role="status">
-            <img className="loading-indicator" src="/assets/loading-indicator.svg" alt="" />
-            회원 정보를 불러오고 있어요.
-          </div>
-        )}
+        {isLoading && <MyPageSkeleton />}
 
         {!isLoading && loadError && (
           <div className="mypage-state" role="alert">

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -21,16 +21,19 @@ vi.mock('../api/preferences.ts', () => ({
 }))
 
 const options = [
-  { preference_type: 'THEME', code: 'NATURE', label: '자연', parent_code: null, sort_order: 10 },
-  { preference_type: 'DETAIL', code: 'NATURE_MOUNTAIN', label: '산', parent_code: 'NATURE', sort_order: 10 },
-  { preference_type: 'THEME', code: 'HISTORY', label: '역사', parent_code: null, sort_order: 20 },
-  { preference_type: 'DETAIL', code: 'HISTORY_RELIC', label: '역사 유물', parent_code: 'HISTORY', sort_order: 10 },
-  { preference_type: 'THEME', code: 'ATTRACTION', label: '관광 명소', parent_code: null, sort_order: 30 },
-  { preference_type: 'DETAIL', code: 'ATTRACTION_LANDMARK', label: '랜드마크', parent_code: 'ATTRACTION', sort_order: 10 },
-  { preference_type: 'DETAIL', code: 'ATTRACTION_URBAN_CULTURE', label: '도시·지역 문화 관광', parent_code: 'ATTRACTION', sort_order: 20 },
-  { preference_type: 'THEME', code: 'EXPERIENCE', label: '체험', parent_code: null, sort_order: 40 },
-  { preference_type: 'DETAIL', code: 'EXPERIENCE_CRAFT', label: '공예 체험', parent_code: 'EXPERIENCE', sort_order: 10 },
-  { preference_type: 'TRAVEL_STYLE', code: 'RELAXING', label: '여유롭게', parent_code: null, sort_order: 10 },
+  { preference_type: 'THEME', code: 'NATURE', label: '자연', parent_code: null, selection_group: null, sort_order: 10 },
+  { preference_type: 'DETAIL', code: 'NATURE_MOUNTAIN', label: '산', parent_code: 'NATURE', selection_group: null, sort_order: 10 },
+  { preference_type: 'THEME', code: 'HISTORY', label: '역사', parent_code: null, selection_group: null, sort_order: 20 },
+  { preference_type: 'DETAIL', code: 'HISTORY_RELIC', label: '역사 유물', parent_code: 'HISTORY', selection_group: null, sort_order: 10 },
+  { preference_type: 'THEME', code: 'ATTRACTION', label: '관광 명소', parent_code: null, selection_group: null, sort_order: 30 },
+  { preference_type: 'DETAIL', code: 'ATTRACTION_LANDMARK', label: '랜드마크', parent_code: 'ATTRACTION', selection_group: null, sort_order: 10 },
+  { preference_type: 'DETAIL', code: 'ATTRACTION_URBAN_CULTURE', label: '도시·지역 문화 관광', parent_code: 'ATTRACTION', selection_group: null, sort_order: 20 },
+  { preference_type: 'THEME', code: 'EXPERIENCE', label: '체험', parent_code: null, selection_group: null, sort_order: 40 },
+  { preference_type: 'DETAIL', code: 'EXPERIENCE_CRAFT', label: '공예 체험', parent_code: 'EXPERIENCE', selection_group: null, sort_order: 10 },
+  { preference_type: 'TRAVEL_STYLE', code: 'RELAXING', label: '여유롭게', parent_code: null, selection_group: 'SCHEDULE_PACE', sort_order: 10 },
+  { preference_type: 'TRAVEL_STYLE', code: 'TIME_EFFICIENCY', label: '효율적으로', parent_code: null, selection_group: 'SCHEDULE_PACE', sort_order: 20 },
+  { preference_type: 'TRAVEL_STYLE', code: 'WALK_FRIENDLY', label: '걷는거 좋아요', parent_code: null, selection_group: 'TRANSPORTATION', sort_order: 30 },
+  { preference_type: 'TRAVEL_STYLE', code: 'CAR_TRAVEL', label: '차로 이동', parent_code: null, selection_group: 'TRANSPORTATION', sort_order: 40 },
 ]
 
 function renderPage(initialEntry: string | { pathname: string; state?: unknown } = '/preferences') {
@@ -68,11 +71,15 @@ describe('PreferenceSelectionPage', () => {
 
     await user.click(screen.getByRole('button', { name: '산' }))
     expect(nextButton).toBeEnabled()
+    await user.click(screen.getByRole('button', { name: '여유롭게' }))
+    await user.click(screen.getByRole('button', { name: '걷는거 좋아요' }))
     await user.click(nextButton)
 
     await waitFor(() => expect(replaceMemberPreferencesMock).toHaveBeenCalledWith([
       { preference_type: 'THEME', preference_code: 'NATURE' },
       { preference_type: 'DETAIL', preference_code: 'NATURE_MOUNTAIN' },
+      { preference_type: 'TRAVEL_STYLE', preference_code: 'RELAXING' },
+      { preference_type: 'TRAVEL_STYLE', preference_code: 'WALK_FRIENDLY' },
     ]))
     expect(await screen.findByRole('heading', { name: '지도' })).toBeInTheDocument()
   })
@@ -93,10 +100,51 @@ describe('PreferenceSelectionPage', () => {
     expect(screen.getByText('최대 3개까지 선택할 수 있어요.')).toBeInTheDocument()
   })
 
+  it('같은 여행 스타일 그룹에서는 마지막으로 누른 하나만 선택한다', async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: '여유롭게' }))
+    await user.click(screen.getByRole('button', { name: '효율적으로' }))
+
+    expect(screen.getByRole('button', { name: '여유롭게' }))
+      .toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByRole('button', { name: '효율적으로' }))
+      .toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('최초 선택 화면에서 확인 후 모든 취향 선택을 해제한다', async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    const clearButton = await screen.findByRole('button', { name: '선택 해제' })
+    expect(clearButton).toBeDisabled()
+
+    await user.click(screen.getByRole('button', { name: '자연' }))
+    await user.click(screen.getByRole('button', { name: '산' }))
+    await user.click(screen.getByRole('button', { name: '여유롭게' }))
+    expect(clearButton).toBeEnabled()
+
+    await user.click(clearButton)
+    const dialog = screen.getByRole('dialog', { name: '선택한 취향을 모두 해제할까요?' })
+    await user.click(within(dialog).getByRole('button', { name: '취소' }))
+    expect(screen.getByRole('button', { name: '자연' })).toHaveAttribute('aria-pressed', 'true')
+
+    await user.click(clearButton)
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: '해제하기' }))
+    expect(screen.getByRole('button', { name: '자연' })).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByRole('button', { name: '여유롭게' })).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.queryByRole('button', { name: '산' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '다음' })).toBeDisabled()
+    expect(clearButton).toBeDisabled()
+  })
+
   it('저장된 취향이 있으면 수정 모드의 취소와 저장 버튼을 표시한다', async () => {
     getMemberPreferencesMock.mockResolvedValue([
       { preference_type: 'THEME', preference_code: 'NATURE' },
       { preference_type: 'DETAIL', preference_code: 'NATURE_MOUNTAIN' },
+      { preference_type: 'TRAVEL_STYLE', preference_code: 'RELAXING' },
+      { preference_type: 'TRAVEL_STYLE', preference_code: 'WALK_FRIENDLY' },
     ])
 
     renderPage()
@@ -106,7 +154,7 @@ describe('PreferenceSelectionPage', () => {
     expect(screen.queryByRole('button', { name: '다음' })).not.toBeInTheDocument()
   })
 
-  it('변경사항이 있는 수정 모드에서 취소하면 확인 후 마이페이지로 이동한다', async () => {
+  it('수정 화면에서 선택을 해제하면 저장을 막고 기존 서버 값은 즉시 변경하지 않는다', async () => {
     const user = userEvent.setup()
     getMemberPreferencesMock.mockResolvedValue([
       { preference_type: 'THEME', preference_code: 'NATURE' },
@@ -114,14 +162,31 @@ describe('PreferenceSelectionPage', () => {
     ])
     renderPage()
 
-    await user.click(await screen.findByRole('button', { name: '여유롭게' }))
+    await user.click(await screen.findByRole('button', { name: '선택 해제' }))
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: '해제하기' }))
+
+    expect(screen.getByRole('button', { name: '저장' })).toBeDisabled()
+    expect(replaceMemberPreferencesMock).not.toHaveBeenCalled()
+  })
+
+  it('변경사항이 있는 수정 모드에서 취소하면 확인 후 마이페이지로 이동한다', async () => {
+    const user = userEvent.setup()
+    getMemberPreferencesMock.mockResolvedValue([
+      { preference_type: 'THEME', preference_code: 'NATURE' },
+      { preference_type: 'DETAIL', preference_code: 'NATURE_MOUNTAIN' },
+      { preference_type: 'TRAVEL_STYLE', preference_code: 'RELAXING' },
+      { preference_type: 'TRAVEL_STYLE', preference_code: 'WALK_FRIENDLY' },
+    ])
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: '효율적으로' }))
     await user.click(screen.getByRole('button', { name: '취소' }))
 
     const dialog = screen.getByRole('dialog', { name: '취향 수정을 취소할까요?' })
     expect(dialog).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: '아니요' }))
     expect(dialog).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '여유롭게' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: '효율적으로' })).toHaveAttribute('aria-pressed', 'true')
 
     await user.click(screen.getByRole('button', { name: '취소' }))
     await user.click(screen.getByRole('button', { name: '네' }))
@@ -133,6 +198,8 @@ describe('PreferenceSelectionPage', () => {
     getMemberPreferencesMock.mockResolvedValue([
       { preference_type: 'THEME', preference_code: 'NATURE' },
       { preference_type: 'DETAIL', preference_code: 'NATURE_MOUNTAIN' },
+      { preference_type: 'TRAVEL_STYLE', preference_code: 'RELAXING' },
+      { preference_type: 'TRAVEL_STYLE', preference_code: 'WALK_FRIENDLY' },
     ])
     renderPage()
 
@@ -147,6 +214,8 @@ describe('PreferenceSelectionPage', () => {
     getMemberPreferencesMock.mockResolvedValue([
       { preference_type: 'THEME', preference_code: 'NATURE' },
       { preference_type: 'DETAIL', preference_code: 'NATURE_MOUNTAIN' },
+      { preference_type: 'TRAVEL_STYLE', preference_code: 'RELAXING' },
+      { preference_type: 'TRAVEL_STYLE', preference_code: 'WALK_FRIENDLY' },
     ])
     renderPage({
       pathname: '/preferences',

@@ -50,7 +50,7 @@
 | 일정·장소 상세를 본다 | GET | `/guidebooks/{guidebookId}` | `/guidebooks/{id}` | 여행 일정과 장소 snapshot을 화면 데이터로 표시한다. | `GuidebookPages.test.tsx` |
 | HTML 가이드북을 본다 | GET | `/guidebooks/{guidebookId}/viewer` | `/guidebooks/{id}/viewer` | 서버 HTML을 sandbox iframe `srcDoc`으로 표시한다. | `GuidebookPages.test.tsx` |
 | 가이드북을 목록에서 삭제한다 | DELETE | `/guidebooks/{guidebookId}` | 가이드북 상세·목록 | CSRF 요청 후 목록에서 제거한다. | `GuidebookPages.test.tsx` |
-| 쿠폰으로 생성권을 받는다 | POST | `/credits/coupons/redeem` | `/mypage/coupon` | 쿠폰 코드와 서버 오류 코드를 화면 메시지로 변환한다. | `CouponPage.test.tsx` |
+| 쿠폰으로 생성권을 받는다 | POST | `/credits/coupons/redeem` | `/mypage/coupon` | 쿠폰 코드와 서버 오류 코드를 화면 메시지로 변환한다. `429 RATE_LIMIT_EXCEEDED`는 `Retry-After` 기준 남은 시간을 표시하고 만료까지 입력·등록을 비활성화한다. | `coupons.test.ts`, `CouponPage.test.tsx` |
 
 ## 4. 마이페이지·알림·정책
 
@@ -69,7 +69,7 @@
 - SSE는 새 알림을 즉시 알려 주는 보조 채널이며 알림의 원본은 서버 목록 API다.
 - EventSource의 자동 재연결 뒤 과거 알림 토스트를 재생하지 않고 목록을 조회해 배지를 복구한다.
 - 가이드북 완료 토스트를 선택하면 읽음 처리 후 가이드북 목록으로 이동하고 대상 카드를 강조한다.
-- SSE와 Web Push는 `notification_id`를 공통 중복 기준으로 사용한다. SSE 성공 시 BE가 Push를 생략하고, FE도 채널 경합 시 같은 ID를 한 번만 표시한다.
+- SSE와 Web Push는 독립적으로 사용자에게 표시한다. 각 채널 내부에서는 `notification_id`를 기준으로 같은 이벤트의 재전송만 한 번으로 제한하며, Web Push 수신 메시지는 목록·배지 동기화에만 사용한다.
 - `push_enabled=false`, 로그아웃, 탈퇴와 세션 종료에서는 연결을 닫는다.
 
 ## 현재 연동하지 않는 V1 서버 기능

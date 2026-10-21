@@ -1,5 +1,6 @@
 import { createContext, useContext } from 'react'
 import type { CurrentMember } from '../../auth/api/auth.ts'
+import type { SessionFailure } from '../../auth/model/sessionFailure.ts'
 import type { Job } from '../api/guidebooks.ts'
 
 export const jobStorageKey = (memberId: number) => `kgb.guidebook.job.${memberId}`
@@ -7,7 +8,7 @@ export const isRunning = (job: Job | null) => job?.status === 'PENDING' || job?.
 export const GenerationContext = createContext<{
   member: CurrentMember | null
   checking: boolean
-  sessionError: string
+  sessionFailure: SessionFailure | null
   checkSession: () => void
   job: Job | null
   error: string

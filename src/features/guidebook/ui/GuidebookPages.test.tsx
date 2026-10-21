@@ -4,14 +4,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { GuidebookCreatePage } from './GuidebookCreatePage.tsx'
 import { GuidebookListPage } from './GuidebookListPage.tsx'
 import { GuidebookViewerPage } from './GuidebookViewerPage.tsx'
+import { GuidebookPrintPage } from './GuidebookPrintPage.tsx'
+import { GuidebookDetailPage } from './GuidebookDetailPage.tsx'
+import { GuidebookRegeneratePage } from './GuidebookRegeneratePage.tsx'
 import { today, dayOffset } from '../model/conditions.ts'
 
-const { createBook, listBooks, deleteBook, getViewer, track, trackEvent, getCreditWallet, getMemberPreferences, getPreferenceOptions } = vi.hoisted(() => ({
-  createBook: vi.fn(), listBooks: vi.fn(), deleteBook: vi.fn(), getViewer: vi.fn(), track: vi.fn(), trackEvent: vi.fn(), getCreditWallet: vi.fn(), getMemberPreferences: vi.fn(), getPreferenceOptions: vi.fn(),
+const { createBook, listBooks, deleteBook, getBook, getViewer, regenerateBook, track, trackEvent, getCreditWallet, getMemberPreferences, getPreferenceOptions } = vi.hoisted(() => ({
+  createBook: vi.fn(), listBooks: vi.fn(), deleteBook: vi.fn(), getBook: vi.fn(), getViewer: vi.fn(), regenerateBook: vi.fn(), track: vi.fn(), trackEvent: vi.fn(), getCreditWallet: vi.fn(), getMemberPreferences: vi.fn(), getPreferenceOptions: vi.fn(),
 }))
 vi.mock('../../../shared/lib/analytics.ts', () => ({ trackEvent }))
 vi.mock('../api/credits.ts', () => ({ getCreditWallet }))
-vi.mock('../api/guidebooks.ts', () => ({ createBook, listBooks, deleteBook, getViewer }))
+vi.mock('../api/guidebooks.ts', () => ({ createBook, listBooks, deleteBook, getBook, getViewer, regenerateBook }))
 vi.mock('../../preference/api/preferences.ts', () => ({ getMemberPreferences, getPreferenceOptions }))
 vi.mock('../model/generation.ts', () => ({
   isRunning: () => false,
@@ -88,6 +91,23 @@ describe('가이드북 화면', () => {
     expect(screen.getByLabelText('시·군·구')).toHaveValue('')
   })
 
+  it('시도와 시군구를 가나다순으로 표시한다', () => {
+    render(<MemoryRouter><GuidebookCreatePage /></MemoryRouter>)
+
+    const provinceOptions = Array.from(screen.getByLabelText('시·도').querySelectorAll('option'))
+      .map((option) => option.textContent)
+    expect(provinceOptions.slice(0, 5)).toEqual([
+      '시·도 선택', '강원특별자치도', '경기도', '경상남도', '경상북도',
+    ])
+
+    fireEvent.change(screen.getByLabelText('시·도'), { target: { value: '서울특별시' } })
+    const districtOptions = Array.from(screen.getByLabelText('시·군·구').querySelectorAll('option'))
+      .map((option) => option.textContent)
+    expect(districtOptions.slice(0, 6)).toEqual([
+      '시·군·구 선택', '강남구', '강동구', '강북구', '강서구', '관악구',
+    ])
+  })
+
   it('필수 조건 전에는 생성 버튼을 비활성화하고 단체는 5명부터 선택한다', () => {
     render(<MemoryRouter><GuidebookCreatePage /></MemoryRouter>)
 
@@ -129,6 +149,27 @@ describe('가이드북 화면', () => {
     expect(await screen.findByText('가이드북 생성 화면')).toBeInTheDocument()
   })
 
+  it('목록의 PDF 저장 버튼은 인쇄 전용 화면을 새 탭으로 연다', async () => {
+    const book = { guidebook_id: 10, title: '경주 여행', start_date: '2026-10-01', end_date: '2026-10-03', companion: 'FRIEND' }
+    listBooks.mockResolvedValue({ items: [book], next_cursor: null, has_more: false })
+    render(<MemoryRouter><GuidebookListPage /></MemoryRouter>)
+
+    const printLink = await screen.findByRole('link', { name: '경주 여행 PDF 저장' })
+    expect(printLink).toHaveAttribute('href', '/guidebooks/10/print')
+    expect(printLink).toHaveAttribute('target', '_blank')
+    expect(printLink).toHaveAttribute('rel', 'noopener')
+  })
+
+  it('목록의 삭제 버튼은 접근성 이름을 유지한 휴지통 아이콘으로 표시한다', async () => {
+    const book = { guidebook_id: 10, title: '경주 여행', start_date: '2026-10-01', end_date: '2026-10-03', companion: 'FRIEND' }
+    listBooks.mockResolvedValue({ items: [book], next_cursor: null, has_more: false })
+    render(<MemoryRouter><GuidebookListPage /></MemoryRouter>)
+
+    const deleteButton = await screen.findByRole('button', { name: '경주 여행 삭제' })
+    expect(deleteButton).not.toHaveTextContent('삭제')
+    expect(deleteButton.querySelector('img')).toHaveAttribute('src', '/assets/guidebook/bin.png')
+  })
+
   it('알림 토스트에서 이동하면 대상 가이드북 카드를 잠시 강조한다', async () => {
     const book = { guidebook_id: 10, title: '경주 여행', start_date: '2026-10-01', end_date: '2026-10-03', companion: 'FRIEND' }
     listBooks.mockResolvedValue({ items: [book], next_cursor: null, has_more: false })
@@ -141,8 +182,8 @@ describe('가이드북 화면', () => {
       </MemoryRouter>,
     )
 
-    expect((await screen.findByText('경주 여행')).closest('li'))
-      .toHaveClass('book-card--highlighted')
+    const card = (await screen.findByText('경주 여행')).closest('li')
+    await waitFor(() => expect(card).toHaveClass('book-card--highlighted'))
   })
 
   it('Web Push로 이동하면 query의 대상 가이드북 카드를 잠시 강조한다', async () => {
@@ -154,8 +195,60 @@ describe('가이드북 화면', () => {
       </MemoryRouter>,
     )
 
-    expect((await screen.findByText('경주 여행')).closest('li'))
-      .toHaveClass('book-card--highlighted')
+    const card = (await screen.findByText('경주 여행')).closest('li')
+    await waitFor(() => expect(card).toHaveClass('book-card--highlighted'))
+  })
+
+  it('대상 가이드북이 다음 커서 페이지에 있으면 자동으로 불러와 강조한다', async () => {
+    const first = { guidebook_id: 9, title: '첫 여행', start_date: '2026-09-01', end_date: '2026-09-03', companion: 'FRIEND' }
+    const target = { ...first, guidebook_id: 10, title: '경주 여행' }
+    listBooks
+      .mockResolvedValueOnce({ items: [first], next_cursor: 'cursor/1', has_more: true })
+      .mockResolvedValueOnce({ items: [target], next_cursor: null, has_more: false })
+
+    render(
+      <MemoryRouter initialEntries={[{
+        pathname: '/guidebooks',
+        state: { highlightGuidebookId: 10 },
+      }]}>
+        <GuidebookListPage />
+      </MemoryRouter>,
+    )
+
+    const card = (await screen.findByText('경주 여행')).closest('li')
+    await waitFor(() => expect(card).toHaveClass('book-card--highlighted'))
+    expect(listBooks).toHaveBeenNthCalledWith(2, 'cursor/1', expect.any(AbortSignal))
+  })
+
+  it('대상 카드가 화면 밖에 있으면 스크롤이 끝난 뒤 강조한다', async () => {
+    const book = { guidebook_id: 10, title: '경주 여행', start_date: '2026-10-01', end_date: '2026-10-03', companion: 'FRIEND' }
+    listBooks.mockResolvedValue({ items: [book], next_cursor: null, has_more: false })
+    const rect = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
+      top: 900,
+      bottom: 980,
+      left: 0,
+      right: 360,
+      width: 360,
+      height: 80,
+      x: 0,
+      y: 900,
+      toJSON: () => ({}),
+    })
+
+    render(
+      <MemoryRouter initialEntries={[{
+        pathname: '/guidebooks',
+        state: { highlightGuidebookId: 10 },
+      }]}>
+        <GuidebookListPage />
+      </MemoryRouter>,
+    )
+
+    const card = (await screen.findByText('경주 여행')).closest('li')
+    expect(card).not.toHaveClass('book-card--highlighted')
+    window.dispatchEvent(new Event('scrollend'))
+    await waitFor(() => expect(card).toHaveClass('book-card--highlighted'))
+    rect.mockRestore()
   })
 
   it('뷰어는 전체 화면에서 내부 스크립트와 탭 감지를 지원한다', async () => {
@@ -169,5 +262,89 @@ describe('가이드북 화면', () => {
     expect(screen.queryByRole('link', { name: '가이드북 뷰어 닫기' })).not.toBeInTheDocument()
     await act(async () => { window.dispatchEvent(new MessageEvent('message', { data: 'kgb:guidebook-interaction', source: viewer.contentWindow })) })
     expect(screen.getByRole('link', { name: '가이드북 뷰어 닫기' })).toBeVisible()
+  })
+
+  it('완료 화면에서 연 뷰어를 닫으면 완료 화면으로 돌아간다', async () => {
+    getViewer.mockResolvedValue({ guidebook_id: 10, content_html: '<p>여행</p>', version: 1, updated_at: '2026-09-29T00:00:00Z' })
+    render(<MemoryRouter initialEntries={[{
+      pathname: '/guidebooks/10/viewer',
+      state: { returnTo: '/guidebooks/10' },
+    }]}><Routes>
+      <Route path="/guidebooks/:guidebookId/viewer" element={<GuidebookViewerPage />} />
+      <Route path="/guidebooks/:guidebookId" element={<p>가이드북 완료 화면</p>} />
+    </Routes></MemoryRouter>)
+
+    const viewer = await screen.findByTitle('가이드북 본문') as HTMLIFrameElement
+    await act(async () => { window.dispatchEvent(new MessageEvent('message', { data: 'kgb:guidebook-interaction', source: viewer.contentWindow })) })
+    fireEvent.click(screen.getByRole('link', { name: '가이드북 뷰어 닫기' }))
+    expect(await screen.findByText('가이드북 완료 화면')).toBeInTheDocument()
+  })
+
+  it('완료 화면은 재생성 진입과 일자별 대표 장소를 표시한다', async () => {
+    getBook.mockResolvedValue({
+      guidebook_id: 10,
+      title: '경주 여행',
+      start_date: '2026-10-20',
+      end_date: '2026-10-21',
+      people_count: 2,
+      itinerary: [{ day_number: 1, itinerary_date: '2026-10-20', items: [
+        { item_id: 1, sequence: 1, scheduled_time: null, place_snapshot: { title: '첨성대' } },
+        { item_id: 2, sequence: 2, scheduled_time: null, place_snapshot: { title: '대릉원' } },
+      ] }],
+    })
+    render(<MemoryRouter initialEntries={['/guidebooks/10']}><Routes>
+      <Route path="/guidebooks/:guidebookId" element={<GuidebookDetailPage />} />
+    </Routes></MemoryRouter>)
+
+    expect(await screen.findByText('경주 여행')).toBeInTheDocument()
+    expect(screen.getByText('첨성대 외 1곳')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '재생성' })).toHaveAttribute('href', '/guidebooks/10/regenerate')
+  })
+
+  it('재생성은 수정 요청만 필수로 접수하고 기존 진행 화면으로 이동한다', async () => {
+    regenerateBook.mockResolvedValue({ job_id: 41, job_type: 'REGENERATION', status: 'PENDING', guidebook_id: 10, current_version: 1 })
+    render(<MemoryRouter initialEntries={[{
+      pathname: '/guidebooks/10/regenerate',
+      state: { returnTo: '/guidebooks/10' },
+    }]}><Routes>
+      <Route path="/guidebooks/:guidebookId/regenerate" element={<GuidebookRegeneratePage />} />
+      <Route path="/guidebooks/generating/:jobId" element={<p>재생성 진행 화면</p>} />
+    </Routes></MemoryRouter>)
+
+    expect(screen.queryByLabelText('표지 제목')).not.toBeInTheDocument()
+    const submit = screen.getByRole('button', { name: '수정 요청' })
+    expect(submit).toBeDisabled()
+    fireEvent.change(screen.getByRole('textbox', { name: /수정 요청/ }), { target: { value: '  둘째 날은 더 여유롭게 해 주세요.  ' } })
+    fireEvent.click(submit)
+
+    expect(await screen.findByText('재생성 진행 화면')).toBeInTheDocument()
+    expect(regenerateBook).toHaveBeenCalledWith(10, '둘째 날은 더 여유롭게 해 주세요.', expect.stringContaining('guidebook-10-regeneration-'))
+    expect(track).toHaveBeenCalledWith(expect.objectContaining({ job_id: 41, status: 'PENDING' }), expect.any(Number))
+  })
+
+  it('수정 취소는 재생성을 시작하지 않고 완료 화면으로 돌아간다', async () => {
+    render(<MemoryRouter initialEntries={[{
+      pathname: '/guidebooks/10/regenerate',
+      state: { returnTo: '/guidebooks/10' },
+    }]}><Routes>
+      <Route path="/guidebooks/:guidebookId/regenerate" element={<GuidebookRegeneratePage />} />
+      <Route path="/guidebooks/:guidebookId" element={<p>가이드북 완료 화면</p>} />
+    </Routes></MemoryRouter>)
+
+    fireEvent.click(screen.getByRole('button', { name: '수정 취소' }))
+    expect(await screen.findByText('가이드북 완료 화면')).toBeInTheDocument()
+    expect(regenerateBook).not.toHaveBeenCalled()
+  })
+
+  it('인쇄 화면은 가이드북 HTML을 정제해 격리된 문서로 준비한다', async () => {
+    const html = '<!doctype html><html><head><title>경주 여행</title></head><body onload="alert(1)"><h1>여행</h1><script>alert(1)</script></body></html>'
+    getViewer.mockResolvedValue({ guidebook_id: 10, content_html: html, version: 1, updated_at: '2026-09-29T00:00:00Z' })
+    render(<MemoryRouter initialEntries={['/guidebooks/10/print']}><Routes><Route path="/guidebooks/:guidebookId/print" element={<GuidebookPrintPage />} /></Routes></MemoryRouter>)
+
+    const printDocument = await screen.findByTitle('가이드북 인쇄 문서')
+    expect(printDocument.getAttribute('srcdoc')).toContain('<h1>여행</h1>')
+    expect(printDocument.getAttribute('srcdoc')).not.toContain('<script')
+    expect(printDocument.getAttribute('srcdoc')).not.toContain('onload=')
+    expect(printDocument).toHaveAttribute('sandbox', 'allow-same-origin allow-modals')
   })
 })

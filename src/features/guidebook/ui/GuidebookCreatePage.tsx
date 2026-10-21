@@ -6,7 +6,7 @@ import { getMemberPreferences, getPreferenceOptions } from '../../preference/api
 import { createBook, type Companion, type GenerationRequest } from '../api/guidebooks.ts'
 import { getCreditWallet, type CreditWallet } from '../api/credits.ts'
 import { companions, dayOffset, message, today, yearLimit } from '../model/conditions.ts'
-import { regions } from '../model/regions.ts'
+import { districtNames, provinceNames, regions } from '../model/regions.ts'
 import { isRunning, useGeneration } from '../model/generation.ts'
 import { BookHeader } from './GuidebookLayout.tsx'
 
@@ -120,8 +120,8 @@ export function GuidebookCreatePage() {
       <fieldset disabled={submitting || uncertain || isRunning(job)}>
         <legend>여행 조건</legend>
         <section><h2>지역</h2><div className="book-form-row">
-          <label><span>시·도</span><select aria-label="시·도" required value={form.province} onChange={(event) => { update('province', event.target.value); update('city', '') }}><option value="">시·도 선택</option>{Object.keys(regions).map((name) => <option key={name}>{name}</option>)}</select></label>
-          <label><span>시·군·구</span><select aria-label="시·군·구" required value={form.city} disabled={!form.province} onChange={(event) => update('city', event.target.value)}><option value="">시·군·구 선택</option>{regions[form.province]?.map((name) => <option key={name}>{name}</option>)}</select></label>
+          <label><span>시·도</span><select aria-label="시·도" required value={form.province} onChange={(event) => { update('province', event.target.value); update('city', '') }}><option value="">시·도 선택</option>{provinceNames.map((name) => <option key={name}>{name}</option>)}</select></label>
+          <label><span>시·군·구</span><select aria-label="시·군·구" required value={form.city} disabled={!form.province} onChange={(event) => update('city', event.target.value)}><option value="">시·군·구 선택</option>{districtNames(form.province).map((name) => <option key={name}>{name}</option>)}</select></label>
         </div></section>
         <section><h2>여행 날짜</h2><div className="book-form-row">
           <label><span>시작일</span><input aria-label="시작일" type="date" required min={minDate} max={maxDate} value={form.start_date} onChange={(event) => { update('start_date', event.target.value); update('end_date', '') }} /></label>

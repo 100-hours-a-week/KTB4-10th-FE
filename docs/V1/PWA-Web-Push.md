@@ -54,10 +54,10 @@ Service Worker는 다음 필드를 사용한다.
 - 가이드북 목록은 query를 읽어 대상 카드를 잠시 강조한 뒤 query를 제거한다.
 - 열린 동일 origin 창이 있으면 그 창을 이동·포커스하고, 없을 때만 새 창을 연다.
 - 이동 경로는 현재 origin 안으로 제한해 외부 URL 주입을 막는다.
-- 같은 `notification_id`가 SSE와 Web Push로 경합하면 페이지와 Service Worker가 ID를 공유해 두 채널의 중복 UX를 억제한다. 이미 표시된 시스템 알림도 같은 tag로 다시 만들지 않는다.
+- SSE 토스트와 Web Push 시스템 알림은 서로 독립된 전달 채널로 표시한다. 각 채널 안에서는 `notification_id`를 기준으로 재전송을 한 번만 표시하고, 이미 표시된 시스템 알림도 같은 tag로 다시 만들지 않는다.
 - `prefers-reduced-motion: reduce` 환경은 흔들림 없이 테두리와 그림자로 대상 카드를 식별한다.
 
-BE PR #184의 실제 Push payload와 이 계약을 맞춘다. BE는 하나 이상의 SSE 전송이 성공하면 Web Push를 생략하고, SSE 연결이 없거나 전송이 실패할 때 Web Push로 fallback한다.
+BE가 같은 알림을 SSE와 Web Push로 각각 발송하더라도 FE는 채널 간 수신 여부를 공유해 한쪽을 억제하지 않는다. 활성 탭에서는 SSE 토스트로 즉시 안내하고, Web Push는 현재 보고 있는 화면이나 탭 상태와 무관하게 OS 알림을 전달한다.
 
 ## 5. 권한과 구독 수명주기
 
@@ -90,6 +90,6 @@ iOS·iPadOS 16.4 이상에서 Web Push를 받으려면 사용자가 KGB를 홈 �
 - 일반 브라우저와 Service Worker 비지원 환경에서 기존 기능 회귀 확인
 - Chrome·Edge의 권한 허용 → 구독 등록 → 로그아웃 구독 해제
 - macOS Safari와 iOS 16.4+ 홈 화면 앱의 구독·수신 확인
-- 포그라운드 SSE, 백그라운드·종료 상태 Web Push와 동일 알림 ID 중복 억제 확인
+- 포그라운드 SSE와 Web Push가 모두 표시되고, 각 채널 내부의 동일 알림 ID 재전송만 억제되는지 확인
 - 알림 클릭 시 기존 창 재사용, 대상 카드 자동 스크롤·강조 확인
 - 실제 Push 수신은 BE PR #184와 VAPID 배포 설정을 포함해 확인
