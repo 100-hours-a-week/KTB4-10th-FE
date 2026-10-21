@@ -50,7 +50,7 @@
 | 일정·장소 상세를 본다 | GET | `/guidebooks/{guidebookId}` | `/guidebooks/{id}` | 여행 일정과 장소 snapshot을 화면 데이터로 표시한다. | `GuidebookPages.test.tsx` |
 | HTML 가이드북을 본다 | GET | `/guidebooks/{guidebookId}/viewer` | `/guidebooks/{id}/viewer` | 서버 HTML을 sandbox iframe `srcDoc`으로 표시한다. | `GuidebookPages.test.tsx` |
 | 가이드북을 목록에서 삭제한다 | DELETE | `/guidebooks/{guidebookId}` | 가이드북 상세·목록 | CSRF 요청 후 목록에서 제거한다. | `GuidebookPages.test.tsx` |
-| 쿠폰으로 생성권을 받는다 | POST | `/credits/coupons/redeem` | `/mypage/coupon` | 쿠폰 코드와 서버 오류 코드를 화면 메시지로 변환한다. | `CouponPage.test.tsx` |
+| 쿠폰으로 생성권을 받는다 | POST | `/credits/coupons/redeem` | `/mypage/coupon` | 쿠폰 코드와 서버 오류 코드를 화면 메시지로 변환한다. `429 RATE_LIMIT_EXCEEDED`는 `Retry-After` 기준 남은 시간을 표시하고 만료까지 입력·등록을 비활성화한다. | `coupons.test.ts`, `CouponPage.test.tsx` |
 
 ## 4. 마이페이지·알림·정책
 
