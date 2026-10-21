@@ -9,6 +9,7 @@ export type Book = { guidebook_id: number; title: string; start_date: string; en
 export type BookList = { items: Book[]; next_cursor: string | null; has_more: boolean }
 export type Detail = Omit<Book, 'companion'> & { people_count: number; itinerary: { day_number: number; itinerary_date: string; items: { item_id: number; sequence: number; scheduled_time: string | null; place_snapshot: { title?: string } | null }[] }[] }
 export type Viewer = { guidebook_id: number; content_html: string; version: number; updated_at: string }
+export type RegenerationJob = Job & { job_type: 'REGENERATION'; current_version: number }
 async function get<T>(path: string, signal?: AbortSignal): Promise<T> {
   return (await http.get<ApiResponse<T>>(`/api/v1/${path}`, { signal, timeout: 20000 })).data.data
 }
@@ -21,6 +22,15 @@ export async function createBook(data: GenerationRequest, key: string) {
 }
 export async function retryJob(id: number) {
   return (await requestWithCsrf<Job>({ method: 'post', url: `/api/v1/guidebook-generations/${id}/retry`, timeout: 20000 })).data
+}
+export async function regenerateBook(id: number, feedback: string, key: string) {
+  return (await requestWithCsrf<RegenerationJob>({
+    method: 'post',
+    url: `/api/v1/guidebooks/${id}/regenerations`,
+    data: { feedback },
+    headers: { 'Idempotency-Key': key },
+    timeout: 20000,
+  })).data
 }
 export async function deleteBook(id: number) {
   await ensureCsrfToken()

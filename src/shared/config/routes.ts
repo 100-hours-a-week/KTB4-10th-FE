@@ -9,6 +9,7 @@ export const routes = {
   guidebooks: '/guidebooks',
   guidebookCreate: '/guidebooks/new',
   guidebookGenerating: '/guidebooks/generating/:jobId',
+  guidebookRegenerate: '/guidebooks/:guidebookId/regenerate',
   guidebookViewer: '/guidebooks/:guidebookId/viewer',
   guidebookPrint: '/guidebooks/:guidebookId/print',
   myPage: '/mypage',
