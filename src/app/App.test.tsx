@@ -71,6 +71,15 @@ describe('App', () => {
     getCurrentMemberMock.mockRejectedValue(new Error('unauthorized'))
   })
 
+  it('공개 소개 페이지는 로그인 확인 없이 표시한다', async () => {
+    render(<MemoryRouter initialEntries={['/about']}><App /></MemoryRouter>)
+
+    expect(screen.getByRole('heading', { name: /취향에서 시작해,\s*한 권의 여행으로/ })).toBeInTheDocument()
+    await Promise.resolve()
+    expect(getCurrentMemberMock).not.toHaveBeenCalled()
+    expect(getMemberPreferencesMock).not.toHaveBeenCalled()
+  })
+
   it('V1 로그인 화면에서 카카오 로그인을 시작한다', async () => {
     const user = userEvent.setup()
     render(

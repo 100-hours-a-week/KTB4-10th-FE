@@ -7,6 +7,7 @@ import {
   type SessionFailure,
 } from '../../auth/model/sessionFailure.ts'
 import { trackEvent } from '../../../shared/lib/analytics.ts'
+import { routes } from '../../../shared/config/routes.ts'
 import { getJob, retryJob, type Job } from '../api/guidebooks.ts'
 import { message } from './conditions.ts'
 import { GenerationContext, isRunning, jobStorageKey } from './generation.ts'
@@ -50,7 +51,7 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
   const generationStartedAt = useRef<number | null>(null)
   const reportedTerminal = useRef<string | null>(null)
   const { pathname } = useLocation()
-  const enabled = pathname !== '/' && !pathname.startsWith('/auth') &&
+  const enabled = pathname !== routes.home && pathname !== routes.about && !pathname.startsWith('/auth') &&
     (pathname !== '/preferences' || member?.status === 'ACTIVE')
 
   useEffect(() => {

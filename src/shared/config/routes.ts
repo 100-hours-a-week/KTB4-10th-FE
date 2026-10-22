@@ -1,5 +1,6 @@
 export const routes = {
   home: '/',
+  about: '/about',
   authComplete: '/auth/complete',
   authError: '/auth/error',
   preferences: '/preferences',

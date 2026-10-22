@@ -21,6 +21,7 @@ import { NotificationOpenPage } from '../features/notification/ui/NotificationOp
 import { SettingsPage } from '../features/settings/ui/SettingsPage.tsx'
 import { EventListPage } from '../features/event/ui/EventListPage.tsx'
 import { EventDetailPage } from '../features/event/ui/EventDetailPage.tsx'
+import { AboutPage } from '../features/about/ui/AboutPage.tsx'
 import { routes } from '../shared/config/routes.ts'
 import '../features/guidebook/ui/guidebook.css'
 
@@ -29,6 +30,7 @@ function App() {
     <GenerationProvider>
       <Routes>
         <Route path={routes.home} element={<HomeEntry />} />
+        <Route path={routes.about} element={<AboutPage />} />
         <Route path={routes.authComplete} element={<AuthCompletePage />} />
         <Route path={routes.authError} element={<LoginPage />} />
         <Route
