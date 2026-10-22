@@ -29,7 +29,7 @@ function MyPageSkeleton() {
       </section>
 
       <div className="mypage-menu" aria-hidden="true">
-        {Array.from({ length: 3 }, (_, index) => (
+        {Array.from({ length: 4 }, (_, index) => (
           <div className="mypage-skeleton__menu-item" key={index}>
             <span>
               <span className="mypage-skeleton__block mypage-skeleton__menu-title" />
@@ -135,6 +135,13 @@ export function MyPage() {
             </section>
 
             <nav className="mypage-menu" aria-label="마이페이지 메뉴">
+              <button type="button" onClick={() => navigate(routes.favorites)}>
+                <span>
+                  <strong>즐겨찾기</strong>
+                  <small>관심 있는 장소와 행사를 저장하고 모아뒀어요.</small>
+                </span>
+                <span aria-hidden="true">›</span>
+              </button>
               <button type="button" onClick={() => navigate(routes.coupon)}>
                 <span>
                   <strong>쿠폰 등록</strong>

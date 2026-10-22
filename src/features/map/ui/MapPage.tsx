@@ -105,7 +105,13 @@ function MapContentCard({
         disabled={favoritePending}
         onClick={onToggleFavorite}
       >
-        <span aria-hidden="true">{item.is_favorite ? '★' : '☆'}</span>
+        <img
+          src={item.is_favorite
+            ? '/assets/favorite/favorite-selected.png'
+            : '/assets/favorite/favorite.png'}
+          alt=""
+          aria-hidden="true"
+        />
       </button>
     </article>
   )

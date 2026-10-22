@@ -666,8 +666,10 @@
   font-size: 23px;
 }
 
-.event-detail-favorite span {
-  line-height: 1;
+.event-detail-favorite img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
 }
 
 .event-detail-favorite:disabled {
@@ -675,8 +677,7 @@
 }
 
 .event-detail-favorite--active {
-  border-color: #b76e42;
-  color: #b76e42;
+  border-color: #b8b8bd;
 }
 
 .event-detail-favorite:active {

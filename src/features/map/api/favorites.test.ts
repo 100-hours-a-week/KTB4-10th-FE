@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { removeFavorite, saveFavorite } from './favorites.ts'
+import { listFavorites, removeFavorite, saveFavorite } from './favorites.ts'
 
-const { deleteMock, ensureCsrfTokenMock, requestWithCsrfMock } = vi.hoisted(() => ({
+const { deleteMock, getMock, ensureCsrfTokenMock, requestWithCsrfMock } = vi.hoisted(() => ({
   deleteMock: vi.fn(),
+  getMock: vi.fn(),
   ensureCsrfTokenMock: vi.fn(),
   requestWithCsrfMock: vi.fn(),
 }))
@@ -13,7 +14,7 @@ vi.mock('../../../shared/api/csrf.ts', () => ({
 }))
 
 vi.mock('../../../shared/api/http.ts', () => ({
-  http: { delete: deleteMock },
+  http: { delete: deleteMock, get: getMock },
 }))
 
 describe('즐겨찾기 API', () => {
@@ -24,6 +25,27 @@ describe('즐겨찾기 API', () => {
       header_name: 'X-XSRF-TOKEN',
     })
     deleteMock.mockResolvedValue({ status: 204 })
+  })
+
+  it('최근 추가 순서의 즐겨찾기 목록을 커서로 조회한다', async () => {
+    getMock.mockResolvedValue({ data: {
+      message: 'favorite_list_success',
+      data: {
+        items: [{
+          content_id: 'event-1', title: '가을 축제', content_type: 'EVENT',
+          address: '서울', thumbnail_url: null,
+          event_period: { start_date: '2026-10-24', end_date: '2026-10-25' },
+          is_favorite: true,
+        }],
+        next_cursor: 'next', has_more: true,
+      },
+    } })
+
+    await expect(listFavorites('cursor')).resolves.toMatchObject({ has_more: true })
+    expect(getMock).toHaveBeenCalledWith('/api/v1/members/me/favorites', {
+      params: { size: 20, cursor: 'cursor' },
+      signal: undefined,
+    })
   })
 
   it('알고 있는 콘텐츠 URI를 PUT으로 저장한다', async () => {

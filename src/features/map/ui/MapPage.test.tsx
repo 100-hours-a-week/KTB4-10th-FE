@@ -623,11 +623,15 @@ describe('MapPage', () => {
     await user.click(screen.getByRole('button', { name: '지도 범위 조회' }))
     await user.click(screen.getByRole('button', { name: '장소 목록 펼치기' }))
     const saveButton = await screen.findByRole('button', { name: '서울숲 즐겨찾기 저장' })
+    expect(saveButton.querySelector('img'))
+      .toHaveAttribute('src', '/assets/favorite/favorite.png')
     await user.click(saveButton)
 
     await waitFor(() => expect(saveFavoriteMock).toHaveBeenCalledWith('place-1'))
     const removeButton = screen.getByRole('button', { name: '서울숲 즐겨찾기 해제' })
     expect(removeButton).toHaveAttribute('aria-pressed', 'true')
+    expect(removeButton.querySelector('img'))
+      .toHaveAttribute('src', '/assets/favorite/favorite-selected.png')
 
     await user.click(removeButton)
     await waitFor(() => expect(removeFavoriteMock).toHaveBeenCalledWith('place-1'))

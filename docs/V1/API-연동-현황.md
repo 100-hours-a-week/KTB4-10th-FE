@@ -30,6 +30,7 @@
 | 현재 지도 영역의 콘텐츠를 본다 | GET | `/map/contents` | `/map` | bounds·zoom·limit로 콘텐츠/클러스터를 요청하고 마커·바텀시트로 표시한다. | `map.test.ts`, `MapPage.test.tsx` |
 | 장소를 관심 목록에 추가한다 | PUT | `/members/me/favorites/{contentId}` | 지도 바텀시트 | CSRF 요청 후 현재 카드와 마커의 관심 상태를 갱신한다. | `favorites.test.ts` |
 | 장소 관심을 해제한다 | DELETE | `/members/me/favorites/{contentId}` | 지도 바텀시트 | CSRF 요청 후 관심 상태를 해제한다. | `favorites.test.ts` |
+| 즐겨찾기로 저장한 장소·행사를 본다 | GET | `/members/me/favorites?size=20&cursor=...` | `/mypage/favorites` | 최근 추가 순서로 cursor 목록을 조회하고, 행사는 상세로 이동한다. **BE 목록 API 구현 필요.** | `FavoritePage.test.tsx`, `favorites.test.ts` |
 | 실시간 알림 수신 의사를 변경한다 | PATCH | `/members/me/settings` | 지도 알림 권한 안내·설정 페이지 | ON이면 사용자 동의로 Web Push 구독을 등록한 뒤 SSE를 열고, OFF이면 능동 전달을 닫는다. DB 알림 저장은 유지한다. | `MapPage.test.tsx`, `SettingsPage.test.tsx`, `webPush.test.ts` |
 | 실시간 알림 수신 설정을 확인한다 | GET | `/members/me/settings` | 전역 `NotificationCenter` | `push_enabled=true`인 ACTIVE 회원만 SSE를 열고, 이미 허용된 브라우저 구독을 현재 회원으로 복구한다. 자동 권한 요청은 하지 않는다. | `memberSettings.test.ts`, `NotificationCenter.test.tsx` |
 | VAPID 공개키를 조회한다 | GET | `/push/vapid-public-key` | Web Push 구독 모듈 | 새 브라우저 구독을 만들 때만 공개키를 조회한다. 개인키는 FE에서 취급하지 않는다. | `pushSubscriptions.test.ts`, `webPush.test.ts` |
@@ -57,6 +58,7 @@
 | 사용자 유즈케이스 | Method | Path | FE 사용 위치 | 현재 처리 | 관련 검증 |
 | --- | --- | --- | --- | --- | --- |
 | 프로필과 미읽은 알림 수를 본다 | GET | `/members/me` | `/mypage` | 프로필, 이메일과 알림 badge를 표시한다. | `MyPage.test.tsx` |
+| 행사 상세의 즐겨찾기 상태를 본다 | GET | `/contents/{contentId}` | `/events/{contentId}` | 선택 상태 아이콘을 복구하도록 인증 회원 기준 `is_favorite` 값을 사용한다. **BE 응답 필드 추가 필요.** | `EventPages.test.tsx` |
 | 알림 목록을 본다 | GET | `/notifications?page=1&size=20` | `/mypage/notifications`, 전역 완료 감지 | 최신 20개와 미읽음 수를 표시·동기화한다. | `NotificationPage.test.tsx`, `NotificationCenter.test.tsx` |
 | 열린 웹앱에서 새 알림을 받는다 | GET (SSE) | `/notifications/stream` | 전역 `NotificationCenter` | 앱에서 하나의 EventSource만 유지한다. `connected`와 재연결은 목록·배지만 복구하고, 새 `notification` 이벤트에만 토스트를 표시한다. | `NotificationCenter.test.tsx`, `notifications.test.ts` |
 | 백그라운드·종료 상태에서 가이드북 완료 알림을 받는다 | Web Push | BE 내부 전송 | Service Worker | 최소 payload를 검증해 시스템 알림을 표시하고 클릭 시 기존 창 또는 새 창으로 가이드북 목록의 대상 카드를 연다. | `serviceWorkerScript.test.ts` |

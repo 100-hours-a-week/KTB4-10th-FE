@@ -14,6 +14,7 @@ export const routes = {
   guidebookViewer: '/guidebooks/:guidebookId/viewer',
   guidebookPrint: '/guidebooks/:guidebookId/print',
   myPage: '/mypage',
+  favorites: '/mypage/favorites',
   coupon: '/mypage/coupon',
   notifications: '/mypage/notifications',
   notificationOpen: '/notifications/open',

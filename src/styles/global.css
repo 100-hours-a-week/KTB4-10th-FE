@@ -1060,9 +1060,14 @@ button:disabled {
   transform: translateY(-50%);
 }
 
+.map-content-card__favorite img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
 .map-content-card__favorite--active {
-  border-color: #b76e42;
-  color: #b76e42;
+  border-color: #b8b8bd;
 }
 
 .map-content-card__favorite:active {

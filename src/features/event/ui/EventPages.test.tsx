@@ -505,6 +505,7 @@ describe('event information pages', () => {
       content_id: 'event-1', title: '관심 행사', category: 'EVENT', region: null,
       latitude: 37.2, longitude: 127.0, thumbnail_url: null, description: null,
       address: '서울특별시', phone: null, homepage_url: null, images: [], event_detail: null,
+      is_favorite: false,
     })
 
     render(
@@ -514,16 +515,45 @@ describe('event information pages', () => {
     )
 
     const favoriteButton = await screen.findByRole('button', { name: '관심 행사 즐겨찾기 저장' })
-    expect(favoriteButton).toHaveTextContent('☆')
+    expect(favoriteButton.querySelector('img')).toHaveAttribute('src', '/assets/favorite/favorite.png')
     await user.click(favoriteButton)
     expect(saveFavoriteMock).toHaveBeenCalledWith('event-1')
 
     const removeButton = await screen.findByRole('button', { name: '관심 행사 즐겨찾기 해제' })
-    expect(removeButton).toHaveTextContent('★')
+    expect(removeButton.querySelector('img')).toHaveAttribute('src', '/assets/favorite/favorite-selected.png')
     await user.click(removeButton)
     expect(removeFavoriteMock).toHaveBeenCalledWith('event-1')
-    expect(await screen.findByRole('button', { name: '관심 행사 즐겨찾기 저장' }))
-      .toHaveTextContent('☆')
+    expect((await screen.findByRole('button', { name: '관심 행사 즐겨찾기 저장' })).querySelector('img'))
+      .toHaveAttribute('src', '/assets/favorite/favorite.png')
+  })
+
+  it('즐겨찾기에서 연 행사는 저장 상태를 복구하고 뒤로가기 시 즐겨찾기로 돌아간다', async () => {
+    const user = userEvent.setup()
+    getEventDetailMock.mockResolvedValue({
+      content_id: 'event-1', title: '저장된 행사', category: 'EVENT', region: null,
+      latitude: null, longitude: null, thumbnail_url: null, description: null,
+      address: '서울특별시', phone: null, homepage_url: null, images: [], event_detail: null,
+      is_favorite: true,
+    })
+
+    render(
+      <MemoryRouter initialEntries={[{
+        pathname: '/events/event-1',
+        state: { returnTo: '/mypage/favorites' },
+      }]}>
+        <Routes>
+          <Route path="/events/:contentId" element={<EventDetailPage />} />
+          <Route path="/mypage/favorites" element={<output>즐겨찾기 목록</output>} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    const favoriteButton = await screen.findByRole('button', { name: '저장된 행사 즐겨찾기 해제' })
+    expect(favoriteButton.querySelector('img'))
+      .toHaveAttribute('src', '/assets/favorite/favorite-selected.png')
+
+    await user.click(screen.getByRole('button', { name: '이전 화면으로' }))
+    expect(screen.getByText('즐겨찾기 목록')).toBeInTheDocument()
   })
 
   it('관심 장소 등록 실패를 안내한다', async () => {
