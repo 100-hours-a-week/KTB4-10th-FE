@@ -1,6 +1,7 @@
 import type { MapContentItem } from '../api/map.ts'
 
 export type MapSheetLevel = 'collapsed' | 'default' | 'expanded'
+export type MapSheetView = 'list' | 'overview'
 
 export type MapViewport = {
   center: {
@@ -14,6 +15,7 @@ export type MapNavigationState = {
   viewport: MapViewport
   selectedItem: MapContentItem | null
   sheetLevel: MapSheetLevel
+  sheetView: MapSheetView
 }
 
 const navigationStates = new Map<number, MapNavigationState>()

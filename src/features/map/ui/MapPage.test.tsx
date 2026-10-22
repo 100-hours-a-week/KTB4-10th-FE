@@ -180,6 +180,10 @@ describe('MapPage', () => {
     await waitFor(() => expect(document.querySelector('.map-content-card__thumbnail img'))
       .toHaveAttribute('src', 'https://example.com/seoul-forest.jpg'))
     expect(document.querySelector('.map-content-sheet--default')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: '서울숲 선택' }))
+    expect(document.querySelector('.map-content-sheet--expanded')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '목록으로 돌아가기' })).toBeInTheDocument()
   })
 
   it('다른 페이지를 다녀오면 같은 탭 메모리에서 지도와 선택 상태를 복원한다', async () => {
@@ -348,6 +352,7 @@ describe('MapPage', () => {
     expect(document.querySelector('.map-content-card__thumbnail img'))
       .toHaveAttribute('src', 'https://example.com/place-11.jpg')
     expect(document.querySelector('.map-content-sheet--default')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '목록으로 돌아가기' })).not.toBeInTheDocument()
   })
 
   it('조회한 장소와 행사를 바텀시트에서 펼쳐 볼 수 있다', async () => {
@@ -377,6 +382,18 @@ describe('MapPage', () => {
           longitude: 126.978,
           thumbnail_url: null,
           event_period: { start_date: '2026-09-01', end_date: '2026-09-30' },
+          overview: '도심에서 즐기는 지역 축제입니다. 가족과 친구가 함께 참여할 수 있는 체험 프로그램과 공연, 지역 먹거리를 한자리에서 만날 수 있습니다. 행사장 곳곳에는 쉬어갈 수 있는 공간과 안내 부스도 마련되어 있어 여유롭게 축제를 둘러볼 수 있습니다.',
+          phone: '02-000-0000',
+          homepage_url: 'https://example.com',
+          images: [],
+          event_detail: {
+            start_date: '2026-09-01',
+            end_date: '2026-09-30',
+            operating_hours: '10:00~20:00',
+            organizer: '서울시',
+            organizer_phone: '02-111-1111',
+            event_place: '서울광장',
+          },
           is_favorite: false,
         },
       ],
@@ -415,6 +432,21 @@ describe('MapPage', () => {
 
     expect(screen.getByRole('button', { name: '장소 목록 접기' })).toHaveAttribute('aria-expanded', 'true')
     expect(screen.getByText('서울 축제')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: '서울 축제 선택' }))
+    expect(document.querySelector('.map-content-sheet--expanded')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '자세히 보기' })).toBeInTheDocument()
+    expect(screen.getByLabelText('지도 이동 요청')).toHaveTextContent('37.5665,126.978,1')
+    const overview = await screen.findByText(/도심에서 즐기는 지역 축제입니다/)
+    expect(overview).not.toHaveClass('map-content-overview__description--expanded')
+    await user.click(screen.getByRole('button', { name: '더보기' }))
+    expect(overview).toHaveClass('map-content-overview__description--expanded')
+    expect(screen.getByRole('button', { name: '접기' })).toHaveAttribute('aria-expanded', 'true')
+    expect(document.querySelector('.map-content-sheet--expanded')).toBeInTheDocument()
+    expect(screen.getByText('서울광장')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: '목록으로 돌아가기' }))
+    expect(screen.getByRole('region', { name: '주변 장소와 행사 목록' })).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: '지도 클릭' }))
     expect(document.querySelector('.map-content-sheet--expanded')).not.toBeInTheDocument()
@@ -478,16 +510,19 @@ describe('MapPage', () => {
 
     await user.click(screen.getByRole('button', { name: '장소 목록 펼치기' }))
     await user.click(await screen.findByRole('button', { name: '서울숲 선택' }))
-    expect(document.querySelector('.map-content-sheet--default')).toBeInTheDocument()
+    expect(document.querySelector('.map-content-sheet--expanded')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '목록으로 돌아가기' })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: '목록으로 돌아가기' }))
+    expect(screen.getByRole('region', { name: '주변 장소와 행사 목록' })).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: '지도 범위 조회' }))
-    expect(await screen.findByText('서울숲')).toBeInTheDocument()
+    expect(await screen.findByText('서울 축제')).toBeInTheDocument()
     expect(document.querySelector('.map-content-card__thumbnail img'))
-      .toHaveAttribute('src', 'https://example.com/seoul-forest.jpg')
+      .toHaveAttribute('src', 'https://example.com/seoul-festival.jpg')
     expect(screen.getByText('주변 장소·행사 1개')).toBeInTheDocument()
     expect(screen.queryByText('주변 장소·행사 0개')).not.toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: '장소 목록 펼치기' }))
     expect(document.querySelector('.map-content-sheet--expanded')).toBeInTheDocument()
     expect(screen.getByText('주변 장소·행사 1개')).toBeInTheDocument()
   })

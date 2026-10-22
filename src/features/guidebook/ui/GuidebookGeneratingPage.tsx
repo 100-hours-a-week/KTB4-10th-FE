@@ -36,9 +36,26 @@ export function GuidebookGeneratingPage() {
   return <main className="app-shell book-page">
     <BookHeader title={failed ? '가이드북 생성 실패' : canceled ? '가이드북 생성 취소' : '가이드북 생성 중'} />
     <section className="book-generation" aria-live="polite">
-      {failed || canceled || error
-        ? <div className="book-spark" aria-hidden="true">!</div>
-        : <img className="loading-indicator book-generation__indicator" src="/assets/loading-indicator.svg" alt="" />}
+      {generating ? (
+        <div className="book-travel-animation" aria-hidden="true">
+          <svg viewBox="0 0 180 120" role="presentation">
+            <circle className="book-travel-animation__sun" cx="145" cy="25" r="11" />
+            <path className="book-travel-animation__mountain book-travel-animation__mountain--back" d="M8 87 52 42 86 77 112 52 168 87Z" />
+            <path className="book-travel-animation__mountain" d="M-8 90 32 57 63 90 104 47 154 90Z" />
+            <path className="book-travel-animation__trail" d="M-8 101C35 91 68 111 106 99C135 90 153 93 188 101" />
+            <g className="book-travel-animation__traveler">
+              <rect className="book-travel-animation__backpack" x="73" y="53" width="17" height="29" rx="7" />
+              <circle className="book-travel-animation__head" cx="94" cy="44" r="10" />
+              <path className="book-travel-animation__body" d="M92 55 91 82" />
+              <path className="book-travel-animation__arm book-travel-animation__arm--front" d="M92 61 108 73" />
+              <path className="book-travel-animation__arm book-travel-animation__arm--back" d="M91 62 77 73" />
+              <path className="book-travel-animation__leg book-travel-animation__leg--front" d="M91 81 107 98" />
+              <path className="book-travel-animation__leg book-travel-animation__leg--back" d="M91 81 77 99" />
+            </g>
+          </svg>
+          <span>여행 준비 중</span>
+        </div>
+      ) : <div className="book-spark" aria-hidden="true">!</div>}
       <h2>{failed ? '가이드북을 만들지 못했어요' : canceled ? '생성이 취소되었어요' : '가이드북을 만들고 있어요'}</h2>
       <p>{failed ? failureMessage : canceled ? '새 여행 조건으로 다시 시작할 수 있어요.' : '취향에 맞는 여행을 한 권에 담고 있어요.\n완성되면 알림으로 알려드릴게요.'}</p>
       {generating && <p className="book-generation-background">다른 화면을 이용해도 생성은 계속돼요.</p>}

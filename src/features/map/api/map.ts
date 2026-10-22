@@ -34,6 +34,19 @@ export type MapContentItem = {
   longitude: number
   thumbnail_url: string | null
   event_period: { start_date: string; end_date: string } | null
+  overview?: string | null
+  description?: string | null
+  phone?: string | null
+  homepage_url?: string | null
+  images?: Array<{ image_id: string; image_url: string; sort_order: number }>
+  event_detail?: {
+    start_date: string | null
+    end_date: string | null
+    operating_hours: string | null
+    organizer: string | null
+    organizer_phone: string | null
+    event_place: string | null
+  } | null
   is_favorite: boolean
   /** BE 지도 응답 계약에 추가되면 가이드북 포함 장소 핀을 우선 표시한다. */
   is_in_guidebook?: boolean
@@ -112,9 +125,19 @@ function isMapContentItem(value: unknown): value is MapContentItem {
     typeof value.longitude === 'number' &&
     (typeof value.thumbnail_url === 'string' || value.thumbnail_url === null) &&
     (value.event_period === null || isRecord(value.event_period)) &&
+    (value.overview === undefined || isNullableString(value.overview)) &&
+    (value.description === undefined || isNullableString(value.description)) &&
+    (value.phone === undefined || isNullableString(value.phone)) &&
+    (value.homepage_url === undefined || isNullableString(value.homepage_url)) &&
+    (value.images === undefined || Array.isArray(value.images)) &&
+    (value.event_detail === undefined || value.event_detail === null || isRecord(value.event_detail)) &&
     typeof value.is_favorite === 'boolean' &&
     (typeof value.is_in_guidebook === 'boolean' || value.is_in_guidebook === undefined)
   )
+}
+
+function isNullableString(value: unknown): value is string | null {
+  return typeof value === 'string' || value === null
 }
 
 function isMapMarkerItem(value: unknown): value is MapMarkerItem {
