@@ -658,17 +658,16 @@
   height: 42px;
   place-items: center;
   padding: 0;
-  border: 1px solid #dedee3;
-  border-radius: 50%;
-  background: #fff;
+  border: 0;
+  background: transparent;
   color: #777780;
   cursor: pointer;
   font-size: 23px;
 }
 
 .event-detail-favorite img {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   object-fit: contain;
 }
 
@@ -676,8 +675,10 @@
   cursor: default;
 }
 
-.event-detail-favorite--active {
-  border-color: #b8b8bd;
+.event-detail-favorite:focus-visible {
+  border-radius: 8px;
+  outline: 3px solid #b8b8bd;
+  outline-offset: 1px;
 }
 
 .event-detail-favorite:active {

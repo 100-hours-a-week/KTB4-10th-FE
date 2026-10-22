@@ -1051,9 +1051,8 @@ button:disabled {
   height: 38px;
   place-items: center;
   padding: 0;
-  border: 1px solid #dedee3;
-  border-radius: 50%;
-  background: #fff;
+  border: 0;
+  background: transparent;
   color: #777780;
   cursor: pointer;
   font-size: 21px;
@@ -1061,13 +1060,15 @@ button:disabled {
 }
 
 .map-content-card__favorite img {
-  width: 22px;
-  height: 22px;
+  width: 26px;
+  height: 26px;
   object-fit: contain;
 }
 
-.map-content-card__favorite--active {
-  border-color: #b8b8bd;
+.map-content-card__favorite:focus-visible {
+  border-radius: 8px;
+  outline: 3px solid #b8b8bd;
+  outline-offset: 1px;
 }
 
 .map-content-card__favorite:active {

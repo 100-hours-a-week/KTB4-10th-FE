@@ -15,8 +15,8 @@
 .favorite-card__copy small { display: block; margin-bottom: 5px; color: #6f825f; font-size: 10px; font-weight: 700; }
 .favorite-card__copy strong { display: block; overflow: hidden; margin-bottom: 8px; font-size: 15px; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
 .favorite-card__copy > span { display: block; overflow: hidden; margin-top: 3px; color: #7b7b83; font-size: 10px; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
-.favorite-card__toggle { position: absolute; top: 50%; right: 12px; display: grid; width: 36px; height: 36px; place-items: center; padding: 7px; border: 1px solid #dedee3; border-radius: 50%; background: #fff; cursor: pointer; transform: translateY(-50%); }
-.favorite-card__toggle img { width: 100%; height: 100%; object-fit: contain; }
+.favorite-card__toggle { position: absolute; top: 50%; right: 12px; display: grid; width: 36px; height: 36px; place-items: center; padding: 4px; border: 0; background: transparent; cursor: pointer; transform: translateY(-50%); }
+.favorite-card__toggle img { width: 28px; height: 28px; object-fit: contain; }
 .favorite-card__toggle:active { transform: translateY(-50%) scale(.9); }
 .favorite-card__toggle:disabled { cursor: default; opacity: .45; }
 .favorite-state { display: grid; min-height: 420px; place-content: center; justify-items: center; gap: 15px; padding: 40px 20px; color: #6b6b73; text-align: center; }
