@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { removeFavorite, saveFavorite } from '../../map/api/favorites.ts'
 import { getEventDetail, type EventDetail } from '../api/events.ts'
+import { extractExternalHttpUrl } from '../../../shared/lib/externalUrl.ts'
 import './event.css'
 
 type DetailLocationState = { isNew?: boolean }
@@ -56,6 +57,7 @@ export function EventDetailPage() {
   )
   const title = detail?.title ?? '행사 정보'
   const address = detail?.event_detail?.event_place ?? detail?.address
+  const homepageUrl = extractExternalHttpUrl(detail?.homepage_url)
 
   async function toggleFavorite() {
     if (!detail || favoritePending) return
@@ -156,8 +158,8 @@ export function EventDetailPage() {
             </dl>
           </section>
 
-          {detail.homepage_url && (
-            <a className="event-homepage-link" href={detail.homepage_url} target="_blank" rel="noreferrer">
+          {homepageUrl && (
+            <a className="event-homepage-link" href={homepageUrl} target="_blank" rel="noreferrer">
               공식 홈페이지에서 더 보기 <span aria-hidden="true">↗</span>
             </a>
           )}

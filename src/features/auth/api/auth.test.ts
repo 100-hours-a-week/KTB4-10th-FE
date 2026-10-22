@@ -62,6 +62,7 @@ describe('회원 정보 메모리 캐시', () => {
       },
       selectedItem: null,
       sheetLevel: 'collapsed',
+      sheetView: 'list',
     })
     await expect(getCurrentMember()).rejects.toBeInstanceOf(AxiosError)
     expect(getCachedCurrentMember()).toBeNull()
