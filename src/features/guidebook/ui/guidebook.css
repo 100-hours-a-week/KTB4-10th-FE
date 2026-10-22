@@ -88,6 +88,23 @@
 .book-text-button { display: block; padding: 14px; margin: 0 auto; border: 0; background: none; color: #73737d; font-size: 12px; text-align: center; text-decoration: none; cursor: pointer; }
 .book-generation { min-height: calc(100dvh - 72px); padding: clamp(72px, 14dvh, 132px) 26px 30px; text-align: center; }
 .book-spark { display: grid; place-items: center; width: 88px; height: 88px; margin: 0 auto 30px; border: 1px solid #ededf0; border-radius: 24px; background: #fff; font-size: 35px; color: #777781; }
+.book-travel-animation { display: grid; width: 190px; justify-items: center; gap: 8px; margin: 0 auto 22px; }
+.book-travel-animation svg { width: 180px; height: 120px; overflow: visible; filter: drop-shadow(0 12px 14px rgb(72 92 55 / 10%)); }
+.book-travel-animation > span { padding: 7px 13px; border: 1px solid #dce7d1; border-radius: 999px; background: #f7faf4; color: #647c4c; font-size: 11px; font-weight: 700; letter-spacing: .04em; }
+.book-travel-animation__sun { fill: #f4c95d; animation: book-sun-pulse 2.2s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.book-travel-animation__mountain { fill: #9fbd82; }
+.book-travel-animation__mountain--back { fill: #dce8d0; }
+.book-travel-animation__trail { fill: none; stroke: #fff; stroke-width: 5; stroke-linecap: round; stroke-dasharray: 10 9; animation: book-trail-flow 1.2s linear infinite; }
+.book-travel-animation__traveler { animation: book-traveler-bounce .62s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: center bottom; }
+.book-travel-animation__head { fill: #f1c9a5; stroke: #30332f; stroke-width: 3; }
+.book-travel-animation__body, .book-travel-animation__arm, .book-travel-animation__leg { fill: none; stroke: #30332f; stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; }
+.book-travel-animation__backpack { fill: #d77b4e; stroke: #30332f; stroke-width: 3; }
+.book-travel-animation__arm, .book-travel-animation__leg { animation: book-limb-swing .7s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: top center; }
+.book-travel-animation__arm--back, .book-travel-animation__leg--front { animation-direction: alternate-reverse; }
+@keyframes book-sun-pulse { 50% { opacity: .72; transform: scale(.86); } }
+@keyframes book-traveler-bounce { to { transform: translateY(-3px) rotate(-1deg); } }
+@keyframes book-limb-swing { from { transform: rotate(-9deg); } to { transform: rotate(9deg); } }
+@keyframes book-trail-flow { to { stroke-dashoffset: -38; } }
 .book-generation h2 { font-size: 19px; margin: 0 0 12px; letter-spacing: -.03em; }
 .book-generation p { font-size: 13px; color: #73737d; line-height: 1.8; white-space: pre-line; }
 .book-generation .book-generation__indicator { width: 42px; height: 42px; margin-bottom: 30px; }
@@ -150,7 +167,7 @@
 .book-print-fallback button, .book-print-fallback a { width: 100%; padding: 0 20px; text-decoration: none; }
 .book-print-fallback a { display: grid; place-items: center; text-align: center; }
 @media (prefers-reduced-motion: reduce) {
-  .book-card--highlighted { animation: none; }
+  .book-travel-animation *, .book-card--highlighted { animation: none; }
   .book-card--highlighted { box-shadow: 0 0 0 3px rgb(183 110 66 / 18%); }
   .book-viewer-controls { transition: none; }
 }

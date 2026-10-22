@@ -77,6 +77,7 @@ export type EventDetail = {
     organizer_phone: string | null
     event_place: string | null
   } | null
+  is_favorite?: boolean
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -136,7 +137,8 @@ function isEventDetail(value: unknown): value is EventDetail {
     isNullableString(value.description) &&
     isNullableString(value.address) &&
     isNullableString(value.phone) &&
-    isNullableString(value.homepage_url)
+    isNullableString(value.homepage_url) &&
+    (value.is_favorite === undefined || typeof value.is_favorite === 'boolean')
 }
 
 export function seoulYesterday(now = Date.now()): string {

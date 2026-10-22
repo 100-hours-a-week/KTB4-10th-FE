@@ -22,6 +22,7 @@ import { SettingsPage } from '../features/settings/ui/SettingsPage.tsx'
 import { EventListPage } from '../features/event/ui/EventListPage.tsx'
 import { EventDetailPage } from '../features/event/ui/EventDetailPage.tsx'
 import { AboutPage } from '../features/about/ui/AboutPage.tsx'
+import { FavoritePage } from '../features/favorite/ui/FavoritePage.tsx'
 import { routes } from '../shared/config/routes.ts'
 import '../features/guidebook/ui/guidebook.css'
 
@@ -56,6 +57,7 @@ function App() {
         <Route path={routes.guidebookViewer} element={<GuidebookAccess><GuidebookViewerPage /></GuidebookAccess>} />
         <Route path={routes.guidebookPrint} element={<GuidebookAccess><GuidebookPrintPage /></GuidebookAccess>} />
         <Route path={routes.myPage} element={<AuthBoundary><MyPage /></AuthBoundary>} />
+        <Route path={routes.favorites} element={<AuthBoundary><FavoritePage /></AuthBoundary>} />
         <Route path={routes.coupon} element={<AuthBoundary><CouponPage /></AuthBoundary>} />
         <Route
           path={routes.notifications}

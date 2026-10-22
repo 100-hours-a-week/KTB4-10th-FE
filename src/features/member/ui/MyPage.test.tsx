@@ -37,7 +37,7 @@ describe('MyPage', () => {
 
     expect(screen.getByRole('status', { name: '회원 정보 불러오는 중' })).toBeInTheDocument()
     expect(container.querySelector('.mypage-skeleton__profile-image')).toBeInTheDocument()
-    expect(container.querySelectorAll('.mypage-skeleton__menu-item')).toHaveLength(3)
+    expect(container.querySelectorAll('.mypage-skeleton__menu-item')).toHaveLength(4)
     expect(container.querySelector('.loading-indicator')).not.toBeInTheDocument()
   })
 
@@ -97,7 +97,7 @@ describe('MyPage', () => {
       .toBeInTheDocument()
   })
 
-  it('알림, 취향 수정, 설정 경로로 이동한다', async () => {
+  it('알림, 즐겨찾기, 취향 수정, 설정 경로로 이동한다', async () => {
     const user = userEvent.setup()
     const { unmount } = render(
       <MemoryRouter initialEntries={['/mypage']}>
@@ -110,6 +110,16 @@ describe('MyPage', () => {
     await user.click(screen.getByRole('button', { name: '읽지 않은 알림 2개 확인' }))
     expect(screen.getByRole('status', { name: '현재 경로' })).toHaveTextContent('/mypage/notifications')
     unmount()
+
+    const favoriteView = render(
+      <MemoryRouter initialEntries={['/mypage']}>
+        <MyPage />
+        <CurrentPath />
+      </MemoryRouter>,
+    )
+    await user.click(await screen.findByRole('button', { name: /즐겨찾기/ }))
+    expect(screen.getByRole('status', { name: '현재 경로' })).toHaveTextContent('/mypage/favorites')
+    favoriteView.unmount()
 
     const preferenceView = render(
       <MemoryRouter initialEntries={['/mypage']}>

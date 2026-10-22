@@ -1,0 +1,39 @@
+.favorite-page { min-height: 100dvh; background: #f7f7f9; }
+.favorite-page__back { display: grid; width: 36px; height: 36px; place-items: center; padding: 0; border: 0; background: transparent; color: #242428; cursor: pointer; font-size: 30px; line-height: 1; }
+.favorite-page__back:focus-visible,
+.favorite-card__main:focus-visible,
+.favorite-card__toggle:focus-visible,
+.favorite-state button:focus-visible,
+.favorite-page__more:focus-visible { outline: 3px solid #b8b8bd; outline-offset: 2px; }
+.favorite-page__content { padding: 20px 16px calc(28px + env(safe-area-inset-bottom)); }
+.favorite-list { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.favorite-card { position: relative; display: flex; min-height: 112px; align-items: center; padding: 13px 12px; border: 1px solid #e7e7eb; border-radius: 15px; background: #fff; box-shadow: 0 5px 18px rgb(20 20 23 / 4%); }
+.favorite-card__main { display: grid; min-width: 0; flex: 1; grid-template-columns: 82px minmax(0, 1fr); gap: 13px; align-items: center; color: inherit; text-decoration: none; }
+.favorite-card__thumbnail { display: grid; width: 82px; height: 82px; overflow: hidden; place-items: center; border-radius: 12px; background: #ededf0; color: #777780; font-size: 12px; font-weight: 700; }
+.favorite-card__thumbnail img { width: 100%; height: 100%; object-fit: cover; }
+.favorite-card__copy { display: block; min-width: 0; padding-right: 42px; }
+.favorite-card__copy small { display: block; margin-bottom: 5px; color: #6f825f; font-size: 10px; font-weight: 700; }
+.favorite-card__copy strong { display: block; overflow: hidden; margin-bottom: 8px; font-size: 15px; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
+.favorite-card__copy > span { display: block; overflow: hidden; margin-top: 3px; color: #7b7b83; font-size: 10px; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
+.favorite-card__toggle { position: absolute; top: 50%; right: 12px; display: grid; width: 36px; height: 36px; place-items: center; padding: 4px; border: 0; background: transparent; cursor: pointer; transform: translateY(-50%); }
+.favorite-card__toggle img { width: 28px; height: 28px; object-fit: contain; }
+.favorite-card__toggle:active { transform: translateY(-50%) scale(.9); }
+.favorite-card__toggle:disabled { cursor: default; opacity: .45; }
+.favorite-state { display: grid; min-height: 420px; place-content: center; justify-items: center; gap: 15px; padding: 40px 20px; color: #6b6b73; text-align: center; }
+.favorite-state strong { color: #242428; font-size: 16px; }
+.favorite-state p { max-width: 250px; margin: 0; font-size: 12px; line-height: 1.7; }
+.favorite-state img { width: 44px; height: 44px; margin-bottom: 5px; object-fit: contain; opacity: .45; }
+.favorite-state button { min-height: 40px; padding: 0 18px; border: 1px solid #d9d9de; border-radius: 10px; background: #fff; cursor: pointer; font-weight: 700; }
+.favorite-page__more { width: 100%; margin-top: 18px; }
+.favorite-page__more-status { margin: 20px 0 0; color: #7b7b83; font-size: 12px; text-align: center; }
+.favorite-skeleton { display: grid; gap: 12px; }
+.favorite-skeleton__card { display: grid; min-height: 112px; grid-template-columns: 82px 1fr; gap: 13px; align-items: center; padding: 13px 12px; border: 1px solid #e7e7eb; border-radius: 15px; background: #fff; }
+.favorite-skeleton__image,
+.favorite-skeleton__copy i { display: block; border-radius: 10px; background: linear-gradient(90deg, #ececef 25%, #f7f7f9 45%, #ececef 65%); background-size: 300% 100%; animation: favorite-skeleton-shimmer 1.4s ease-in-out infinite; }
+.favorite-skeleton__image { width: 82px; height: 82px; }
+.favorite-skeleton__copy { display: grid; gap: 9px; }
+.favorite-skeleton__copy i { width: 45%; height: 8px; }
+.favorite-skeleton__copy i:nth-child(2) { width: 80%; height: 15px; }
+.favorite-skeleton__copy i:nth-child(3) { width: 65%; }
+@keyframes favorite-skeleton-shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+@media (prefers-reduced-motion: reduce) { .favorite-skeleton__image, .favorite-skeleton__copy i { animation: none; } }

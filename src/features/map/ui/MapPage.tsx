@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { BottomNavigation } from '../../../shared/ui/BottomNavigation.tsx'
 import { Toast } from '../../../shared/ui/Toast.tsx'
+import { extractExternalHttpUrl } from '../../../shared/lib/externalUrl.ts'
 import {
   clearMapContentCache,
   getMapContents,
@@ -21,6 +23,7 @@ import {
   getMapNavigationState,
   saveMapNavigationState,
   type MapSheetLevel,
+  type MapSheetView,
   type MapViewport,
 } from '../model/mapNavigationState.ts'
 import { KakaoMapCanvas } from './KakaoMapCanvas.tsx'
@@ -33,6 +36,7 @@ const NEXT_PAGE_LOADING_MINIMUM_MS = 350
 
 type PermissionStep = 'location' | 'notification' | null
 type SheetLevel = MapSheetLevel
+type SheetView = MapSheetView
 type MapFocusTarget = typeof DEFAULT_CENTER & { requestId: number; level?: number }
 
 function initialPermissionStep(): PermissionStep {
@@ -101,13 +105,20 @@ function MapContentCard({
         disabled={favoritePending}
         onClick={onToggleFavorite}
       >
-        <span aria-hidden="true">{item.is_favorite ? '★' : '☆'}</span>
+        <img
+          src={item.is_favorite
+            ? '/assets/favorite/favorite-selected.png'
+            : '/assets/favorite/favorite.png'}
+          alt=""
+          aria-hidden="true"
+        />
       </button>
     </article>
   )
 }
 
 export function MapPage() {
+  const navigate = useNavigate()
   const [initialNavigation] = useState(() => {
     const memberId = getCachedCurrentMember()?.member_id ?? null
     return {
@@ -128,6 +139,7 @@ export function MapPage() {
   const latestContentRequestRef = useRef(0)
   const currentBoundsRef = useRef<MapBounds | null>(null)
   const sheetLevelRef = useRef<SheetLevel>(restoredNavigationState?.sheetLevel ?? 'collapsed')
+  const sheetViewRef = useRef<SheetView>(restoredNavigationState?.sheetView ?? 'list')
   const lastRequestedCursorRef = useRef<string | null>(null)
   const [markers, setMarkers] = useState<MapMarkerItem[]>([])
   const [items, setItems] = useState<MapContentItem[]>([])
@@ -146,6 +158,8 @@ export function MapPage() {
   const [sheetLevel, setSheetLevel] = useState<SheetLevel>(
     restoredNavigationState?.sheetLevel ?? 'collapsed',
   )
+  const [sheetView, setSheetView] = useState<SheetView>(restoredNavigationState?.sheetView ?? 'list')
+  const [isOverviewExpanded, setIsOverviewExpanded] = useState(false)
   const [sheetDragHeight, setSheetDragHeight] = useState<number | null>(null)
   const sheetRef = useRef<HTMLElement>(null)
   const sheetDragStart = useRef<{ pointerY: number; height: number } | null>(null)
@@ -172,6 +186,7 @@ export function MapPage() {
       viewport,
       selectedItem: selectedItemRef.current,
       sheetLevel: sheetLevelRef.current,
+      sheetView: sheetViewRef.current,
     })
   }, [initialNavigation])
 
@@ -217,8 +232,10 @@ export function MapPage() {
     currentBoundsRef.current = bounds
     latestContentRequestRef.current += 1
     lastRequestedCursorRef.current = null
-    itemsRef.current = []
-    setItems([])
+    if (sheetViewRef.current !== 'overview') {
+      itemsRef.current = []
+      setItems([])
+    }
     setNextCursor(null)
     setHasMore(false)
     setIsNextPageLoading(false)
@@ -250,6 +267,11 @@ export function MapPage() {
       requestFirstContents(currentBoundsRef.current)
     }
   }, [requestFirstContents])
+
+  const changeSheetView = useCallback((view: SheetView) => {
+    sheetViewRef.current = view
+    setSheetView(view)
+  }, [])
 
   const requestNextContents = useCallback(() => {
     const bounds = currentBoundsRef.current
@@ -436,23 +458,47 @@ export function MapPage() {
     : items[0] ?? (responseMode === 'MARKER' && markers[0]
       ? markerAsContentItem(markers[0])
       : null)
+  const selectedHomepageUrl = extractExternalHttpUrl(selectedItem?.homepage_url)
+  const selectedOverview = selectedItem?.overview || selectedItem?.description || ''
   const clusteredContentCount = clusters.reduce((total, cluster) => total + cluster.count, 0)
   const visibleMapContentCount = responseMode === 'CLUSTER'
     ? clusteredContentCount
     : markers.length
   const handleMapClick = useCallback(() => {
     setSelectedItem(null)
+    changeSheetView('list')
     changeSheetLevel(sheetLevelRef.current === 'expanded' ? 'default' : 'collapsed')
     setSheetDragHeight(null)
-  }, [changeSheetLevel])
+  }, [changeSheetLevel, changeSheetView])
 
   const selectMapItem = useCallback((item: MapMarkerItem) => {
     setSelectedItem(
       itemsRef.current.find((candidate) => candidate.content_id === item.content_id) ??
       markerAsContentItem(item),
     )
+    changeSheetView('list')
     changeSheetLevel('default')
-  }, [changeSheetLevel])
+  }, [changeSheetLevel, changeSheetView])
+
+  const openOverview = useCallback((item: MapContentItem) => {
+    setIsOverviewExpanded(false)
+    setSelectedItem(item)
+    changeSheetView('overview')
+    changeSheetLevel('expanded')
+    focusRequestIdRef.current += 1
+    setFocusTarget({
+      latitude: item.latitude,
+      longitude: item.longitude,
+      requestId: focusRequestIdRef.current,
+      level: 5,
+    })
+  }, [changeSheetLevel, changeSheetView])
+
+  const closeOverview = useCallback(() => {
+    setIsOverviewExpanded(false)
+    setSelectedItem(null)
+    changeSheetView('list')
+  }, [changeSheetView])
 
   const toggleFavorite = async (item: MapContentItem) => {
     if (favoritePendingId) return
@@ -584,14 +630,14 @@ export function MapPage() {
           </div>
         ) : (
           <div className="map-content-sheet__contents">
-            <div className="map-content-sheet__summary">
+            <div className="map-content-sheet__summary" hidden={sheetView === 'overview'}>
               <strong>
                 {responseMode === 'CLUSTER'
                   ? `현재 화면 장소·행사 ${visibleMapContentCount}개`
                   : `주변 장소·행사 ${visibleMapContentCount}개`}
               </strong>
             </div>
-            {sheetLevel === 'expanded' ? (
+            {sheetLevel === 'expanded' && sheetView === 'list' ? (
               <div
                 className="map-content-sheet__list"
                 role="region"
@@ -610,17 +656,7 @@ export function MapPage() {
                     <MapContentCard
                       item={item}
                       favoritePending={favoritePendingId === item.content_id}
-                      onSelect={() => {
-                        setSelectedItem(item)
-                        focusRequestIdRef.current += 1
-                        setFocusTarget({
-                          latitude: item.latitude,
-                          longitude: item.longitude,
-                          requestId: focusRequestIdRef.current,
-                          level: 5,
-                        })
-                        changeSheetLevel('default')
-                      }}
+                      onSelect={() => openOverview(item)}
                       onToggleFavorite={() => void toggleFavorite(item)}
                     />
                   </div>
@@ -637,10 +673,76 @@ export function MapPage() {
                   </p>
                 )}
               </div>
+            ) : sheetView === 'overview' && selectedItem ? (
+              <article className="map-content-overview">
+                <header className="map-content-overview__header">
+                  <button type="button" onClick={closeOverview} aria-label="목록으로 돌아가기">‹</button>
+                  <span>{selectedItem.content_type === 'EVENT' ? '행사' : '관광지'}</span>
+                  <button
+                    type="button"
+                    className={`map-content-overview__favorite${selectedItem.is_favorite ? ' map-content-overview__favorite--active' : ''}`}
+                    aria-label={selectedItem.is_favorite ? `${selectedItem.title} 즐겨찾기 해제` : `${selectedItem.title} 즐겨찾기 저장`}
+                    aria-pressed={selectedItem.is_favorite}
+                    disabled={favoritePendingId === selectedItem.content_id}
+                    onClick={() => void toggleFavorite(selectedItem)}
+                  >
+                    <span aria-hidden="true">{selectedItem.is_favorite ? '★' : '☆'}</span>
+                  </button>
+                </header>
+                <div className="map-content-overview__body">
+                  <div className="map-content-overview__image">
+                    {(selectedItem.images?.toSorted((left, right) => left.sort_order - right.sort_order)[0]?.image_url ?? selectedItem.thumbnail_url)
+                      ? <img src={selectedItem.images?.toSorted((left, right) => left.sort_order - right.sort_order)[0]?.image_url ?? selectedItem.thumbnail_url ?? ''} alt="" />
+                      : <span aria-hidden="true">{selectedItem.content_type === 'EVENT' ? '행사' : '장소'}</span>}
+                  </div>
+                  <div className="map-content-overview__info">
+                    <h2>{selectedItem.title}</h2>
+                    <p className={`map-content-overview__description${isOverviewExpanded ? ' map-content-overview__description--expanded' : ''}`}>
+                      {selectedOverview || '소개 정보가 준비되는 대로 업데이트할게요.'}
+                    </p>
+                    {selectedOverview.length > 100 && (
+                      <button
+                        className="map-content-overview__more"
+                        type="button"
+                        aria-expanded={isOverviewExpanded}
+                        onClick={() => setIsOverviewExpanded((expanded) => !expanded)}
+                      >
+                        {isOverviewExpanded ? '접기' : '더보기'}
+                      </button>
+                    )}
+                    <dl className="map-content-overview__details">
+                      {(selectedItem.event_detail?.start_date || selectedItem.event_period) && (
+                        <div><dt>기간</dt><dd>{selectedItem.event_period
+                          ? eventPeriodText(selectedItem)
+                          : `${selectedItem.event_detail?.start_date ?? ''} ~ ${selectedItem.event_detail?.end_date ?? ''}`}</dd></div>
+                      )}
+                      <div><dt>주소</dt><dd>{selectedItem.event_detail?.event_place ?? selectedItem.address ?? '주소 정보가 없어요.'}</dd></div>
+                      {selectedItem.event_detail?.operating_hours && <div><dt>시간</dt><dd>{selectedItem.event_detail.operating_hours}</dd></div>}
+                      {selectedItem.event_detail?.organizer && <div><dt>주최</dt><dd>{selectedItem.event_detail.organizer}</dd></div>}
+                      {(selectedItem.event_detail?.organizer_phone || selectedItem.phone) && <div><dt>문의</dt><dd>{selectedItem.event_detail?.organizer_phone ?? selectedItem.phone}</dd></div>}
+                    </dl>
+                  </div>
+                </div>
+                <div className="map-content-overview__actions">
+                  {selectedHomepageUrl && (
+                    <a href={selectedHomepageUrl} target="_blank" rel="noreferrer">공식 홈페이지</a>
+                  )}
+                  {selectedItem.content_type === 'EVENT' && (
+                    <button
+                      className="map-content-overview__detail"
+                      type="button"
+                      onClick={() => navigate(`/events/${encodeURIComponent(selectedItem.content_id)}`)}
+                    >
+                      자세히 보기
+                    </button>
+                  )}
+                </div>
+              </article>
             ) : displayedItem ? (
               <MapContentCard
                 item={displayedItem}
                 favoritePending={favoritePendingId === displayedItem.content_id}
+                onSelect={() => openOverview(displayedItem)}
                 onToggleFavorite={() => void toggleFavorite(displayedItem)}
               />
             ) : null}
