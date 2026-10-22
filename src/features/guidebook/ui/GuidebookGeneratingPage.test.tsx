@@ -41,7 +41,7 @@ describe('가이드북 생성 상태 화면', () => {
     expect(screen.getByText(/완성되면 알림으로 알려드릴게요/)).toBeInTheDocument()
     expect(screen.getByText('다른 화면을 이용해도 생성은 계속돼요.')).toBeInTheDocument()
     expect(screen.queryByRole('list')).not.toBeInTheDocument()
-    expect(container.querySelector('.book-loading')).toBeInTheDocument()
+    expect(container.querySelector('.loading-indicator')).toHaveAttribute('src', '/assets/loading-indicator.svg')
   })
 
   it('오류 안내와 남은 재시도 횟수를 표시하고 다시 시도한다', () => {

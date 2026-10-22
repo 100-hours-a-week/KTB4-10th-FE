@@ -38,7 +38,7 @@ export function GuidebookGeneratingPage() {
     <section className="book-generation" aria-live="polite">
       {failed || canceled || error
         ? <div className="book-spark" aria-hidden="true">!</div>
-        : <BookLoadingVisual />}
+        : <img className="loading-indicator book-generation__indicator" src="/assets/loading-indicator.svg" alt="" />}
       <h2>{failed ? '가이드북을 만들지 못했어요' : canceled ? '생성이 취소되었어요' : '가이드북을 만들고 있어요'}</h2>
       <p>{failed ? failureMessage : canceled ? '새 여행 조건으로 다시 시작할 수 있어요.' : '취향에 맞는 여행을 한 권에 담고 있어요.\n완성되면 알림으로 알려드릴게요.'}</p>
       {generating && <p className="book-generation-background">다른 화면을 이용해도 생성은 계속돼요.</p>}
@@ -54,15 +54,4 @@ export function GuidebookGeneratingPage() {
       <div className="book-dialog-actions"><button className="secondary-button" onClick={() => guidebookConfirmDialog.current?.close()}>계속 수정</button><button className="primary-button" onClick={confirmGuidebook}>가이드북으로</button></div>
     </dialog>
   </main>
-}
-
-function BookLoadingVisual() {
-  return <div className="book-loading" aria-hidden="true">
-    <div className="book-loading__book">
-      <span className="book-loading__page book-loading__page--left"><i /><i /><i /></span>
-      <span className="book-loading__page book-loading__page--right"><i /><i /><i /></span>
-      <span className="book-loading__turning-page"><i /><i /></span>
-    </div>
-    <div className="book-loading__dots"><span /><span /><span /></div>
-  </div>
 }
