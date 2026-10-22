@@ -27,7 +27,7 @@ function DetailContent({ guidebookId }: { guidebookId: string }) {
     {!data && !error && <State>가이드북을 불러오고 있어요.</State>}
     {data && <article className="book-result">
       <h2>가이드북이 완성됐어요</h2><p className="book-hint">내용을 확인해 주세요</p>
-      <section className="book-summary"><div className="book-summary-heading"><BookCover /><div><h3>{data.title}</h3><p>{data.start_date.replaceAll('-', '.')} – {data.end_date.replaceAll('-', '.')}</p><small>{data.people_count}명 · {data.itinerary.length}일</small></div></div>
+      <section className="book-summary"><div className="book-summary-heading"><BookCover thumbnailUrl={data.thumbnail_url} /><div><h3>{data.title}</h3><p>{data.start_date.replaceAll('-', '.')} – {data.end_date.replaceAll('-', '.')}</p><small>{data.people_count}명 · {data.itinerary.length}일</small></div></div>
         <div className="book-days">{data.itinerary.map((day) => <div className="book-day-row" key={day.day_number}>
           <strong>Day {day.day_number}</strong><span>{day.items[0]?.place_snapshot?.title ?? '자유 일정'}{day.items.length > 1 ? ` 외 ${day.items.length - 1}곳` : ''}</span>
         </div>)}</div>
