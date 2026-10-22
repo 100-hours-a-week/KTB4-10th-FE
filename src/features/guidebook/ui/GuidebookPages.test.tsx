@@ -160,6 +160,24 @@ describe('가이드북 화면', () => {
     expect(printLink).toHaveAttribute('rel', 'noopener')
   })
 
+  it('목록 카드에 가이드북 대표 이미지를 표시한다', async () => {
+    const book = {
+      guidebook_id: 10,
+      title: '경주 여행',
+      start_date: '2026-10-01',
+      end_date: '2026-10-03',
+      thumbnail_url: 'https://example.com/guidebook.jpg',
+      companion: 'FRIEND',
+    }
+    listBooks.mockResolvedValue({ items: [book], next_cursor: null, has_more: false })
+
+    render(<MemoryRouter><GuidebookListPage /></MemoryRouter>)
+
+    await screen.findByText('경주 여행')
+    expect(document.querySelector('.book-cover img'))
+      .toHaveAttribute('src', 'https://example.com/guidebook.jpg')
+  })
+
   it('목록의 삭제 버튼은 접근성 이름을 유지한 휴지통 아이콘으로 표시한다', async () => {
     const book = { guidebook_id: 10, title: '경주 여행', start_date: '2026-10-01', end_date: '2026-10-03', companion: 'FRIEND' }
     listBooks.mockResolvedValue({ items: [book], next_cursor: null, has_more: false })
@@ -287,6 +305,7 @@ describe('가이드북 화면', () => {
       start_date: '2026-10-20',
       end_date: '2026-10-21',
       people_count: 2,
+      thumbnail_url: 'https://example.com/guidebook.jpg',
       itinerary: [{ day_number: 1, itinerary_date: '2026-10-20', items: [
         { item_id: 1, sequence: 1, scheduled_time: null, place_snapshot: { title: '첨성대' } },
         { item_id: 2, sequence: 2, scheduled_time: null, place_snapshot: { title: '대릉원' } },
@@ -296,7 +315,9 @@ describe('가이드북 화면', () => {
       <Route path="/guidebooks/:guidebookId" element={<GuidebookDetailPage />} />
     </Routes></MemoryRouter>)
 
-    expect(await screen.findByText('경주 여행')).toBeInTheDocument()
+expect(await screen.findByText('경주 여행')).toBeInTheDocument()
+    expect(document.querySelector('.book-summary .book-cover img'))
+      .toHaveAttribute('src', 'https://example.com/guidebook.jpg')
     expect(screen.getByText('첨성대 외 1곳')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: '재생성' })).toHaveAttribute('href', '/guidebooks/10/regenerate')
   })

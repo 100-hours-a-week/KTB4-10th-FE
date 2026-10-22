@@ -1,5 +1,5 @@
 import { Navigate, Link } from 'react-router-dom'
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { PageHeader } from '../../../shared/ui/PageHeader.tsx'
 import { useGeneration } from '../model/generation.ts'
 import { routes } from '../../../shared/config/routes.ts'
@@ -41,6 +41,11 @@ export function State({ children, error, onRetry }: { children: ReactNode; error
   </div>
 }
 
-export function BookCover() {
-  return <span className="book-cover" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M7 5h16a2 2 0 0 1 2 2v21H9a3 3 0 0 1-3-3V6a1 1 0 0 1 1-1Z" stroke="currentColor" strokeWidth="1.5" /><path d="M10 5v19M6 24h19M17 10v9m-4-4.5h8" stroke="currentColor" strokeWidth="1.5" /></svg></span>
+export function BookCover({ thumbnailUrl }: { thumbnailUrl?: string | null }) {
+  const [failedUrl, setFailedUrl] = useState<string | null>(null)
+  return <span className="book-cover" aria-hidden="true">
+    {thumbnailUrl && failedUrl !== thumbnailUrl
+      ? <img src={thumbnailUrl} alt="" onError={() => setFailedUrl(thumbnailUrl)} />
+      : <svg viewBox="0 0 32 32" fill="none"><path d="M7 5h16a2 2 0 0 1 2 2v21H9a3 3 0 0 1-3-3V6a1 1 0 0 1 1-1Z" stroke="currentColor" strokeWidth="1.5" /><path d="M10 5v19M6 24h19M17 10v9m-4-4.5h8" stroke="currentColor" strokeWidth="1.5" /></svg>}
+  </span>
 }
