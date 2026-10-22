@@ -658,25 +658,27 @@
   height: 42px;
   place-items: center;
   padding: 0;
-  border: 1px solid #dedee3;
-  border-radius: 50%;
-  background: #fff;
+  border: 0;
+  background: transparent;
   color: #777780;
   cursor: pointer;
   font-size: 23px;
 }
 
-.event-detail-favorite span {
-  line-height: 1;
+.event-detail-favorite img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
 }
 
 .event-detail-favorite:disabled {
   cursor: default;
 }
 
-.event-detail-favorite--active {
-  border-color: #b76e42;
-  color: #b76e42;
+.event-detail-favorite:focus-visible {
+  border-radius: 8px;
+  outline: 3px solid #b8b8bd;
+  outline-offset: 1px;
 }
 
 .event-detail-favorite:active {

@@ -3,9 +3,10 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { removeFavorite, saveFavorite } from '../../map/api/favorites.ts'
 import { getEventDetail, type EventDetail } from '../api/events.ts'
 import { extractExternalHttpUrl } from '../../../shared/lib/externalUrl.ts'
+import { routes } from '../../../shared/config/routes.ts'
 import './event.css'
 
-type DetailLocationState = { isNew?: boolean }
+type DetailLocationState = { isNew?: boolean; returnTo?: string; initialFavorite?: boolean }
 
 function displayDate(value: string | null | undefined): string | null {
   if (!value) return null
@@ -25,7 +26,10 @@ export function EventDetailPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const { contentId = '' } = useParams()
-  const isNew = (location.state as DetailLocationState | null)?.isNew ?? false
+  const locationState = location.state as DetailLocationState | null
+  const isNew = locationState?.isNew ?? false
+  const returnTo = locationState?.returnTo === routes.favorites ? routes.favorites : null
+  const initialFavorite = returnTo ? locationState?.initialFavorite === true : false
   const [detail, setDetail] = useState<EventDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
@@ -38,7 +42,10 @@ export function EventDetailPage() {
     const controller = new AbortController()
     void getEventDetail(contentId, controller.signal)
       .then((result) => {
-        if (!controller.signal.aborted) setDetail(result)
+        if (!controller.signal.aborted) {
+          setDetail(result)
+          setIsFavorite(result.is_favorite ?? initialFavorite)
+        }
       })
       .catch(() => {
         if (controller.signal.aborted) return
@@ -48,7 +55,7 @@ export function EventDetailPage() {
         if (!controller.signal.aborted) setLoading(false)
       })
     return () => controller.abort()
-  }, [contentId, revision])
+  }, [contentId, initialFavorite, revision])
 
   const image = useMemo(
     () => detail?.images.toSorted((left, right) => left.sort_order - right.sort_order)[0]?.image_url
@@ -80,7 +87,7 @@ export function EventDetailPage() {
   return (
     <main className="app-shell event-detail-page">
       <header className="event-detail-header">
-        <button type="button" onClick={() => navigate(-1)} aria-label="이전 화면으로">‹</button>
+        <button type="button" onClick={() => returnTo ? navigate(returnTo) : navigate(-1)} aria-label="이전 화면으로">‹</button>
         <span>행사 정보</span>
         <span aria-hidden="true" />
       </header>
@@ -106,7 +113,13 @@ export function EventDetailPage() {
             disabled={favoritePending}
             onClick={() => void toggleFavorite()}
           >
-            <span aria-hidden="true">{isFavorite ? '★' : '☆'}</span>
+            <img
+              src={isFavorite
+                ? '/assets/favorite/favorite-selected.png'
+                : '/assets/favorite/favorite.png'}
+              alt=""
+              aria-hidden="true"
+            />
           </button>
         )}
         {favoriteError && (
