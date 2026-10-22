@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { isRunning, useGeneration } from '../model/generation.ts'
+import { useGeneration } from '../model/generation.ts'
 import { BookHeader, State } from './GuidebookLayout.tsx'
 
 export function GuidebookGeneratingPage() {
@@ -25,6 +25,7 @@ export function GuidebookGeneratingPage() {
   const canModifyFeedback = failed && job?.error?.code === 'feedback_not_applicable' && job.guidebook_id !== null
   const isRegenerationFailure = failed && job?.job_type === 'REGENERATION' && job.guidebook_id !== null
   const failureMessage = job?.error?.message ?? '서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.'
+  const generating = !error && !failed && !canceled && job?.status !== 'COMPLETED'
   function confirmGuidebook() {
     const guidebookId = job?.guidebook_id
     if (!guidebookId) return
@@ -35,10 +36,12 @@ export function GuidebookGeneratingPage() {
   return <main className="app-shell book-page">
     <BookHeader title={failed ? '가이드북 생성 실패' : canceled ? '가이드북 생성 취소' : '가이드북 생성 중'} />
     <section className="book-generation" aria-live="polite">
-      <div className={`book-spark${isRunning(job) && !error ? ' book-spark--active' : ''}`} aria-hidden="true">{failed || canceled ? '!' : '✦'}</div>
+      {failed || canceled || error
+        ? <div className="book-spark" aria-hidden="true">!</div>
+        : <img className="loading-indicator book-generation__indicator" src="/assets/loading-indicator.svg" alt="" />}
       <h2>{failed ? '가이드북을 만들지 못했어요' : canceled ? '생성이 취소되었어요' : '가이드북을 만들고 있어요'}</h2>
-      <p>{failed ? failureMessage : canceled ? '새 여행 조건으로 다시 시작할 수 있어요.' : '취향에 맞는 여행을 준비하고 있어요.\n다른 화면을 이용해도 괜찮아요.'}</p>
-      {isRunning(job) && !error && <ol className="book-generation-steps"><li className="is-done">여행 조건 접수 완료</li><li className={job?.status === 'PROCESSING' ? 'is-active' : ''}>{job?.status === 'PROCESSING' ? '여행 장소와 일정 구성 중' : '생성 시작 대기 중'}</li><li>가이드북 완성 후 알림</li></ol>}
+      <p>{failed ? failureMessage : canceled ? '새 여행 조건으로 다시 시작할 수 있어요.' : '취향에 맞는 여행을 한 권에 담고 있어요.\n완성되면 알림으로 알려드릴게요.'}</p>
+      {generating && <p className="book-generation-background">다른 화면을 이용해도 생성은 계속돼요.</p>}
       {error && <p className="book-error" role="alert">{error}</p>}
       {error && job && <button className="secondary-button" onClick={refresh}>상태 다시 확인</button>}
       {failed && <>{canRetry && <><p className="book-retry-count">다시 시도 가능 횟수 <strong>{remainingRetries}회</strong></p><button className="primary-button" disabled={busy} onClick={() => void retry()}>{busy ? '재시도 요청 중…' : '다시 시도'}</button><p>다시 시도해도 생성권은 차감되지 않아요.</p></>}{canModifyFeedback ? <Link className="book-text-button" to={`/guidebooks/${job.guidebook_id}/regenerate`} onClick={dismiss}>피드백 수정하기</Link> : !isRegenerationFailure && <Link className="book-text-button" to="/guidebooks/new" state={{ guidebookDraft: job?.initial_request }} onClick={dismiss}>조건 수정하기</Link>}</>}
