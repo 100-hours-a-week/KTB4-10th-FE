@@ -25,10 +25,23 @@ vi.mock('../model/generation.ts', () => ({
   }),
 }))
 
-describe('가이드북 생성 실패 화면', () => {
+describe('가이드북 생성 상태 화면', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     generation.job = { job_id: 29, status: 'FAILED', guidebook_id: null, attempt_count: 1 }
+  })
+
+  it.each(['PENDING', 'PROCESSING'] as const)('%s 상태를 실제 진행률 없는 단순 대기 화면으로 표시한다', (status) => {
+    generation.job = { job_id: 29, status, guidebook_id: null, attempt_count: 0 }
+    const { container } = render(<MemoryRouter initialEntries={['/guidebooks/generating/29']}><Routes>
+      <Route path="/guidebooks/generating/:jobId" element={<GuidebookGeneratingPage />} />
+    </Routes></MemoryRouter>)
+
+    expect(screen.getByRole('heading', { name: '가이드북을 만들고 있어요' })).toBeInTheDocument()
+    expect(screen.getByText(/완성되면 알림으로 알려드릴게요/)).toBeInTheDocument()
+    expect(screen.getByText('다른 화면을 이용해도 생성은 계속돼요.')).toBeInTheDocument()
+    expect(screen.queryByRole('list')).not.toBeInTheDocument()
+    expect(container.querySelector('.book-loading')).toBeInTheDocument()
   })
 
   it('오류 안내와 남은 재시도 횟수를 표시하고 다시 시도한다', () => {
