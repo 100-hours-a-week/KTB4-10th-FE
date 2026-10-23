@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { routes } from '../../../shared/config/routes.ts'
 import { Toast } from '../../../shared/ui/Toast.tsx'
 import { useGeneration } from '../../guidebook/model/generation.ts'
 import { getMemberSettings } from '../../member/api/memberSettings.ts'
@@ -17,15 +16,12 @@ import {
   REALTIME_NOTIFICATION_SETTING_CHANGED_EVENT,
   type RealtimeNotificationSettingChangedDetail,
 } from '../model/events.ts'
+import { guidebookNotificationDestination } from '../model/guidebookNotificationNavigation.ts'
 import { restoreWebPushSubscription } from '../model/webPush.ts'
 import { parseWebPushReceivedMessage } from '../model/webPushMessages.ts'
 
 const NOTIFICATION_EVENT_NAME = 'notification'
 const CONNECTED_EVENT_NAME = 'connected'
-
-type GuidebookNavigationState = {
-  highlightGuidebookId: number
-}
 
 function guidebookId(notification: Notification): number | null {
   if (notification.reference_type !== 'GUIDEBOOK') return null
@@ -178,9 +174,11 @@ export function NotificationCenter() {
       await deleteNotification(currentNotification.notification_id)
       dismissCurrentNotification()
       void syncNotifications().catch(() => undefined)
-      navigate(routes.guidebooks, {
-        state: { highlightGuidebookId: targetGuidebookId } satisfies GuidebookNavigationState,
-      })
+      const destination = guidebookNotificationDestination(
+        currentNotification.type,
+        targetGuidebookId,
+      )
+      navigate(destination.pathname, { state: destination.state })
     } catch {
       setFeedback('읽음 처리에 실패했습니다. 다시 시도해주세요.')
     } finally {

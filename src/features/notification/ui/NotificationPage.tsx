@@ -12,6 +12,7 @@ import {
   notifyNotificationsUpdated,
   NOTIFICATIONS_UPDATED_EVENT,
 } from '../model/events.ts'
+import { guidebookNotificationDestination } from '../model/guidebookNotificationNavigation.ts'
 import './notification-page.css'
 
 const SWIPE_LIMIT = 88
@@ -158,7 +159,8 @@ export function NotificationPage() {
     try {
       await deleteNotification(notification.notification_id)
       notifyNotificationsUpdated(Math.max(0, items.length - 1))
-      navigate(routes.guidebooks, { state: { highlightGuidebookId: targetGuidebookId } })
+      const destination = guidebookNotificationDestination(notification.type, targetGuidebookId)
+      navigate(destination.pathname, { state: destination.state })
     } catch {
       setToast('읽음 처리에 실패했습니다. 다시 시도해주세요.')
     } finally {

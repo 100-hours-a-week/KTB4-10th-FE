@@ -86,8 +86,9 @@ describe('Web Push Service Worker', () => {
       tag: 'kgb-notification-301',
       renotify: false,
       data: {
-        target: '/notifications/open?notificationId=301&guidebookId=101',
+        target: '/notifications/open?notificationId=301&guidebookId=101&type=GUIDEBOOK_COMPLETED',
         notificationId: '301',
+        notificationType: 'GUIDEBOOK_COMPLETED',
         referenceType: 'GUIDEBOOK',
         referenceId: '101',
       },
@@ -110,8 +111,9 @@ describe('Web Push Service Worker', () => {
       tag: 'kgb-notification-302',
       renotify: false,
       data: {
-        target: '/notifications/open?notificationId=302&guidebookId=102',
+        target: '/notifications/open?notificationId=302&guidebookId=102&type=TRIP_STARTING',
         notificationId: '302',
+        notificationType: 'TRIP_STARTING',
         referenceType: 'GUIDEBOOK',
         referenceId: '102',
       },
@@ -160,12 +162,12 @@ describe('Web Push Service Worker', () => {
     const harness = createHarness([visibleClient])
 
     await harness.notificationClick({
-      target: '/notifications/open?notificationId=301&guidebookId=101',
+      target: '/notifications/open?notificationId=301&guidebookId=101&type=GUIDEBOOK_COMPLETED',
       notificationId: '301',
     })
 
     expect(visibleClient.navigate).toHaveBeenCalledWith(
-      'https://kguidebook.site/notifications/open?notificationId=301&guidebookId=101',
+      'https://kguidebook.site/notifications/open?notificationId=301&guidebookId=101&type=GUIDEBOOK_COMPLETED',
     )
     expect(focused.focus).toHaveBeenCalledOnce()
     expect(harness.openWindow).not.toHaveBeenCalled()
@@ -175,12 +177,12 @@ describe('Web Push Service Worker', () => {
     const harness = createHarness()
 
     await harness.notificationClick({
-      target: '/notifications/open?notificationId=301&guidebookId=101',
+      target: '/notifications/open?notificationId=301&guidebookId=101&type=GUIDEBOOK_COMPLETED',
       notificationId: '301',
     })
 
     expect(harness.openWindow).toHaveBeenCalledWith(
-      'https://kguidebook.site/notifications/open?notificationId=301&guidebookId=101',
+      'https://kguidebook.site/notifications/open?notificationId=301&guidebookId=101&type=GUIDEBOOK_COMPLETED',
     )
   })
 })

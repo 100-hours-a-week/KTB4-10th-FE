@@ -59,13 +59,14 @@ function parseGuidebookPushPayload(event) {
   ) {
     return null
   }
-  return { notificationId, guidebookId, copy }
+  return { notificationId, guidebookId, type: payload.type, copy }
 }
 
-function notificationTarget(notificationId, guidebookId) {
+function notificationTarget(notificationId, guidebookId, type) {
   const query = new URLSearchParams({
     notificationId,
     guidebookId: String(guidebookId),
+    type,
   })
   return `${NOTIFICATION_OPEN_PATH}?${query.toString()}`
 }
@@ -102,8 +103,9 @@ async function displayGuidebookNotification(payload) {
     tag,
     renotify: false,
     data: {
-      target: notificationTarget(payload.notificationId, payload.guidebookId),
+      target: notificationTarget(payload.notificationId, payload.guidebookId, payload.type),
       notificationId: payload.notificationId,
+      notificationType: payload.type,
       referenceType: GUIDEBOOK_REFERENCE_TYPE,
       referenceId: String(payload.guidebookId),
     },

@@ -41,6 +41,16 @@ const newerNotification = {
   created_at: '2026-09-28T11:00:00+09:00',
 }
 
+const tripStartingNotification = {
+  notification_id: '12',
+  type: 'TRIP_STARTING',
+  title: '여행 일정이 곧 시작돼요',
+  body: '서울 여행이 내일 시작됩니다.',
+  reference_type: 'GUIDEBOOK',
+  reference_id: '6',
+  created_at: '2026-09-28T12:00:00+09:00',
+}
+
 function response(items = [olderNotification, newerNotification]) {
   return {
     items,
@@ -54,7 +64,7 @@ function response(items = [olderNotification, newerNotification]) {
 
 function GuidebookDestination() {
   const location = useLocation()
-  return <output aria-label="가이드북 이동 정보">{JSON.stringify(location.state)}</output>
+  return <output aria-label="가이드북 이동 정보">{location.pathname}:{JSON.stringify(location.state)}</output>
 }
 
 function InformationDestination() {
@@ -69,6 +79,7 @@ function renderPage() {
         <Route path="/mypage/notifications" element={<NotificationPage />} />
         <Route path="/mypage" element={<h1>마이페이지</h1>} />
         <Route path="/guidebooks" element={<GuidebookDestination />} />
+        <Route path="/guidebooks/:guidebookId" element={<GuidebookDestination />} />
       </Routes>
     </MemoryRouter>,
   )
@@ -155,7 +166,7 @@ describe('NotificationPage', () => {
     expect(screen.getByText('부산 가이드북 생성 완료')).toBeInTheDocument()
   })
 
-  it('가이드북 알림을 누르면 읽음 처리 후 대상 정보를 담아 목록으로 이동한다', async () => {
+  it('생성 완료 알림을 누르면 읽음 처리 후 가이드북 완성 화면으로 이동한다', async () => {
     const user = userEvent.setup()
     renderPage()
 
@@ -165,7 +176,21 @@ describe('NotificationPage', () => {
 
     await waitFor(() => expect(deleteNotificationMock).toHaveBeenCalledWith('11'))
     expect(await screen.findByRole('status', { name: '가이드북 이동 정보' }))
-      .toHaveTextContent('{"highlightGuidebookId":5}')
+      .toHaveTextContent('/guidebooks/5:null')
+  })
+
+  it('여행 일정 임박 알림은 기존 대상 목록 이동과 강조 상태를 유지한다', async () => {
+    const user = userEvent.setup()
+    getNotificationsMock.mockResolvedValue(response([tripStartingNotification]))
+    renderPage()
+
+    await user.click(await screen.findByRole('button', {
+      name: '여행 일정이 곧 시작돼요 가이드북 보기',
+    }))
+
+    await waitFor(() => expect(deleteNotificationMock).toHaveBeenCalledWith('12'))
+    expect(await screen.findByRole('status', { name: '가이드북 이동 정보' }))
+      .toHaveTextContent('/guidebooks:{"highlightGuidebookId":6}')
   })
 
   it('가이드북 알림 읽음 처리에 실패하면 이동하지 않고 안내한다', async () => {
