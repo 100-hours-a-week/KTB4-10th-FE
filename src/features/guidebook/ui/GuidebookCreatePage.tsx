@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type MouseEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { trackEvent } from '../../../shared/lib/analytics.ts'
 import { getMemberPreferences, getPreferenceOptions } from '../../preference/api/preferences.ts'
@@ -9,6 +9,52 @@ import { companions, dayOffset, message, today, yearLimit } from '../model/condi
 import { districtNames, provinceNames, regions } from '../model/regions.ts'
 import { isRunning, useGeneration } from '../model/generation.ts'
 import { BookHeader } from './GuidebookLayout.tsx'
+
+type DateFieldProps = {
+  label: string
+  value: string
+  min: string
+  max: string
+  disabled?: boolean
+  onChange: (value: string) => void
+}
+
+function displayDate(value: string): string {
+  return value ? value.replaceAll('-', '/') : 'YYYY/MM/DD'
+}
+
+function openDatePicker(event: MouseEvent<HTMLInputElement>) {
+  const input = event.currentTarget
+  if (typeof input.showPicker !== 'function') return
+  try {
+    input.showPicker()
+  } catch {
+    input.focus()
+  }
+}
+
+function DateField({ label, value, min, max, disabled = false, onChange }: DateFieldProps) {
+  return <label>
+    <span>{label}</span>
+    <span className={`book-date-field${disabled ? ' book-date-field--disabled' : ''}`}>
+      <span className={`book-date-field__value${value ? '' : ' book-date-field__value--empty'}`} aria-hidden="true">
+        {displayDate(value)}
+      </span>
+      <img src="/assets/guidebook/calendar.png" alt="" aria-hidden="true" />
+      <input
+        aria-label={label}
+        type="date"
+        required
+        disabled={disabled}
+        min={min}
+        max={max}
+        value={value}
+        onClick={openDatePicker}
+        onChange={(event) => onChange(event.target.value)}
+      />
+    </span>
+  </label>
+}
 
 export function GuidebookCreatePage() {
   const navigate = useNavigate()
@@ -120,16 +166,16 @@ export function GuidebookCreatePage() {
       <fieldset disabled={submitting || uncertain || isRunning(job)}>
         <legend>여행 조건</legend>
         <section><h2>지역</h2><div className="book-form-row">
-          <label><span>시·도</span><select aria-label="시·도" required value={form.province} onChange={(event) => { update('province', event.target.value); update('city', '') }}><option value="">시·도 선택</option>{provinceNames.map((name) => <option key={name}>{name}</option>)}</select></label>
-          <label><span>시·군·구</span><select aria-label="시·군·구" required value={form.city} disabled={!form.province} onChange={(event) => update('city', event.target.value)}><option value="">시·군·구 선택</option>{districtNames(form.province).map((name) => <option key={name}>{name}</option>)}</select></label>
+          <label><span>시·도</span><span className="book-select-field"><select aria-label="시·도" required value={form.province} onChange={(event) => { update('province', event.target.value); update('city', '') }}><option value="">시·도 선택</option>{provinceNames.map((name) => <option key={name}>{name}</option>)}</select><img src="/assets/guidebook/down-arrow.png" alt="" aria-hidden="true" /></span></label>
+          <label><span>시·군·구</span><span className="book-select-field"><select aria-label="시·군·구" required value={form.city} disabled={!form.province} onChange={(event) => update('city', event.target.value)}><option value="">시·군·구 선택</option>{districtNames(form.province).map((name) => <option key={name}>{name}</option>)}</select><img src="/assets/guidebook/down-arrow.png" alt="" aria-hidden="true" /></span></label>
         </div></section>
-        <section><h2>여행 날짜</h2><div className="book-form-row">
-          <label><span>시작일</span><input aria-label="시작일" type="date" required min={minDate} max={maxDate} value={form.start_date} onChange={(event) => { update('start_date', event.target.value); update('end_date', '') }} /></label>
-          <label><span>종료일</span><input aria-label="종료일" type="date" required disabled={!form.start_date} min={form.start_date || minDate} max={endLimit} value={form.end_date} onChange={(event) => update('end_date', event.target.value)} /></label>
+        <section><h2>여행 날짜</h2><div className="book-form-row book-form-row--dates">
+          <DateField label="시작일" min={minDate} max={maxDate} value={form.start_date} onChange={(value) => { update('start_date', value); update('end_date', '') }} />
+          <DateField label="종료일" disabled={!form.start_date} min={form.start_date || minDate} max={endLimit} value={form.end_date} onChange={(value) => update('end_date', value)} />
         </div><small>오늘부터 1년 이내, 최대 7일까지 선택할 수 있어요.</small></section>
         <section><div className="book-form-row">
-          <label><span>동행</span><select aria-label="동행" value={form.companion} onChange={(event) => { const value = event.target.value as Companion; update('companion', value); update('people_count', companions[value][1]) }}>{Object.entries(companions).map(([value, item]) => <option key={value} value={value}>{item[0]}</option>)}</select></label>
-          <label><span>인원</span><select aria-label="인원" value={form.people_count} onChange={(event) => update('people_count', Number(event.target.value))}>{Array.from({ length: rule[2] - rule[1] + 1 }, (_, i) => rule[1] + i).map((count) => <option value={count} key={count}>{count}명</option>)}</select></label>
+          <label><span>동행</span><span className="book-select-field"><select aria-label="동행" value={form.companion} onChange={(event) => { const value = event.target.value as Companion; update('companion', value); update('people_count', companions[value][1]) }}>{Object.entries(companions).map(([value, item]) => <option key={value} value={value}>{item[0]}</option>)}</select><img src="/assets/guidebook/down-arrow.png" alt="" aria-hidden="true" /></span></label>
+          <label><span>인원</span><span className="book-select-field"><select aria-label="인원" value={form.people_count} onChange={(event) => update('people_count', Number(event.target.value))}>{Array.from({ length: rule[2] - rule[1] + 1 }, (_, i) => rule[1] + i).map((count) => <option value={count} key={count}>{count}명</option>)}</select><img src="/assets/guidebook/down-arrow.png" alt="" aria-hidden="true" /></span></label>
         </div><small>본인을 포함한 인원을 선택해 주세요.</small></section>
       </fieldset>
       <div className="book-notice">저장한 취향을 바탕으로 여행을 구성해요.<br />생성권은 가이드북이 완성되면 1개 사용돼요.

@@ -72,7 +72,26 @@
 .book-form-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
 .book-form label { display: grid; gap: 9px; min-width: 0; font-size: 13px; font-weight: 600; }
 .book-form label span { color: #666670; font-weight: 400; font-size: 12px; }
-.book-form select, .book-form input { width: 100%; min-width: 0; height: 46px; padding: 0 9px; border: 1px solid #e5e5ea; border-radius: 9px; background: #fff; color: #242428; font: inherit; font-size: 12px; }
+.book-form select,
+.book-date-field { width: 100%; min-width: 0; height: 46px; border: 1px solid #e5e5ea; border-radius: 9px; background-color: #fff; color: #242428; font: inherit; font-size: 12px; }
+.book-form select {
+  appearance: none;
+  padding: 0 34px 0 9px;
+}
+.book-select-field { position: relative; display: block; }
+.book-select-field img { position: absolute; top: 50%; right: 10px; width: 16px; height: 16px; opacity: .5; pointer-events: none; transform: translateY(-50%); }
+.book-select-field:has(select:disabled) img { opacity: .25; }
+.book-date-field { position: relative; display: grid; overflow: hidden; grid-template-columns: minmax(0, 1fr) 20px; gap: 6px; align-items: center; padding: 0 10px; }
+.book-date-field__value { overflow: hidden; color: #242428 !important; font-size: 12px !important; font-weight: 500 !important; text-overflow: ellipsis; white-space: nowrap; }
+.book-date-field__value--empty { color: #92929b !important; font-weight: 400 !important; }
+.book-date-field img { width: 20px; height: 20px; object-fit: contain; opacity: .72; }
+.book-date-field input { position: absolute; z-index: 1; inset: 0; width: 100%; height: 100%; padding: 0; border: 0; opacity: 0; cursor: pointer; font-size: 16px; }
+.book-date-field:focus-within { border-color: #141417; outline: 2px solid rgb(20 20 23 / 10%); }
+.book-date-field--disabled { background-color: #f4f4f6; }
+.book-date-field--disabled .book-date-field__value,
+.book-date-field--disabled img { opacity: .38; }
+.book-date-field--disabled input { cursor: not-allowed; }
+.book-form select:focus-visible { border-color: #141417; outline: 2px solid rgb(20 20 23 / 10%); }
 .book-form small { display: block; margin-top: 9px; color: #81818a; font-size: 11px; }
 .book-form :disabled { color: #909099; }
 .book-page .primary-button:disabled { border-color: #dddde2; background: #dddde2; color: #777781; }
@@ -81,6 +100,17 @@
 .book-preference-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 12px; }
 .book-preference-list { display: flex; min-width: 0; flex: 1; flex-wrap: wrap; gap: 6px; }
 .book-preference-chip { padding: 3px 8px; border: 1px solid #d9d9df; border-radius: 999px; background: #fff; color: #4f4f58; font-size: 11px; line-height: 1.5; }
+
+@media (max-width: 340px) {
+  .book-form-row--dates { grid-template-columns: 1fr; }
+}
+
+@media (forced-colors: active) {
+  .book-date-field { padding: 0; }
+  .book-date-field__value,
+  .book-date-field img { display: none; }
+  .book-date-field input { position: static; padding: 0 9px; opacity: 1; }
+}
 .book-preference-empty { color: #81818a; font-size: 11px; }
 .book-preference-row > a { flex-shrink: 0; }
 .book-hint { font-size: 13px; color: #73737d; line-height: 1.6; }
