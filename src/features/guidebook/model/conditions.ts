@@ -16,6 +16,6 @@ export function yearLimit(value: string) {
 }
 export function message(error: unknown) {
   const code = axios.isAxiosError(error) ? error.response?.data?.error?.code : ''
-  const messages: Record<string, string> = { CREDIT_INSUFFICIENT: '사용 가능한 생성권이 없어요.', GENERATION_IN_PROGRESS: '이미 생성 중인 가이드북이 있어요.', PREFERENCE_INVALID: '취향 선택을 먼저 완료해 주세요.', GUIDEBOOK_INVALID_REGION: '지역을 다시 선택해 주세요.', GUIDEBOOK_INVALID_PERIOD: '기간을 다시 확인해 주세요.', AUTH_SESSION_REQUIRED: '로그인이 필요해요.', RESOURCE_NOT_FOUND: '가이드북을 찾을 수 없어요.', RESOURCE_FORBIDDEN: '접근할 수 없어요.' }
+  const messages: Record<string, string> = { CREDIT_INSUFFICIENT: '사용 가능한 생성권이 없어요.', GENERATION_IN_PROGRESS: '이미 생성 중인 가이드북이 있어요.', REGENERATION_LIMIT_EXCEEDED: '가이드북 재생성 가능 횟수를 모두 사용했어요.', REGENERATION_WINDOW_EXPIRED: '가이드북 재생성 가능 시간이 지났어요.', PREFERENCE_INVALID: '취향 선택을 먼저 완료해 주세요.', GUIDEBOOK_INVALID_REGION: '지역을 다시 선택해 주세요.', GUIDEBOOK_INVALID_PERIOD: '기간을 다시 확인해 주세요.', AUTH_SESSION_REQUIRED: '로그인이 필요해요.', RESOURCE_NOT_FOUND: '가이드북을 찾을 수 없어요.', RESOURCE_FORBIDDEN: '접근할 수 없어요.' }
   return messages[code] ?? '요청을 처리하지 못했어요. 다시 시도해 주세요.'
 }

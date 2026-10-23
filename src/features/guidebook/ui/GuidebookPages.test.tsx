@@ -378,6 +378,7 @@ describe('가이드북 화면', () => {
       end_date: '2026-10-21',
       people_count: 2,
       thumbnail_url: 'https://example.com/guidebook.jpg',
+      regeneration: { remaining_count: 3, expires_at: '2099-10-23T09:10:00Z', available: true },
       itinerary: [{ day_number: 1, itinerary_date: '2026-10-20', items: [
         { item_id: 1, sequence: 1, scheduled_time: null, place_snapshot: { title: '첨성대' } },
         { item_id: 2, sequence: 2, scheduled_time: null, place_snapshot: { title: '대릉원' } },
@@ -391,10 +392,40 @@ expect(await screen.findByText('경주 여행')).toBeInTheDocument()
     expect(document.querySelector('.book-summary .book-cover img'))
       .toHaveAttribute('src', 'https://example.com/guidebook.jpg')
     expect(screen.getByText('첨성대 외 1곳')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: '재생성' })).toHaveAttribute('href', '/guidebooks/10/regenerate')
+    expect(screen.getByRole('link', { name: '재생성 (3회 남음)' })).toHaveAttribute('href', '/guidebooks/10/regenerate')
+  })
+
+  it('완료 화면은 재생성 횟수를 모두 사용하면 진입을 막고 사유를 표시한다', async () => {
+    getBook.mockResolvedValue({
+      guidebook_id: 10,
+      title: '경주 여행',
+      start_date: '2026-10-20',
+      end_date: '2026-10-21',
+      people_count: 2,
+      thumbnail_url: null,
+      regeneration: { remaining_count: 0, expires_at: '2099-10-23T09:10:00Z', available: false },
+      itinerary: [],
+    })
+    render(<MemoryRouter initialEntries={['/guidebooks/10']}><Routes>
+      <Route path="/guidebooks/:guidebookId" element={<GuidebookDetailPage />} />
+    </Routes></MemoryRouter>)
+
+    expect(await screen.findByRole('button', { name: '재생성 (0회 남음)' })).toBeDisabled()
+    expect(screen.getByRole('status')).toHaveTextContent('가이드북 재생성 가능 횟수를 모두 사용했어요.')
+    expect(screen.queryByRole('link', { name: /재생성/ })).not.toBeInTheDocument()
   })
 
   it('재생성은 수정 요청만 필수로 접수하고 기존 진행 화면으로 이동한다', async () => {
+    getBook.mockResolvedValue({
+      guidebook_id: 10,
+      title: '경주 여행',
+      start_date: '2026-10-20',
+      end_date: '2026-10-21',
+      people_count: 2,
+      thumbnail_url: null,
+      regeneration: { remaining_count: 2, expires_at: '2099-10-23T09:10:00Z', available: true },
+      itinerary: [],
+    })
     regenerateBook.mockResolvedValue({ job_id: 41, job_type: 'REGENERATION', status: 'PENDING', guidebook_id: 10, current_version: 1 })
     render(<MemoryRouter initialEntries={[{
       pathname: '/guidebooks/10/regenerate',
@@ -405,7 +436,8 @@ expect(await screen.findByText('경주 여행')).toBeInTheDocument()
     </Routes></MemoryRouter>)
 
     expect(screen.queryByLabelText('표지 제목')).not.toBeInTheDocument()
-    const submit = screen.getByRole('button', { name: '수정 요청' })
+    const submit = await screen.findByRole('button', { name: '수정 요청' })
+    await waitFor(() => expect(screen.getByRole('textbox', { name: /수정 요청/ })).toBeEnabled())
     expect(submit).toBeDisabled()
     fireEvent.change(screen.getByRole('textbox', { name: /수정 요청/ }), { target: { value: '  둘째 날은 더 여유롭게 해 주세요.  ' } })
     fireEvent.click(submit)
@@ -413,6 +445,27 @@ expect(await screen.findByText('경주 여행')).toBeInTheDocument()
     expect(await screen.findByText('재생성 진행 화면')).toBeInTheDocument()
     expect(regenerateBook).toHaveBeenCalledWith(10, '둘째 날은 더 여유롭게 해 주세요.', expect.stringContaining('guidebook-10-regeneration-'))
     expect(track).toHaveBeenCalledWith(expect.objectContaining({ job_id: 41, status: 'PENDING' }), expect.any(Number))
+  })
+
+  it('재생성 URL에 직접 접근해도 횟수를 모두 사용하면 입력과 제출을 막는다', async () => {
+    getBook.mockResolvedValue({
+      guidebook_id: 10,
+      title: '경주 여행',
+      start_date: '2026-10-20',
+      end_date: '2026-10-21',
+      people_count: 2,
+      thumbnail_url: null,
+      regeneration: { remaining_count: 0, expires_at: '2099-10-23T09:10:00Z', available: false },
+      itinerary: [],
+    })
+    render(<MemoryRouter initialEntries={['/guidebooks/10/regenerate']}><Routes>
+      <Route path="/guidebooks/:guidebookId/regenerate" element={<GuidebookRegeneratePage />} />
+    </Routes></MemoryRouter>)
+
+    expect(await screen.findByText('가이드북 재생성 가능 횟수를 모두 사용했어요.')).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: /수정 요청/ })).toBeDisabled()
+    expect(screen.getByRole('button', { name: '수정 요청' })).toBeDisabled()
+    expect(regenerateBook).not.toHaveBeenCalled()
   })
 
   it('수정 취소는 재생성을 시작하지 않고 완료 화면으로 돌아간다', async () => {

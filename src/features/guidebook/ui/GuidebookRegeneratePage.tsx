@@ -1,8 +1,9 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { regenerateBook } from '../api/guidebooks.ts'
+import { getBook, regenerateBook, type Detail } from '../api/guidebooks.ts'
 import { message } from '../model/conditions.ts'
 import { useGeneration } from '../model/generation.ts'
+import { regenerationUnavailableMessage, useRegenerationState } from '../model/regeneration.ts'
 import { BookHeader } from './GuidebookLayout.tsx'
 
 const feedbackLimit = 200
@@ -17,6 +18,8 @@ export function GuidebookRegeneratePage() {
   const location = useLocation()
   const navigate = useNavigate()
   const { track } = useGeneration()
+  const [guidebook, setGuidebook] = useState<Detail | null>(null)
+  const [availabilityError, setAvailabilityError] = useState('')
   const [feedback, setFeedback] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -25,9 +28,20 @@ export function GuidebookRegeneratePage() {
   const returnTo = typeof returnToState === 'string' ? returnToState : `/guidebooks/${guidebookId}`
   const trimmedFeedback = feedback.trim()
   const validId = Number.isSafeInteger(id) && id > 0
+  const regenerationState = useRegenerationState(guidebook?.regeneration ?? null)
+  const canRegenerate = validId && regenerationState?.available === true
+
+  useEffect(() => {
+    if (!validId) return
+    const controller = new AbortController()
+    void getBook(guidebookId, controller.signal)
+      .then((value) => { if (!controller.signal.aborted) setGuidebook(value) })
+      .catch((reason) => { if (!controller.signal.aborted) setAvailabilityError(message(reason)) })
+    return () => controller.abort()
+  }, [guidebookId, validId])
 
   async function submit() {
-    if (!validId || !trimmedFeedback || submitting) return
+    if (!canRegenerate || !trimmedFeedback || submitting) return
     setSubmitting(true); setError('')
     try {
       const job = await regenerateBook(id, trimmedFeedback, key.current)
@@ -55,12 +69,15 @@ export function GuidebookRegeneratePage() {
         rows={10}
         placeholder="예) 둘째 날은 조금 더 여유롭게 구성해 주세요."
         onChange={(event) => setFeedback(event.target.value)}
-        disabled={submitting || !validId}
+        disabled={submitting || !canRegenerate}
       />
       <p className="book-feedback-hint">방문 장소, 방문 순서, 일정의 분위기처럼 바꾸고 싶은 내용을 자유롭게 적어주세요.</p>
       {!validId && <p className="book-error" role="alert">잘못된 가이드북 주소예요.</p>}
+      {validId && !guidebook && !availabilityError && <p className="book-regeneration-status" role="status">재생성 가능 여부를 확인하고 있어요.</p>}
+      {availabilityError && <p className="book-error" role="alert">{availabilityError}</p>}
+      {guidebook && !regenerationState?.available && <p className="book-error" role="alert">{regenerationUnavailableMessage(regenerationState?.reason ?? 'unavailable')}</p>}
       {error && <p className="book-error" role="alert">{error}</p>}
-      <button className="primary-button" disabled={!validId || !trimmedFeedback || submitting} onClick={() => void submit()}>
+      <button className="primary-button" disabled={!canRegenerate || !trimmedFeedback || submitting} onClick={() => void submit()}>
         {submitting ? '수정 요청 중…' : '수정 요청'}
       </button>
       <button className="book-text-button" disabled={submitting} onClick={() => navigate(returnTo, { replace: true })}>수정 취소</button>

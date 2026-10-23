@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { getBook, type Detail } from '../api/guidebooks.ts'
 import { message } from '../model/conditions.ts'
+import { regenerationUnavailableMessage, useRegenerationState } from '../model/regeneration.ts'
 import { BookCover, BookHeader, State } from './GuidebookLayout.tsx'
 
 export function GuidebookDetailPage() {
@@ -14,6 +15,7 @@ function DetailContent({ guidebookId }: { guidebookId: string }) {
   const [data, setData] = useState<Detail | null>(null)
   const [error, setError] = useState(/^[1-9]\d*$/.test(guidebookId) ? '' : '잘못된 가이드북 주소예요.')
   const [revision, setRevision] = useState(0)
+  const regenerationState = useRegenerationState(data?.regeneration ?? null)
   useEffect(() => {
     const controller = new AbortController()
     if (!/^[1-9]\d*$/.test(guidebookId)) return
@@ -34,7 +36,12 @@ function DetailContent({ guidebookId }: { guidebookId: string }) {
       </section>
       <Link className="primary-button book-button" to={`/guidebooks/${guidebookId}/viewer`} state={{ returnTo: location.pathname }}>가이드북 보기</Link>
       <Link className="secondary-button book-button book-list-button" to="/guidebooks">가이드북 목록</Link>
-      <Link className="book-text-button book-regenerate-link" to={`/guidebooks/${guidebookId}/regenerate`} state={{ returnTo: location.pathname }}>재생성</Link>
+      {regenerationState?.available
+        ? <Link className="book-text-button book-regenerate-link" to={`/guidebooks/${guidebookId}/regenerate`} state={{ returnTo: location.pathname }}>재생성 ({data.regeneration.remaining_count}회 남음)</Link>
+        : <>
+          <button className="book-text-button book-regenerate-link" disabled>재생성 ({data.regeneration.remaining_count}회 남음)</button>
+          <p className="book-regenerate-unavailable" role="status">{regenerationUnavailableMessage(regenerationState?.reason ?? 'unavailable')}</p>
+        </>}
     </article>}
   </main>
 }
