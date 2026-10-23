@@ -8,7 +8,7 @@ export type Job = { job_id: number; job_type?: 'INITIAL' | 'REGENERATION'; statu
 export type Book = { guidebook_id: number; title: string; start_date: string; end_date: string; thumbnail_url: string | null; companion: Companion }
 export type BookList = { items: Book[]; next_cursor: string | null; has_more: boolean }
 export type RegenerationAvailability = { remaining_count: number; expires_at: string | null; available: boolean }
-export type Detail = Omit<Book, 'companion'> & { people_count: number; regeneration: RegenerationAvailability; itinerary: { day_number: number; itinerary_date: string; items: { item_id: number; sequence: number; scheduled_time: string | null; place_snapshot: { title?: string } | null }[] }[] }
+export type Detail = Omit<Book, 'companion'> & { people_count: number; regeneration?: RegenerationAvailability; itinerary: { day_number: number; itinerary_date: string; items: { item_id: number; sequence: number; scheduled_time: string | null; place_snapshot: { title?: string } | null }[] }[] }
 export type Viewer = { guidebook_id: number; content_html: string; version: number; updated_at: string }
 export type RegenerationJob = Job & { job_type: 'REGENERATION'; current_version: number }
 async function get<T>(path: string, signal?: AbortSignal): Promise<T> {

@@ -36,10 +36,10 @@ function DetailContent({ guidebookId }: { guidebookId: string }) {
       </section>
       <Link className="primary-button book-button" to={`/guidebooks/${guidebookId}/viewer`} state={{ returnTo: location.pathname }}>가이드북 보기</Link>
       <Link className="secondary-button book-button book-list-button" to="/guidebooks">가이드북 목록</Link>
-      {regenerationState?.available
+      {regenerationState?.available && data.regeneration
         ? <Link className="book-text-button book-regenerate-link" to={`/guidebooks/${guidebookId}/regenerate`} state={{ returnTo: location.pathname }}>재생성 ({data.regeneration.remaining_count}회 남음)</Link>
         : <>
-          <button className="book-text-button book-regenerate-link" disabled>재생성 ({data.regeneration.remaining_count}회 남음)</button>
+          <button className="book-text-button book-regenerate-link" disabled>{data.regeneration ? `재생성 (${data.regeneration.remaining_count}회 남음)` : '재생성'}</button>
           <p className="book-regenerate-unavailable" role="status">{regenerationUnavailableMessage(regenerationState?.reason ?? 'unavailable')}</p>
         </>}
     </article>}

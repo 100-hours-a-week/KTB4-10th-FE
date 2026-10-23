@@ -415,6 +415,24 @@ expect(await screen.findByText('경주 여행')).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /재생성/ })).not.toBeInTheDocument()
   })
 
+  it('재생성 상태가 없는 이전 상세 응답에서도 화면이 깨지지 않고 안전하게 막는다', async () => {
+    getBook.mockResolvedValue({
+      guidebook_id: 10,
+      title: '경주 여행',
+      start_date: '2026-10-20',
+      end_date: '2026-10-21',
+      people_count: 2,
+      thumbnail_url: null,
+      itinerary: [],
+    })
+    render(<MemoryRouter initialEntries={['/guidebooks/10']}><Routes>
+      <Route path="/guidebooks/:guidebookId" element={<GuidebookDetailPage />} />
+    </Routes></MemoryRouter>)
+
+    expect(await screen.findByRole('button', { name: '재생성' })).toBeDisabled()
+    expect(screen.getByRole('status')).toHaveTextContent('재생성 가능 여부를 확인하지 못했어요.')
+  })
+
   it('재생성은 수정 요청만 필수로 접수하고 기존 진행 화면으로 이동한다', async () => {
     getBook.mockResolvedValue({
       guidebook_id: 10,

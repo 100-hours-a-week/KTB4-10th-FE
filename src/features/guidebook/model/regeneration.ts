@@ -40,5 +40,5 @@ export function useRegenerationState(regeneration: RegenerationAvailability | nu
 export function regenerationUnavailableMessage(reason: RegenerationState['reason']) {
   if (reason === 'exhausted') return '가이드북 재생성 가능 횟수를 모두 사용했어요.'
   if (reason === 'expired') return '가이드북 재생성 가능 시간이 지났어요.'
-  return '이 가이드북은 재생성할 수 없어요.'
+  return '재생성 가능 여부를 확인하지 못했어요.'
 }
