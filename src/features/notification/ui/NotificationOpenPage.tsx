@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { routes } from '../../../shared/config/routes.ts'
 import { deleteNotification, getNotifications } from '../api/notifications.ts'
 import { notifyNotificationsUpdated } from '../model/events.ts'
+import { guidebookNotificationDestination } from '../model/guidebookNotificationNavigation.ts'
 import './notification-page.css'
 
 function positiveInteger(value: string | null): number | null {
@@ -18,6 +19,7 @@ export function NotificationOpenPage() {
   const [error, setError] = useState(false)
   const notificationId = searchParams.get('notificationId')
   const guidebookId = positiveInteger(searchParams.get('guidebookId'))
+  const notificationType = searchParams.get('type')
 
   useEffect(() => {
     if (!notificationId || !guidebookId) {
@@ -36,15 +38,16 @@ export function NotificationOpenPage() {
         void getNotifications()
           .then(({ unread_count: unreadCount }) => notifyNotificationsUpdated(unreadCount))
           .catch(() => undefined)
-        navigate(routes.guidebooks, {
+        const destination = guidebookNotificationDestination(notificationType, guidebookId)
+        navigate(destination.pathname, {
           replace: true,
-          state: { highlightGuidebookId: guidebookId },
+          state: destination.state,
         })
       })
       .catch(() => { if (active) setError(true) })
 
     return () => { active = false }
-  }, [guidebookId, navigate, notificationId, revision])
+  }, [guidebookId, navigate, notificationId, notificationType, revision])
 
   return (
     <main className="app-shell notification-open-page">

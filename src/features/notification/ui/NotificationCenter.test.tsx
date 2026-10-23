@@ -192,7 +192,7 @@ describe('전역 SSE 알림 센터', () => {
     expect(await screen.findAllByRole('button', { name: '가이드북 보기' })).toHaveLength(1)
   })
 
-  it('토스트를 선택하면 읽음 처리 후 대상 가이드북 정보를 담아 목록으로 이동한다', async () => {
+  it('생성 완료 토스트를 선택하면 읽음 처리 후 가이드북 완성 화면으로 이동한다', async () => {
     renderCenter()
     await waitFor(() => expect(openNotificationStream).toHaveBeenCalledOnce())
     act(() => stream.dispatchEvent(new MessageEvent('notification', {
@@ -204,7 +204,7 @@ describe('전역 SSE 알림 센터', () => {
     await waitFor(() => expect(deleteNotification).toHaveBeenCalledWith('51'))
     await waitFor(() => {
       expect(screen.getByRole('status', { name: '현재 경로' }))
-        .toHaveTextContent('/guidebooks:{"highlightGuidebookId":10}')
+        .toHaveTextContent('/guidebooks/10:null')
     })
   })
 

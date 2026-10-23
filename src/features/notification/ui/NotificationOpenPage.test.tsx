@@ -15,7 +15,7 @@ vi.mock('../api/notifications.ts', () => ({
 
 function Destination() {
   const location = useLocation()
-  return <output aria-label="가이드북 이동 정보">{JSON.stringify(location.state)}</output>
+  return <output aria-label="가이드북 이동 정보">{location.pathname}:{JSON.stringify(location.state)}</output>
 }
 
 describe('Web Push 알림 열기 화면', () => {
@@ -25,7 +25,22 @@ describe('Web Push 알림 열기 화면', () => {
     getNotificationsMock.mockResolvedValue({ unread_count: 0, items: [] })
   })
 
-  it('알림을 읽음 처리한 뒤 대상 가이드북 목록으로 이동한다', async () => {
+  it('생성 완료 알림을 읽음 처리한 뒤 가이드북 완성 화면으로 이동한다', async () => {
+    render(
+      <MemoryRouter initialEntries={['/notifications/open?notificationId=301&guidebookId=101&type=GUIDEBOOK_COMPLETED']}>
+        <Routes>
+          <Route path="/notifications/open" element={<NotificationOpenPage />} />
+          <Route path="/guidebooks/:guidebookId" element={<Destination />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    await waitFor(() => expect(deleteNotificationMock).toHaveBeenCalledWith('301'))
+    expect(await screen.findByRole('status', { name: '가이드북 이동 정보' }))
+      .toHaveTextContent('/guidebooks/101:null')
+  })
+
+  it('이전 Service Worker의 타입 없는 링크는 기존 목록 이동을 유지한다', async () => {
     render(
       <MemoryRouter initialEntries={['/notifications/open?notificationId=301&guidebookId=101']}>
         <Routes>
@@ -37,7 +52,22 @@ describe('Web Push 알림 열기 화면', () => {
 
     await waitFor(() => expect(deleteNotificationMock).toHaveBeenCalledWith('301'))
     expect(await screen.findByRole('status', { name: '가이드북 이동 정보' }))
-      .toHaveTextContent('{"highlightGuidebookId":101}')
+      .toHaveTextContent('/guidebooks:{"highlightGuidebookId":101}')
+  })
+
+  it('여행 일정 임박 Push는 기존 목록 이동과 강조 상태를 유지한다', async () => {
+    render(
+      <MemoryRouter initialEntries={['/notifications/open?notificationId=302&guidebookId=102&type=TRIP_STARTING']}>
+        <Routes>
+          <Route path="/notifications/open" element={<NotificationOpenPage />} />
+          <Route path="/guidebooks" element={<Destination />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    await waitFor(() => expect(deleteNotificationMock).toHaveBeenCalledWith('302'))
+    expect(await screen.findByRole('status', { name: '가이드북 이동 정보' }))
+      .toHaveTextContent('/guidebooks:{"highlightGuidebookId":102}')
   })
 
   it('필수 식별자가 올바르지 않으면 알림 목록으로 돌아간다', async () => {
