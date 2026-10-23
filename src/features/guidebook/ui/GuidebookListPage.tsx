@@ -8,6 +8,7 @@ import { BookCover, State } from './GuidebookLayout.tsx'
 import { PageHeader } from '../../../shared/ui/PageHeader.tsx'
 import { getCreditWallet } from '../api/credits.ts'
 import { Toast } from '../../../shared/ui/Toast.tsx'
+import { routes } from '../../../shared/config/routes.ts'
 
 const HIGHLIGHT_DURATION_MS = 600
 const SCROLL_END_FALLBACK_MS = 800
@@ -30,6 +31,7 @@ export function GuidebookListPage() {
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
   const modal = useRef<HTMLDialogElement>(null)
+  const creditModal = useRef<HTMLDialogElement>(null)
   const request = useRef<AbortController | null>(null)
   const loadLock = useRef(false)
   const deleteLock = useRef(false)
@@ -166,9 +168,17 @@ export function GuidebookListPage() {
     finally { deleteLock.current = false; setDeleting(false) }
   }
 
+  function openCreate() {
+    if (creditBalance === 0) {
+      creditModal.current?.showModal()
+      return
+    }
+    navigate(routes.guidebookCreate)
+  }
+
   return <main className="app-shell book-page book-list-page">
     <PageHeader title="가이드북" leading={<span className="book-credit-balance" role="status" aria-label="잔여 생성권">잔여 생성권<br /><strong>{creditBalance === null ? '—' : `${creditBalance}개`}</strong></span>}>
-      <Link className="book-create-link" to="/guidebooks/new" aria-label="가이드북 만들기">생성</Link>
+      <button className="book-create-link" type="button" onClick={openCreate} aria-label="가이드북 만들기">생성</button>
     </PageHeader>
     <div className="book-content">
       {job && job.status !== 'COMPLETED' && <Link className="book-job" to={`/guidebooks/generating/${job.job_id}`}>
@@ -177,7 +187,7 @@ export function GuidebookListPage() {
       </Link>}
       {jobError && <State error onRetry={job ? refresh : undefined}>{jobError}</State>}
       {error && <State error onRetry={() => failedCursor.current ? void loadMore() : setRevision((value) => value + 1)}>{error}</State>}
-      {data?.items.length === 0 && !loading && !error && <div className="book-empty"><BookCover /><h2>아직 가이드북이 없어요</h2><p>여행할 곳을 고르고<br />나만의 여행을 만들어 보세요.</p><Link className="primary-button book-button" to="/guidebooks/new">가이드북 만들기</Link></div>}
+      {data?.items.length === 0 && !loading && !error && <div className="book-empty"><BookCover /><h2>아직 가이드북이 없어요</h2><p>여행할 곳을 고르고<br />나만의 여행을 만들어 보세요.</p><button className="primary-button book-button" type="button" onClick={openCreate}>가이드북 만들기</button></div>}
       <ul className="book-list">{data?.items.map((book) => <li
         className={`book-card${highlightedGuidebookId === book.guidebook_id ? ' book-card--highlighted' : ''}`}
         key={book.guidebook_id}
@@ -208,6 +218,14 @@ export function GuidebookListPage() {
       <h2>삭제하시겠습니까?</h2><p>내 목록에서 가이드북이 삭제돼요.</p>
       {deleteError && <p role="alert" className="book-error">{deleteError}</p>}
       <div className="book-dialog-actions"><button className="secondary-button" disabled={deleting} onClick={() => setTarget(null)}>취소</button><button className="primary-button" disabled={deleting} onClick={() => void remove()}>{deleting ? '삭제 중…' : '삭제'}</button></div>
+    </dialog>
+    <dialog ref={creditModal} className="book-dialog">
+      <h2>생성권이 부족해요</h2>
+      <p>가이드북을 만들려면 생성권이 필요해요.</p>
+      <div className="book-dialog-actions">
+        <button className="secondary-button" type="button" onClick={() => creditModal.current?.close()}>닫기</button>
+        <button className="primary-button" type="button" onClick={() => navigate(routes.coupon)}>쿠폰 등록</button>
+      </div>
     </dialog>
     {highlightError && <Toast message={highlightError} onDismiss={() => setHighlightError('')} />}
   </main>

@@ -172,7 +172,7 @@ describe('가이드북 화면', () => {
     await waitFor(() => expect(screen.queryByText('다음 여행')).not.toBeInTheDocument())
   })
 
-  it('목록 헤더의 생성 버튼으로 가이드북 생성 화면에 이동한다', async () => {
+  it('생성권이 있으면 목록의 생성 버튼으로 가이드북 생성 화면에 이동한다', async () => {
     listBooks.mockResolvedValue({ items: [], next_cursor: null, has_more: false })
     render(<MemoryRouter initialEntries={['/guidebooks']}><Routes>
       <Route path="/guidebooks" element={<GuidebookListPage />} />
@@ -180,9 +180,44 @@ describe('가이드북 화면', () => {
     </Routes></MemoryRouter>)
 
     expect(await screen.findByRole('status', { name: '잔여 생성권' })).toHaveTextContent('잔여 생성권3개')
-    const createLink = screen.getAllByRole('link', { name: '가이드북 만들기' })[0]
-    expect(createLink).toHaveAttribute('href', '/guidebooks/new')
-    fireEvent.click(createLink)
+    fireEvent.click(screen.getAllByRole('button', { name: '가이드북 만들기' })[0])
+    expect(await screen.findByText('가이드북 생성 화면')).toBeInTheDocument()
+  })
+
+  it('생성권이 0개이면 생성 진입 대신 안내하고 쿠폰 등록으로 연결한다', async () => {
+    getCreditWallet.mockResolvedValue({ credit_balance: 0, active_job_id: null, can_generate: false })
+    listBooks.mockResolvedValue({ items: [], next_cursor: null, has_more: false })
+    render(<MemoryRouter initialEntries={['/guidebooks']}><Routes>
+      <Route path="/guidebooks" element={<GuidebookListPage />} />
+      <Route path="/guidebooks/new" element={<p>가이드북 생성 화면</p>} />
+      <Route path="/mypage/coupon" element={<p>쿠폰 등록 화면</p>} />
+    </Routes></MemoryRouter>)
+
+    await waitFor(() => expect(screen.getByRole('status', { name: '잔여 생성권' }))
+      .toHaveTextContent('잔여 생성권0개'))
+    const createButtons = screen.getAllByRole('button', { name: '가이드북 만들기' })
+    expect(createButtons).toHaveLength(2)
+
+    fireEvent.click(createButtons[0])
+    expect(await screen.findByRole('dialog')).toHaveTextContent('생성권이 부족해요')
+    expect(screen.queryByText('가이드북 생성 화면')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '닫기' }))
+
+    fireEvent.click(createButtons[1])
+    fireEvent.click(screen.getByRole('button', { name: '쿠폰 등록' }))
+    expect(await screen.findByText('쿠폰 등록 화면')).toBeInTheDocument()
+  })
+
+  it('생성권 잔액을 확인하지 못하면 생성 화면의 재검증을 위해 진입을 허용한다', async () => {
+    getCreditWallet.mockRejectedValue(new Error('network error'))
+    listBooks.mockResolvedValue({ items: [], next_cursor: null, has_more: false })
+    render(<MemoryRouter initialEntries={['/guidebooks']}><Routes>
+      <Route path="/guidebooks" element={<GuidebookListPage />} />
+      <Route path="/guidebooks/new" element={<p>가이드북 생성 화면</p>} />
+    </Routes></MemoryRouter>)
+
+    await waitFor(() => expect(getCreditWallet).toHaveBeenCalled())
+    fireEvent.click(screen.getAllByRole('button', { name: '가이드북 만들기' })[0])
     expect(await screen.findByText('가이드북 생성 화면')).toBeInTheDocument()
   })
 
