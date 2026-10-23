@@ -882,7 +882,11 @@ button:disabled {
 }
 
 .map-content-overview__header > span { font-size: 12px; font-weight: 700; }
-.map-content-overview__favorite--active { border-color: #b76e42 !important; color: #b76e42 !important; }
+.map-content-overview__header .map-content-overview__favorite { border: 0; background: transparent; }
+.map-content-overview__favorite img { width: 28px; height: 28px; object-fit: contain; }
+.map-content-overview__favorite:focus-visible { border-radius: 8px; outline: 3px solid #b8b8bd; outline-offset: 1px; }
+.map-content-overview__favorite:active { transform: scale(.9); }
+.map-content-overview__favorite:disabled { cursor: default; opacity: .45; }
 .map-content-overview__body { display: grid; gap: 16px; }
 .map-content-overview__image { display: grid; width: 100%; height: 168px; overflow: hidden; place-items: center; border-radius: 16px; background: #ededf0; color: #6b6b73; font-weight: 700; }
 .map-content-overview__image img { width: 100%; height: 100%; object-fit: cover; }
