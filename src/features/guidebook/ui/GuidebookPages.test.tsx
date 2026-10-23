@@ -49,22 +49,36 @@ describe('가이드북 화면', () => {
 
     const startInput = screen.getByLabelText('시작일')
     const endInput = screen.getByLabelText('종료일')
-    expect(startInput.parentElement).toHaveTextContent('YYYY.MM.DD')
-    expect(endInput.parentElement).toHaveTextContent('YYYY.MM.DD')
+    expect(startInput.parentElement).toHaveTextContent('YYYY/MM/DD')
+    expect(endInput.parentElement).toHaveTextContent('YYYY/MM/DD')
     expect(startInput.parentElement?.querySelector('img'))
       .toHaveAttribute('src', '/assets/guidebook/calendar.png')
     expect(endInput).toBeDisabled()
 
+    const showPicker = vi.fn()
+    Object.defineProperty(startInput, 'showPicker', { value: showPicker })
+    fireEvent.click(startInput)
+    expect(showPicker).toHaveBeenCalledOnce()
+
     fireEvent.change(startInput, { target: { value: today() } })
-    expect(startInput.parentElement).toHaveTextContent(today().replaceAll('-', '.'))
+    expect(startInput.parentElement).toHaveTextContent(today().replaceAll('-', '/'))
     expect(endInput).toBeEnabled()
 
     fireEvent.change(endInput, { target: { value: dayOffset(today(), 2) } })
-    expect(endInput.parentElement).toHaveTextContent(dayOffset(today(), 2).replaceAll('-', '.'))
+    expect(endInput.parentElement).toHaveTextContent(dayOffset(today(), 2).replaceAll('-', '/'))
 
     fireEvent.change(startInput, { target: { value: dayOffset(today(), 1) } })
     expect(endInput).toHaveValue('')
-    expect(endInput.parentElement).toHaveTextContent('YYYY.MM.DD')
+    expect(endInput.parentElement).toHaveTextContent('YYYY/MM/DD')
+  })
+
+  it('제공받은 화살표 아이콘을 모든 선택 필드에 표시한다', () => {
+    render(<MemoryRouter><GuidebookCreatePage /></MemoryRouter>)
+
+    for (const label of ['시·도', '시·군·구', '동행', '인원']) {
+      expect(screen.getByLabelText(label).parentElement?.querySelector('img'))
+        .toHaveAttribute('src', '/assets/guidebook/down-arrow.png')
+    }
   })
 
   it('생성권 조회 실패를 0개로 표시하지 않고 재시도한다', async () => {
