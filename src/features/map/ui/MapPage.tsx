@@ -680,13 +680,19 @@ export function MapPage() {
                   <span>{selectedItem.content_type === 'EVENT' ? '행사' : '관광지'}</span>
                   <button
                     type="button"
-                    className={`map-content-overview__favorite${selectedItem.is_favorite ? ' map-content-overview__favorite--active' : ''}`}
+                    className="map-content-overview__favorite"
                     aria-label={selectedItem.is_favorite ? `${selectedItem.title} 즐겨찾기 해제` : `${selectedItem.title} 즐겨찾기 저장`}
                     aria-pressed={selectedItem.is_favorite}
                     disabled={favoritePendingId === selectedItem.content_id}
                     onClick={() => void toggleFavorite(selectedItem)}
                   >
-                    <span aria-hidden="true">{selectedItem.is_favorite ? '★' : '☆'}</span>
+                    <img
+                      src={selectedItem.is_favorite
+                        ? '/assets/favorite/favorite-selected.png'
+                        : '/assets/favorite/favorite.png'}
+                      alt=""
+                      aria-hidden="true"
+                    />
                   </button>
                 </header>
                 <div className="map-content-overview__body">
