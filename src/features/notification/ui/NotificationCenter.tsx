@@ -155,7 +155,7 @@ export function NotificationCenter() {
   useEffect(() => {
     if (member?.status !== 'ACTIVE' || !completedId) return undefined
     const controller = new AbortController()
-    // 실시간 수신을 꺼 둔 회원도 생성 상태 폴링 완료 시 배지는 목록 기준으로 복구합니다.
+    // 생성 완료 상태가 반영되면 알림 목록과 배지도 동기화합니다.
     void syncNotifications(controller.signal).catch(() => undefined)
     return () => controller.abort()
   }, [member?.member_id, member?.status, completedId, syncNotifications])
