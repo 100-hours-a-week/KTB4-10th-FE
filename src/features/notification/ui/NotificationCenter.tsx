@@ -16,18 +16,12 @@ import {
   REALTIME_NOTIFICATION_SETTING_CHANGED_EVENT,
   type RealtimeNotificationSettingChangedDetail,
 } from '../model/events.ts'
-import { guidebookNotificationDestination } from '../model/guidebookNotificationNavigation.ts'
+import { notificationDestination } from '../model/notificationNavigation.ts'
 import { restoreWebPushSubscription } from '../model/webPush.ts'
 import { parseWebPushReceivedMessage } from '../model/webPushMessages.ts'
 
 const NOTIFICATION_EVENT_NAME = 'notification'
 const CONNECTED_EVENT_NAME = 'connected'
-
-function guidebookId(notification: Notification): number | null {
-  if (notification.reference_type !== 'GUIDEBOOK') return null
-  const value = Number(notification.reference_id)
-  return Number.isSafeInteger(value) && value > 0 ? value : null
-}
 
 function notificationToastMessage(notification: Notification): string {
   if (notification.type !== 'GUIDEBOOK_COMPLETED') {
@@ -164,20 +158,20 @@ export function NotificationCenter() {
     setPendingNotifications((current) => current.slice(1))
   }, [])
 
-  const openCurrentGuidebook = async () => {
+  const openCurrentNotification = async () => {
     if (!currentNotification || actingNotificationId) return
-    const targetGuidebookId = guidebookId(currentNotification)
-    if (!targetGuidebookId) return
+    const destination = notificationDestination(
+      currentNotification.type,
+      currentNotification.reference_type,
+      currentNotification.reference_id,
+    )
+    if (!destination) return
 
     setActingNotificationId(currentNotification.notification_id)
     try {
       await deleteNotification(currentNotification.notification_id)
       dismissCurrentNotification()
       void syncNotifications().catch(() => undefined)
-      const destination = guidebookNotificationDestination(
-        currentNotification.type,
-        targetGuidebookId,
-      )
       navigate(destination.pathname, { state: destination.state })
     } catch {
       setFeedback('읽음 처리에 실패했습니다. 다시 시도해주세요.')
@@ -191,7 +185,11 @@ export function NotificationCenter() {
   }
 
   if (!currentNotification) return null
-  const targetGuidebookId = guidebookId(currentNotification)
+  const destination = notificationDestination(
+    currentNotification.type,
+    currentNotification.reference_type,
+    currentNotification.reference_id,
+  )
   const toastMessage = notificationToastMessage(currentNotification)
 
   return (
@@ -200,8 +198,8 @@ export function NotificationCenter() {
       message={toastMessage}
       duration={5000}
       onDismiss={dismissCurrentNotification}
-      onAction={targetGuidebookId ? () => void openCurrentGuidebook() : undefined}
-      actionLabel={targetGuidebookId ? '가이드북 보기' : undefined}
+      onAction={destination ? () => void openCurrentNotification() : undefined}
+      actionLabel={destination?.actionLabel}
       actionDisabled={actingNotificationId === currentNotification.notification_id}
     />
   )

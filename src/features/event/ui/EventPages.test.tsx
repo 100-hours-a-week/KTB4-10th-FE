@@ -595,4 +595,25 @@ describe('event information pages', () => {
     expect(await screen.findByRole('heading', { name: '재시도 행사' })).toBeInTheDocument()
     expect(getEventDetailMock).toHaveBeenCalledTimes(2)
   })
+
+  it('알림에서 연 행사 상세 조회가 실패하면 알림 목록으로 돌아갈 수 있다', async () => {
+    const user = userEvent.setup()
+    getEventDetailMock.mockRejectedValue(new Error('not found'))
+
+    render(
+      <MemoryRouter initialEntries={[{
+        pathname: '/events/777',
+        state: { returnTo: '/mypage/notifications' },
+      }]}>
+        <Routes>
+          <Route path="/events/:contentId" element={<EventDetailPage />} />
+          <Route path="/mypage/notifications" element={<h1>알림 목록</h1>} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('상세 정보를 불러오지 못했어요.')
+    await user.click(screen.getByRole('button', { name: '알림 목록으로' }))
+    expect(screen.getByRole('heading', { name: '알림 목록' })).toBeInTheDocument()
+  })
 })

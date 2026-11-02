@@ -70,6 +70,13 @@ const tripStartingPayload = {
   reference_id: '102',
 }
 
+const eventChangedPayload = {
+  notification_id: '303',
+  type: 'EVENT_CHANGED',
+  reference_type: 'EVENT',
+  reference_id: '777',
+}
+
 describe('Web Push Service Worker', () => {
   beforeEach(() => vi.clearAllMocks())
 
@@ -118,6 +125,35 @@ describe('Web Push Service Worker', () => {
         referenceId: '102',
       },
     })
+  })
+
+  it('검증된 관심 행사 변경 payload를 행사 안내 시스템 알림으로 표시한다', async () => {
+    const harness = createHarness()
+
+    await harness.push(eventChangedPayload)
+
+    expect(harness.showNotification).toHaveBeenCalledWith('관심 행사 정보가 변경됐어요', {
+      body: '저장한 행사의 새로운 정보를 확인해 보세요.',
+      icon: '/favicon.png',
+      badge: '/assets/mypage/bell-unread.png',
+      tag: 'kgb-notification-303',
+      renotify: false,
+      data: {
+        target: '/notifications/open?notificationId=303&referenceType=EVENT&referenceId=777&type=EVENT_CHANGED',
+        notificationId: '303',
+        notificationType: 'EVENT_CHANGED',
+        referenceType: 'EVENT',
+        referenceId: '777',
+      },
+    })
+  })
+
+  it('알림 유형과 참조 유형 조합이 맞지 않으면 시스템 알림을 표시하지 않는다', async () => {
+    const harness = createHarness()
+
+    await harness.push({ ...eventChangedPayload, reference_type: 'GUIDEBOOK' })
+
+    expect(harness.showNotification).not.toHaveBeenCalled()
   })
 
   it('필수 ID나 지원 타입이 잘못된 payload는 표시하지 않는다', async () => {

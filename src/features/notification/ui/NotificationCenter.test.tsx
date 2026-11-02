@@ -66,6 +66,16 @@ const tripStartingNotification = {
   created_at: '2026-10-18T00:00:00Z',
 }
 
+const eventChangedNotification = {
+  notification_id: '53',
+  title: '관심 행사 정보가 변경됐어요',
+  body: "'서울 불꽃축제'의 새로운 정보를 확인해 보세요.",
+  type: 'EVENT_CHANGED',
+  reference_type: 'EVENT',
+  reference_id: '777',
+  created_at: '2026-11-02T00:00:00Z',
+}
+
 function LocationProbe() {
   const location = useLocation()
   return <output aria-label="현재 경로">{location.pathname}:{JSON.stringify(location.state)}</output>
@@ -156,6 +166,40 @@ describe('전역 SSE 알림 센터', () => {
       expect(screen.getByRole('status', { name: '현재 경로' }))
         .toHaveTextContent('/guidebooks:{"highlightGuidebookId":11}')
     })
+  })
+
+  it('SSE로 도착한 관심 행사 변경 알림을 읽음 처리하고 행사 상세로 이동한다', async () => {
+    renderCenter()
+    await waitFor(() => expect(openNotificationStream).toHaveBeenCalledOnce())
+
+    act(() => stream.dispatchEvent(new MessageEvent('notification', {
+      data: JSON.stringify(eventChangedNotification),
+    })))
+
+    expect(await screen.findByRole('status', {
+      name: "관심 행사 정보가 변경됐어요 '서울 불꽃축제'의 새로운 정보를 확인해 보세요.",
+    })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '행사 보기' }))
+
+    await waitFor(() => expect(deleteNotification).toHaveBeenCalledWith('53'))
+    await waitFor(() => {
+      expect(screen.getByRole('status', { name: '현재 경로' }))
+        .toHaveTextContent('/events/777:null')
+    })
+  })
+
+  it('잘못된 행사 ID에는 상세 이동 액션을 표시하지 않는다', async () => {
+    renderCenter()
+    await waitFor(() => expect(openNotificationStream).toHaveBeenCalledOnce())
+
+    act(() => stream.dispatchEvent(new MessageEvent('notification', {
+      data: JSON.stringify({ ...eventChangedNotification, reference_id: 'invalid' }),
+    })))
+
+    expect(await screen.findByRole('status', {
+      name: "관심 행사 정보가 변경됐어요 '서울 불꽃축제'의 새로운 정보를 확인해 보세요.",
+    })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '행사 보기' })).not.toBeInTheDocument()
   })
 
   it('Web Push로 먼저 받은 같은 알림 ID의 SSE 토스트도 독립 표시한다', async () => {

@@ -70,6 +70,36 @@ describe('Web Push 알림 열기 화면', () => {
       .toHaveTextContent('/guidebooks:{"highlightGuidebookId":102}')
   })
 
+  it('관심 행사 변경 Push는 읽음 처리 후 알림 목록 복귀 상태로 행사 상세에 이동한다', async () => {
+    render(
+      <MemoryRouter initialEntries={['/notifications/open?notificationId=303&referenceType=EVENT&referenceId=777&type=EVENT_CHANGED']}>
+        <Routes>
+          <Route path="/notifications/open" element={<NotificationOpenPage />} />
+          <Route path="/events/:contentId" element={<Destination />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    await waitFor(() => expect(deleteNotificationMock).toHaveBeenCalledWith('303'))
+    expect(await screen.findByRole('status', { name: '가이드북 이동 정보' }))
+      .toHaveTextContent('/events/777:{"returnTo":"/mypage/notifications"}')
+  })
+
+  it('이미 읽은 행사 Push 알림도 상세 이동을 계속한다', async () => {
+    deleteNotificationMock.mockRejectedValue({ isAxiosError: true, response: { status: 404 } })
+    render(
+      <MemoryRouter initialEntries={['/notifications/open?notificationId=303&referenceType=EVENT&referenceId=777&type=EVENT_CHANGED']}>
+        <Routes>
+          <Route path="/notifications/open" element={<NotificationOpenPage />} />
+          <Route path="/events/:contentId" element={<Destination />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByRole('status', { name: '가이드북 이동 정보' }))
+      .toHaveTextContent('/events/777:{"returnTo":"/mypage/notifications"}')
+  })
+
   it('필수 식별자가 올바르지 않으면 알림 목록으로 돌아간다', async () => {
     render(
       <MemoryRouter initialEntries={['/notifications/open?notificationId=301']}>

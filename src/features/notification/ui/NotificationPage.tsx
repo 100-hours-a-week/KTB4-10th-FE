@@ -12,7 +12,7 @@ import {
   notifyNotificationsUpdated,
   NOTIFICATIONS_UPDATED_EVENT,
 } from '../model/events.ts'
-import { guidebookNotificationDestination } from '../model/guidebookNotificationNavigation.ts'
+import { notificationDestination } from '../model/notificationNavigation.ts'
 import './notification-page.css'
 
 const SWIPE_LIMIT = 88
@@ -145,21 +145,23 @@ export function NotificationPage() {
     }
   }
 
-  const handleOpenGuidebook = async (notification: Notification) => {
+  const handleOpenNotification = async (notification: Notification) => {
     if (suppressClickId.current === notification.notification_id) {
       suppressClickId.current = null
       return
     }
-    const targetGuidebookId = notification.reference_type === 'GUIDEBOOK'
-      ? Number(notification.reference_id)
-      : Number.NaN
-    if (isMutating || !Number.isSafeInteger(targetGuidebookId) || targetGuidebookId < 1) return
+    const destination = notificationDestination(
+      notification.type,
+      notification.reference_type,
+      notification.reference_id,
+      { eventReturnTo: routes.notifications },
+    )
+    if (isMutating || !destination) return
 
     setDeletingId(notification.notification_id)
     try {
       await deleteNotification(notification.notification_id)
       notifyNotificationsUpdated(Math.max(0, items.length - 1))
-      const destination = guidebookNotificationDestination(notification.type, targetGuidebookId)
       navigate(destination.pathname, { state: destination.state })
     } catch {
       setToast('읽음 처리에 실패했습니다. 다시 시도해주세요.')
@@ -233,7 +235,14 @@ export function NotificationPage() {
 
         {!isLoading && !loadError && visibleItems.length > 0 && (
           <ul className="notification-list" aria-label="새로운 알림">
-            {visibleItems.map((notification) => (
+            {visibleItems.map((notification) => {
+              const destination = notificationDestination(
+                notification.type,
+                notification.reference_type,
+                notification.reference_id,
+                { eventReturnTo: routes.notifications },
+              )
+              return (
               <li
                 className={`notification-card${removingIds.has(notification.notification_id) ? ' notification-card--removing' : ''}`}
                 key={notification.notification_id}
@@ -248,17 +257,17 @@ export function NotificationPage() {
                 </button>
                 <article
                   className="notification-card__content"
-                  role={notification.reference_type === 'GUIDEBOOK' ? 'button' : undefined}
-                  tabIndex={notification.reference_type === 'GUIDEBOOK' ? 0 : undefined}
-                  aria-label={notification.reference_type === 'GUIDEBOOK'
-                    ? `${notification.title} 가이드북 보기`
+                  role={destination ? 'button' : undefined}
+                  tabIndex={destination ? 0 : undefined}
+                  aria-label={destination
+                    ? `${notification.title} ${destination.actionLabel}`
                     : undefined}
                   style={{ transform: `translateX(${dragOffsets[notification.notification_id] ?? 0}px)` }}
-                  onClick={() => void handleOpenGuidebook(notification)}
+                  onClick={() => void handleOpenNotification(notification)}
                   onKeyDown={(event) => {
                     if (event.key === 'Enter' || event.key === ' ') {
                       event.preventDefault()
-                      void handleOpenGuidebook(notification)
+                      void handleOpenNotification(notification)
                     }
                   }}
                   onPointerDown={(event) => handlePointerDown(event, notification.notification_id)}
@@ -271,12 +280,13 @@ export function NotificationPage() {
                     <time dateTime={notification.created_at}>{formatCreatedAt(notification.created_at)}</time>
                   </div>
                   <p>{notification.body}</p>
-                  <small>{notification.reference_type === 'GUIDEBOOK'
-                    ? '눌러서 가이드북 보기 · 왼쪽으로 밀어 읽음 처리'
+                  <small>{destination
+                    ? `눌러서 ${destination.actionLabel} · 왼쪽으로 밀어 읽음 처리`
                     : '왼쪽으로 밀어 읽음 처리'}</small>
                 </article>
               </li>
-            ))}
+              )
+            })}
           </ul>
         )}
       </div>
