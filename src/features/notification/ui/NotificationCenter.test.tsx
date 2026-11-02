@@ -182,8 +182,10 @@ describe('전역 SSE 알림 센터', () => {
     fireEvent.click(screen.getByRole('button', { name: '행사 보기' }))
 
     await waitFor(() => expect(deleteNotification).toHaveBeenCalledWith('53'))
-    expect(screen.getByRole('status', { name: '현재 경로' }))
-      .toHaveTextContent('/events/777:null')
+    await waitFor(() => {
+      expect(screen.getByRole('status', { name: '현재 경로' }))
+        .toHaveTextContent('/events/777:null')
+    })
   })
 
   it('잘못된 행사 ID에는 상세 이동 액션을 표시하지 않는다', async () => {
