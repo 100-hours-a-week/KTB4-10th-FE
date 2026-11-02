@@ -8,7 +8,7 @@ V1 FE는 표준 Web Push를 받을 수 있는 최소 PWA 기반을 구성한다.
 - 홈 화면 설치 시 `standalone` 표시
 - HTTPS 또는 localhost에서 Service Worker 등록
 - Push 이벤트를 시스템 알림으로 표시
-- 가이드북 생성 완료 알림 클릭 시 목록으로 이동하고 대상 카드 강조
+- 가이드북 알림 클릭 시 완성 화면 또는 목록으로 이동하고, 관심 행사 변경 알림 클릭 시 행사 상세로 이동
 - 사용자 동의 시 브라우저 Push 구독을 생성하고 현재 회원·세션으로 등록
 - 로그아웃·탈퇴 시 현재 브라우저 구독 해제
 
@@ -48,9 +48,21 @@ Service Worker는 다음 필드를 사용한다.
 }
 ```
 
-- BE는 식별 필드만 전송하고 Service Worker가 `가이드북 생성 완료` 제목과 최소 안내 문구를 구성한다. 알림 원문이나 구독 키를 Push payload에 복제하지 않는다.
-- 네 필드가 모두 유효한 `GUIDEBOOK_COMPLETED`만 표시하며 잘못되거나 이전 형식인 payload는 무시한다.
-- `GUIDEBOOK`은 `/guidebooks?highlightGuidebookId={reference_id}`로 이동한다.
+관심 행사 변경 알림은 같은 식별 계약에서 다음 조합을 사용한다.
+
+```json
+{
+  "notification_id": "303",
+  "type": "EVENT_CHANGED",
+  "reference_type": "EVENT",
+  "reference_id": "777"
+}
+```
+
+- BE는 식별 필드만 전송하고 Service Worker가 알림 유형별 제목과 최소 안내 문구를 구성한다. 알림 원문이나 구독 키를 Push payload에 복제하지 않는다.
+- 네 필드와 `type`·`reference_type` 조합이 유효한 가이드북 완료·일정 임박·관심 행사 변경 payload만 표시한다. 잘못되거나 지원하지 않는 조합은 무시한다.
+- `GUIDEBOOK_COMPLETED + GUIDEBOOK`은 가이드북 완성 화면, `TRIP_STARTING + GUIDEBOOK`은 대상 가이드북 목록, `EVENT_CHANGED + EVENT`는 행사 상세로 이동한다.
+- Push 클릭은 먼저 알림을 읽음 처리하고, 이미 읽어 404인 경우에도 대상 화면 이동을 계속한다.
 - 가이드북 목록은 query를 읽어 대상 카드를 잠시 강조한 뒤 query를 제거한다.
 - 열린 동일 origin 창이 있으면 그 창을 이동·포커스하고, 없을 때만 새 창을 연다.
 - 이동 경로는 현재 origin 안으로 제한해 외부 URL 주입을 막는다.
@@ -91,5 +103,5 @@ iOS·iPadOS 16.4 이상에서 Web Push를 받으려면 사용자가 KGB를 홈 �
 - Chrome·Edge의 권한 허용 → 구독 등록 → 로그아웃 구독 해제
 - macOS Safari와 iOS 16.4+ 홈 화면 앱의 구독·수신 확인
 - 포그라운드 SSE와 Web Push가 모두 표시되고, 각 채널 내부의 동일 알림 ID 재전송만 억제되는지 확인
-- 알림 클릭 시 기존 창 재사용, 대상 카드 자동 스크롤·강조 확인
+- 알림 클릭 시 기존 창 재사용, 가이드북 대상 강조와 관심 행사 상세 이동 확인
 - 실제 Push 수신은 BE PR #184와 VAPID 배포 설정을 포함해 확인

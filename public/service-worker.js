@@ -1,6 +1,8 @@
 const GUIDEBOOK_COMPLETED_TYPE = 'GUIDEBOOK_COMPLETED'
 const TRIP_STARTING_TYPE = 'TRIP_STARTING'
+const EVENT_CHANGED_TYPE = 'EVENT_CHANGED'
 const GUIDEBOOK_REFERENCE_TYPE = 'GUIDEBOOK'
+const EVENT_REFERENCE_TYPE = 'EVENT'
 const NOTIFICATION_LIST_PATH = '/mypage/notifications'
 const NOTIFICATION_OPEN_PATH = '/notifications/open'
 const WEB_PUSH_RECEIVED_MESSAGE = 'KGB_WEB_PUSH_RECEIVED'
@@ -35,10 +37,16 @@ function notificationCopy(type) {
       body: '내일 시작하는 여행 가이드북을 확인해 주세요.',
     }
   }
+  if (type === EVENT_CHANGED_TYPE) {
+    return {
+      title: '관심 행사 정보가 변경됐어요',
+      body: '저장한 행사의 새로운 정보를 확인해 보세요.',
+    }
+  }
   return null
 }
 
-function parseGuidebookPushPayload(event) {
+function parsePushPayload(event) {
   if (!event.data) return null
   let raw
   try {
@@ -49,25 +57,44 @@ function parseGuidebookPushPayload(event) {
   if (!isRecord(raw)) return null
   const payload = isRecord(raw.data) ? raw.data : raw
   const notificationId = boundedId(payload.notification_id)
-  const guidebookId = positiveInteger(payload.reference_id)
+  const referenceId = positiveInteger(payload.reference_id)
   const copy = notificationCopy(payload.type)
+  const validReference = (
+    payload.reference_type === GUIDEBOOK_REFERENCE_TYPE &&
+    (payload.type === GUIDEBOOK_COMPLETED_TYPE || payload.type === TRIP_STARTING_TYPE)
+  ) || (
+    payload.reference_type === EVENT_REFERENCE_TYPE && payload.type === EVENT_CHANGED_TYPE
+  )
   if (
     !notificationId ||
     !copy ||
-    payload.reference_type !== GUIDEBOOK_REFERENCE_TYPE ||
-    !guidebookId
+    !validReference ||
+    !referenceId
   ) {
     return null
   }
-  return { notificationId, guidebookId, type: payload.type, copy }
+  return {
+    notificationId,
+    referenceId,
+    referenceType: payload.reference_type,
+    type: payload.type,
+    copy,
+  }
 }
 
-function notificationTarget(notificationId, guidebookId, type) {
-  const query = new URLSearchParams({
-    notificationId,
-    guidebookId: String(guidebookId),
-    type,
-  })
+function notificationTarget(notificationId, referenceType, referenceId, type) {
+  const query = referenceType === GUIDEBOOK_REFERENCE_TYPE
+    ? new URLSearchParams({
+        notificationId,
+        guidebookId: String(referenceId),
+        type,
+      })
+    : new URLSearchParams({
+        notificationId,
+        referenceType,
+        referenceId: String(referenceId),
+        type,
+      })
   return `${NOTIFICATION_OPEN_PATH}?${query.toString()}`
 }
 
@@ -89,7 +116,7 @@ async function broadcastWebPushReceived(notificationId) {
   }
 }
 
-async function displayGuidebookNotification(payload) {
+async function displayNotification(payload) {
   const tag = `kgb-notification-${payload.notificationId}`
   const displayed = await self.registration.getNotifications({ tag }).catch(() => [])
   if (seenWebPushNotificationIds.has(payload.notificationId) || displayed.length > 0) return
@@ -103,11 +130,16 @@ async function displayGuidebookNotification(payload) {
     tag,
     renotify: false,
     data: {
-      target: notificationTarget(payload.notificationId, payload.guidebookId, payload.type),
+      target: notificationTarget(
+        payload.notificationId,
+        payload.referenceType,
+        payload.referenceId,
+        payload.type,
+      ),
       notificationId: payload.notificationId,
       notificationType: payload.type,
-      referenceType: GUIDEBOOK_REFERENCE_TYPE,
-      referenceId: String(payload.guidebookId),
+      referenceType: payload.referenceType,
+      referenceId: String(payload.referenceId),
     },
   })
 }
@@ -121,9 +153,9 @@ self.addEventListener('activate', (event) => {
 })
 
 self.addEventListener('push', (event) => {
-  const payload = parseGuidebookPushPayload(event)
+  const payload = parsePushPayload(event)
   if (!payload) return
-  event.waitUntil(displayGuidebookNotification(payload))
+  event.waitUntil(displayNotification(payload))
 })
 
 self.addEventListener('notificationclick', (event) => {

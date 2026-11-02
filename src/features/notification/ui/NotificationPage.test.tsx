@@ -51,6 +51,16 @@ const tripStartingNotification = {
   created_at: '2026-09-28T12:00:00+09:00',
 }
 
+const eventChangedNotification = {
+  notification_id: '13',
+  type: 'EVENT_CHANGED',
+  title: '관심 행사 정보가 변경됐어요',
+  body: "'서울 불꽃축제'의 새로운 정보를 확인해 보세요.",
+  reference_type: 'EVENT',
+  reference_id: '777',
+  created_at: '2026-09-28T13:00:00+09:00',
+}
+
 function response(items = [olderNotification, newerNotification]) {
   return {
     items,
@@ -80,6 +90,7 @@ function renderPage() {
         <Route path="/mypage" element={<h1>마이페이지</h1>} />
         <Route path="/guidebooks" element={<GuidebookDestination />} />
         <Route path="/guidebooks/:guidebookId" element={<GuidebookDestination />} />
+        <Route path="/events/:contentId" element={<GuidebookDestination />} />
       </Routes>
     </MemoryRouter>,
   )
@@ -191,6 +202,20 @@ describe('NotificationPage', () => {
     await waitFor(() => expect(deleteNotificationMock).toHaveBeenCalledWith('12'))
     expect(await screen.findByRole('status', { name: '가이드북 이동 정보' }))
       .toHaveTextContent('/guidebooks:{"highlightGuidebookId":6}')
+  })
+
+  it('관심 행사 변경 알림을 누르면 읽음 처리 후 알림 목록 복귀 상태로 행사 상세에 이동한다', async () => {
+    const user = userEvent.setup()
+    getNotificationsMock.mockResolvedValue(response([eventChangedNotification]))
+    renderPage()
+
+    await user.click(await screen.findByRole('button', {
+      name: '관심 행사 정보가 변경됐어요 행사 보기',
+    }))
+
+    await waitFor(() => expect(deleteNotificationMock).toHaveBeenCalledWith('13'))
+    expect(await screen.findByRole('status', { name: '가이드북 이동 정보' }))
+      .toHaveTextContent('/events/777:{"returnTo":"/mypage/notifications"}')
   })
 
   it('가이드북 알림 읽음 처리에 실패하면 이동하지 않고 안내한다', async () => {

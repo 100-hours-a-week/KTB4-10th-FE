@@ -1,10 +1,13 @@
 import axios from 'axios'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { routes } from '../../../shared/config/routes.ts'
 import { deleteNotification, getNotifications } from '../api/notifications.ts'
 import { notifyNotificationsUpdated } from '../model/events.ts'
-import { guidebookNotificationDestination } from '../model/guidebookNotificationNavigation.ts'
+import {
+  notificationDestination,
+  TRIP_STARTING_NOTIFICATION,
+} from '../model/notificationNavigation.ts'
 import './notification-page.css'
 
 function positiveInteger(value: string | null): number | null {
@@ -18,11 +21,23 @@ export function NotificationOpenPage() {
   const [revision, setRevision] = useState(0)
   const [error, setError] = useState(false)
   const notificationId = searchParams.get('notificationId')
-  const guidebookId = positiveInteger(searchParams.get('guidebookId'))
   const notificationType = searchParams.get('type')
+  const legacyGuidebookId = positiveInteger(searchParams.get('guidebookId'))
+  const effectiveNotificationType = notificationType
+    ?? (legacyGuidebookId ? TRIP_STARTING_NOTIFICATION : null)
+  const referenceType = searchParams.get('referenceType')
+    ?? (legacyGuidebookId ? 'GUIDEBOOK' : null)
+  const referenceId = positiveInteger(searchParams.get('referenceId')) ?? legacyGuidebookId
+  const destination = useMemo(() => (
+    referenceId
+      ? notificationDestination(effectiveNotificationType, referenceType, referenceId, {
+          eventReturnTo: routes.notifications,
+        })
+      : null
+  ), [effectiveNotificationType, referenceId, referenceType])
 
   useEffect(() => {
-    if (!notificationId || !guidebookId) {
+    if (!notificationId || !destination) {
       navigate(routes.notifications, { replace: true })
       return undefined
     }
@@ -38,7 +53,6 @@ export function NotificationOpenPage() {
         void getNotifications()
           .then(({ unread_count: unreadCount }) => notifyNotificationsUpdated(unreadCount))
           .catch(() => undefined)
-        const destination = guidebookNotificationDestination(notificationType, guidebookId)
         navigate(destination.pathname, {
           replace: true,
           state: destination.state,
@@ -47,7 +61,7 @@ export function NotificationOpenPage() {
       .catch(() => { if (active) setError(true) })
 
     return () => { active = false }
-  }, [guidebookId, navigate, notificationId, notificationType, revision])
+  }, [destination, navigate, notificationId, revision])
 
   return (
     <main className="app-shell notification-open-page">
@@ -68,7 +82,7 @@ export function NotificationOpenPage() {
         ) : (
           <>
             <img className="loading-indicator" src="/assets/loading-indicator.svg" alt="" />
-            가이드북을 여는 중이에요.
+            {referenceType === 'EVENT' ? '행사를 여는 중이에요.' : '가이드북을 여는 중이에요.'}
           </>
         )}
       </div>

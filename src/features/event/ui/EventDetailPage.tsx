@@ -28,8 +28,10 @@ export function EventDetailPage() {
   const { contentId = '' } = useParams()
   const locationState = location.state as DetailLocationState | null
   const isNew = locationState?.isNew ?? false
-  const returnTo = locationState?.returnTo === routes.favorites ? routes.favorites : null
-  const initialFavorite = returnTo ? locationState?.initialFavorite === true : false
+  const returnTo = locationState?.returnTo === routes.favorites || locationState?.returnTo === routes.notifications
+    ? locationState.returnTo
+    : null
+  const initialFavorite = returnTo === routes.favorites && locationState?.initialFavorite === true
   const [detail, setDetail] = useState<EventDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
@@ -144,6 +146,11 @@ export function EventDetailPage() {
             setError(false)
             setRevision((value) => value + 1)
           }}>다시 불러오기</button>
+          {returnTo === routes.notifications && (
+            <button type="button" onClick={() => navigate(routes.notifications)}>
+              알림 목록으로
+            </button>
+          )}
         </div>
       )}
 
