@@ -61,7 +61,7 @@
 | 행사 상세의 즐겨찾기 상태를 본다 | GET | `/contents/{contentId}` | `/events/{contentId}` | 선택 상태 아이콘을 복구하도록 인증 회원 기준 `is_favorite` 값을 사용한다. **BE 응답 필드 추가 필요.** | `EventPages.test.tsx` |
 | 알림 목록을 본다 | GET | `/notifications?page=1&size=20` | `/mypage/notifications`, 전역 완료 감지 | 최신 20개와 미읽음 수를 표시·동기화한다. | `NotificationPage.test.tsx`, `NotificationCenter.test.tsx` |
 | 열린 웹앱에서 새 알림을 받는다 | GET (SSE) | `/notifications/stream` | 전역 `NotificationCenter` | 앱에서 하나의 EventSource만 유지한다. `connected`와 재연결은 목록·배지만 복구하고, 새 `notification` 이벤트에만 토스트를 표시한다. | `NotificationCenter.test.tsx`, `notifications.test.ts` |
-| 백그라운드·종료 상태에서 알림을 받는다 | Web Push | BE 내부 전송 | Service Worker | 최소 payload와 유형·참조 조합을 검증해 시스템 알림을 표시한다. 가이드북 알림은 가이드북 대상, `EVENT_CHANGED + EVENT`는 읽음 처리 후 행사 상세를 연다. | `serviceWorkerScript.test.ts`, `NotificationOpenPage.test.tsx` |
+| 백그라운드·종료 상태에서 알림을 받는다 | Web Push | BE 내부 전송 | Service Worker | 최소 payload와 유형·참조 조합을 검증해 시스템 알림을 표시한다. 가이드북 알림은 가이드북 대상, `EVENT_CHANGED + EVENT`는 행사 상세, `NEW_EVENTS_ADDED + EVENT_LIST`는 기준일의 신규 행사 목록을 읽음 처리 후 연다. | `serviceWorkerScript.test.ts`, `NotificationOpenPage.test.tsx` |
 | 알림 하나를 삭제한다 | DELETE | `/notifications/{notificationId}` | 알림 swipe 동작 | 요청 중 중복 조작을 막고 성공 시 목록에서 제거한다. | `NotificationPage.test.tsx` |
 | 알림을 모두 삭제한다 | DELETE | `/notifications` | 알림 화면 | 요청 중 버튼을 비활성화하고 성공 시 빈 상태로 전환한다. | `NotificationPage.test.tsx` |
 | 약관·개인정보 처리방침을 본다 | GET | `/policies/{terms|privacy}` | 로그인 화면 정책 modal | Markdown 전문을 modal에 표시한다. | `App.test.tsx` |

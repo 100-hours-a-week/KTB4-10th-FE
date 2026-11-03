@@ -145,9 +145,12 @@ export function seoulYesterday(now = Date.now()): string {
   return SEOUL_DATE_FORMATTER.format(new Date(now - ONE_DAY_MS))
 }
 
-export async function getNewEvents(signal?: AbortSignal): Promise<NewEventList> {
+export async function getNewEvents(
+  date = seoulYesterday(),
+  signal?: AbortSignal,
+): Promise<NewEventList> {
   const response = await http.get<unknown>(NEW_EVENTS_PATH, {
-    params: { date: seoulYesterday(), page: 1, size: 20 },
+    params: { date, page: 1, size: 20 },
     signal,
   })
   if (!isApiResponse(response.data) || !isNewEventList(response.data.data)) {

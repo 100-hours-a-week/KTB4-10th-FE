@@ -39,6 +39,29 @@ describe('event API', () => {
     })
   })
 
+  it('알림이 지정한 과거 기준일의 신규 행사 목록을 요청한다', async () => {
+    vi.mocked(http.get).mockResolvedValue({
+      data: {
+        message: 'new_event_list_success',
+        data: {
+          date: '2026-11-02',
+          items: [],
+          page: 1,
+          size: 20,
+          total_items: 0,
+          total_pages: 0,
+        },
+      },
+    })
+
+    await getNewEvents('2026-11-02')
+
+    expect(http.get).toHaveBeenCalledWith('/api/v1/events/new', {
+      params: { date: '2026-11-02', page: 1, size: 20 },
+      signal: undefined,
+    })
+  })
+
   it('선택한 행사 목록 페이지를 요청한다', async () => {
     vi.mocked(http.get).mockResolvedValue({
       data: {

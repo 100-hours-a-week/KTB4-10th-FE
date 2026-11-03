@@ -150,6 +150,40 @@ describe('event information pages', () => {
     expect(screen.getByRole('status', { name: '현재 query' })).toHaveTextContent('')
   })
 
+  it('신규 행사 알림의 기준일로 과거 등록 목록을 조회한다', async () => {
+    getNewEventsMock.mockResolvedValue({
+      date: '2026-11-02', items: [preview], page: 1, size: 20, total_items: 1, total_pages: 1,
+    })
+
+    render(
+      <MemoryRouter initialEntries={['/information?view=new&date=2026-11-02']}>
+        <EventListPage />
+        <SearchProbe />
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByRole('heading', { name: '2026.11.02 새로 등록된 행사' }))
+      .toBeInTheDocument()
+    expect(getNewEventsMock).toHaveBeenCalledWith('2026-11-02', expect.any(AbortSignal))
+    expect(screen.getByRole('status', { name: '현재 query' }))
+      .toHaveTextContent('?view=new&date=2026-11-02')
+  })
+
+  it('과거 기준일에 신규 행사가 없으면 전체 목록 복귀를 안내한다', async () => {
+    getNewEventsMock.mockResolvedValue({
+      date: '2026-11-02', items: [], page: 1, size: 20, total_items: 0, total_pages: 0,
+    })
+
+    render(
+      <MemoryRouter initialEntries={['/information?view=new&date=2026-11-02']}>
+        <EventListPage />
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByText('해당 날짜에 새로 등록된 행사가 없어요')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /전체 행사로 돌아가기/ })).toBeInTheDocument()
+  })
+
   it('행사 헤더에 읽지 않은 알림 상태를 반영한다', async () => {
     getCurrentMemberMock.mockResolvedValue({ unread_count: 2 })
     getEventsMock.mockResolvedValue({

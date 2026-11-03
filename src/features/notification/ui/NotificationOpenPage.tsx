@@ -5,6 +5,8 @@ import { routes } from '../../../shared/config/routes.ts'
 import { deleteNotification, getNotifications } from '../api/notifications.ts'
 import { notifyNotificationsUpdated } from '../model/events.ts'
 import {
+  EVENT_LIST_REFERENCE_TYPE,
+  NEW_EVENTS_ADDED_NOTIFICATION,
   notificationDestination,
   TRIP_STARTING_NOTIFICATION,
 } from '../model/notificationNavigation.ts'
@@ -27,9 +29,9 @@ export function NotificationOpenPage() {
     ?? (legacyGuidebookId ? TRIP_STARTING_NOTIFICATION : null)
   const referenceType = searchParams.get('referenceType')
     ?? (legacyGuidebookId ? 'GUIDEBOOK' : null)
-  const referenceId = positiveInteger(searchParams.get('referenceId')) ?? legacyGuidebookId
+  const referenceId = searchParams.get('referenceId') ?? legacyGuidebookId
   const destination = useMemo(() => (
-    referenceId
+    referenceId !== null
       ? notificationDestination(effectiveNotificationType, referenceType, referenceId, {
           eventReturnTo: routes.notifications,
         })
@@ -38,7 +40,13 @@ export function NotificationOpenPage() {
 
   useEffect(() => {
     if (!notificationId || !destination) {
-      navigate(routes.notifications, { replace: true })
+      const isInvalidNewEventTarget = (
+        effectiveNotificationType === NEW_EVENTS_ADDED_NOTIFICATION ||
+        referenceType === EVENT_LIST_REFERENCE_TYPE
+      )
+      navigate(isInvalidNewEventTarget ? routes.information : routes.notifications, {
+        replace: true,
+      })
       return undefined
     }
 
@@ -61,7 +69,7 @@ export function NotificationOpenPage() {
       .catch(() => { if (active) setError(true) })
 
     return () => { active = false }
-  }, [destination, navigate, notificationId, revision])
+  }, [destination, effectiveNotificationType, navigate, notificationId, referenceType, revision])
 
   return (
     <main className="app-shell notification-open-page">
@@ -82,7 +90,11 @@ export function NotificationOpenPage() {
         ) : (
           <>
             <img className="loading-indicator" src="/assets/loading-indicator.svg" alt="" />
-            {referenceType === 'EVENT' ? '행사를 여는 중이에요.' : '가이드북을 여는 중이에요.'}
+            {referenceType === 'EVENT_LIST'
+              ? '신규 행사를 여는 중이에요.'
+              : referenceType === 'EVENT'
+                ? '행사를 여는 중이에요.'
+                : '가이드북을 여는 중이에요.'}
           </>
         )}
       </div>

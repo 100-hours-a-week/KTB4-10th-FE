@@ -77,6 +77,13 @@ const eventChangedPayload = {
   reference_id: '777',
 }
 
+const newEventsPayload = {
+  notification_id: '304',
+  type: 'NEW_EVENTS_ADDED',
+  reference_type: 'EVENT_LIST',
+  reference_id: '2026-11-02',
+}
+
 describe('Web Push Service Worker', () => {
   beforeEach(() => vi.clearAllMocks())
 
@@ -148,6 +155,27 @@ describe('Web Push Service Worker', () => {
     })
   })
 
+  it('검증된 신규 행사 묶음 payload를 기준일 목록 알림으로 표시한다', async () => {
+    const harness = createHarness()
+
+    await harness.push(newEventsPayload)
+
+    expect(harness.showNotification).toHaveBeenCalledWith('새로운 행사가 추가됐어요!', {
+      body: '새로 등록된 행사들을 확인해 보세요.',
+      icon: '/favicon.png',
+      badge: '/assets/mypage/bell-unread.png',
+      tag: 'kgb-notification-304',
+      renotify: false,
+      data: {
+        target: '/notifications/open?notificationId=304&referenceType=EVENT_LIST&referenceId=2026-11-02&type=NEW_EVENTS_ADDED',
+        notificationId: '304',
+        notificationType: 'NEW_EVENTS_ADDED',
+        referenceType: 'EVENT_LIST',
+        referenceId: '2026-11-02',
+      },
+    })
+  })
+
   it('알림 유형과 참조 유형 조합이 맞지 않으면 시스템 알림을 표시하지 않는다', async () => {
     const harness = createHarness()
 
@@ -165,6 +193,15 @@ describe('Web Push Service Worker', () => {
     expect(harness.showNotification).not.toHaveBeenCalled()
 
     await harness.push({ ...guidebookPayload, type: 'UNSUPPORTED' })
+
+    expect(harness.showNotification).not.toHaveBeenCalled()
+  })
+
+  it('신규 행사 기준일이 잘못되었거나 참조 유형이 다르면 표시하지 않는다', async () => {
+    const harness = createHarness()
+
+    await harness.push({ ...newEventsPayload, reference_id: '2026-02-30' })
+    await harness.push({ ...newEventsPayload, reference_type: 'EVENT' })
 
     expect(harness.showNotification).not.toHaveBeenCalled()
   })
