@@ -84,6 +84,20 @@ const newEventsPayload = {
   reference_id: '2026-11-02',
 }
 
+const guidebookEventChangedPayload = {
+  notification_id: '305',
+  type: 'GUIDEBOOK_EVENT_CHANGED',
+  reference_type: 'GUIDEBOOK',
+  reference_id: '81',
+}
+
+const guidebookEventCancelledPayload = {
+  notification_id: '306',
+  type: 'GUIDEBOOK_EVENT_CANCELLED',
+  reference_type: 'GUIDEBOOK',
+  reference_id: '82',
+}
+
 describe('Web Push Service Worker', () => {
   beforeEach(() => vi.clearAllMocks())
 
@@ -176,6 +190,37 @@ describe('Web Push Service Worker', () => {
     })
   })
 
+  it('가이드북 포함 행사 변경·취소 payload를 개인정보 없는 시스템 알림으로 표시한다', async () => {
+    const changedHarness = createHarness()
+    const cancelledHarness = createHarness()
+
+    await changedHarness.push(guidebookEventChangedPayload)
+    await cancelledHarness.push(guidebookEventCancelledPayload)
+
+    expect(changedHarness.showNotification).toHaveBeenCalledWith('가이드북 일정에 변경 사항이 있어요', expect.objectContaining({
+      body: '가이드북의 최신 일정 정보를 확인해 주세요.',
+      tag: 'kgb-notification-305',
+      data: {
+        target: '/notifications/open?notificationId=305&guidebookId=81&type=GUIDEBOOK_EVENT_CHANGED',
+        notificationId: '305',
+        notificationType: 'GUIDEBOOK_EVENT_CHANGED',
+        referenceType: 'GUIDEBOOK',
+        referenceId: '81',
+      },
+    }))
+    expect(cancelledHarness.showNotification).toHaveBeenCalledWith('가이드북 일정에 변경 사항이 있어요', expect.objectContaining({
+      body: '가이드북의 최신 일정 정보를 확인해 주세요.',
+      tag: 'kgb-notification-306',
+      data: {
+        target: '/notifications/open?notificationId=306&guidebookId=82&type=GUIDEBOOK_EVENT_CANCELLED',
+        notificationId: '306',
+        notificationType: 'GUIDEBOOK_EVENT_CANCELLED',
+        referenceType: 'GUIDEBOOK',
+        referenceId: '82',
+      },
+    }))
+  })
+
   it('알림 유형과 참조 유형 조합이 맞지 않으면 시스템 알림을 표시하지 않는다', async () => {
     const harness = createHarness()
 
@@ -202,6 +247,14 @@ describe('Web Push Service Worker', () => {
 
     await harness.push({ ...newEventsPayload, reference_id: '2026-02-30' })
     await harness.push({ ...newEventsPayload, reference_type: 'EVENT' })
+
+    expect(harness.showNotification).not.toHaveBeenCalled()
+  })
+
+  it('가이드북 행사 변경 알림의 참조 유형이 다르면 표시하지 않는다', async () => {
+    const harness = createHarness()
+
+    await harness.push({ ...guidebookEventChangedPayload, reference_type: 'EVENT' })
 
     expect(harness.showNotification).not.toHaveBeenCalled()
   })

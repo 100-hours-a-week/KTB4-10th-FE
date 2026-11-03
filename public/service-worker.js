@@ -2,6 +2,8 @@ const GUIDEBOOK_COMPLETED_TYPE = 'GUIDEBOOK_COMPLETED'
 const TRIP_STARTING_TYPE = 'TRIP_STARTING'
 const EVENT_CHANGED_TYPE = 'EVENT_CHANGED'
 const NEW_EVENTS_ADDED_TYPE = 'NEW_EVENTS_ADDED'
+const GUIDEBOOK_EVENT_CHANGED_TYPE = 'GUIDEBOOK_EVENT_CHANGED'
+const GUIDEBOOK_EVENT_CANCELLED_TYPE = 'GUIDEBOOK_EVENT_CANCELLED'
 const GUIDEBOOK_REFERENCE_TYPE = 'GUIDEBOOK'
 const EVENT_REFERENCE_TYPE = 'EVENT'
 const EVENT_LIST_REFERENCE_TYPE = 'EVENT_LIST'
@@ -66,6 +68,15 @@ function notificationCopy(type) {
       body: '새로 등록된 행사들을 확인해 보세요.',
     }
   }
+  if (
+    type === GUIDEBOOK_EVENT_CHANGED_TYPE ||
+    type === GUIDEBOOK_EVENT_CANCELLED_TYPE
+  ) {
+    return {
+      title: '가이드북 일정에 변경 사항이 있어요',
+      body: '가이드북의 최신 일정 정보를 확인해 주세요.',
+    }
+  }
   return null
 }
 
@@ -90,7 +101,12 @@ function parsePushPayload(event) {
     : positiveInteger(payload.reference_id)
   const validReference = (
     payload.reference_type === GUIDEBOOK_REFERENCE_TYPE &&
-    (payload.type === GUIDEBOOK_COMPLETED_TYPE || payload.type === TRIP_STARTING_TYPE)
+    (
+      payload.type === GUIDEBOOK_COMPLETED_TYPE ||
+      payload.type === TRIP_STARTING_TYPE ||
+      payload.type === GUIDEBOOK_EVENT_CHANGED_TYPE ||
+      payload.type === GUIDEBOOK_EVENT_CANCELLED_TYPE
+    )
   ) || (
     payload.reference_type === EVENT_REFERENCE_TYPE && payload.type === EVENT_CHANGED_TYPE
   ) || (

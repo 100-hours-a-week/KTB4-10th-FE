@@ -154,7 +154,10 @@ export function NotificationPage() {
       notification.type,
       notification.reference_type,
       notification.reference_id,
-      { eventReturnTo: routes.notifications },
+      {
+        eventReturnTo: routes.notifications,
+        guidebookReturnTo: routes.notifications,
+      },
     )
     if (isMutating || !destination) return
 
@@ -240,7 +243,10 @@ export function NotificationPage() {
                 notification.type,
                 notification.reference_type,
                 notification.reference_id,
-                { eventReturnTo: routes.notifications },
+                {
+                  eventReturnTo: routes.notifications,
+                  guidebookReturnTo: routes.notifications,
+                },
               )
               return (
               <li

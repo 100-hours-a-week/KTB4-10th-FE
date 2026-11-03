@@ -86,6 +86,16 @@ const newEventsNotification = {
   created_at: '2026-11-03T00:00:00Z',
 }
 
+const guidebookEventChangedNotification = {
+  notification_id: '55',
+  title: '가이드북 일정에 변경 사항이 있어요',
+  body: '가이드북에 포함된 행사의 일정이 변경되었어요. 확인해 주세요.',
+  type: 'GUIDEBOOK_EVENT_CHANGED',
+  reference_type: 'GUIDEBOOK',
+  reference_id: '81',
+  created_at: '2026-11-03T00:00:00Z',
+}
+
 function LocationProbe() {
   const location = useLocation()
   return <output aria-label="현재 경로">{location.pathname}{location.search}:{JSON.stringify(location.state)}</output>
@@ -195,6 +205,26 @@ describe('전역 SSE 알림 센터', () => {
     await waitFor(() => {
       expect(screen.getByRole('status', { name: '현재 경로' }))
         .toHaveTextContent('/events/777:null')
+    })
+  })
+
+  it('SSE로 도착한 가이드북 행사 변경 알림을 읽음 처리하고 영향받은 가이드북으로 이동한다', async () => {
+    renderCenter()
+    await waitFor(() => expect(openNotificationStream).toHaveBeenCalledOnce())
+
+    act(() => stream.dispatchEvent(new MessageEvent('notification', {
+      data: JSON.stringify(guidebookEventChangedNotification),
+    })))
+
+    expect(await screen.findByRole('status', {
+      name: '가이드북 일정에 변경 사항이 있어요 가이드북에 포함된 행사의 일정이 변경되었어요. 확인해 주세요.',
+    })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '가이드북 확인' }))
+
+    await waitFor(() => expect(deleteNotification).toHaveBeenCalledWith('55'))
+    await waitFor(() => {
+      expect(screen.getByRole('status', { name: '현재 경로' }))
+        .toHaveTextContent('/guidebooks/81:{"guidebookEventNotice":"changed"}')
     })
   })
 

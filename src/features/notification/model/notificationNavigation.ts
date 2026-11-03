@@ -4,6 +4,8 @@ export const GUIDEBOOK_COMPLETED_NOTIFICATION = 'GUIDEBOOK_COMPLETED'
 export const TRIP_STARTING_NOTIFICATION = 'TRIP_STARTING'
 export const EVENT_CHANGED_NOTIFICATION = 'EVENT_CHANGED'
 export const NEW_EVENTS_ADDED_NOTIFICATION = 'NEW_EVENTS_ADDED'
+export const GUIDEBOOK_EVENT_CHANGED_NOTIFICATION = 'GUIDEBOOK_EVENT_CHANGED'
+export const GUIDEBOOK_EVENT_CANCELLED_NOTIFICATION = 'GUIDEBOOK_EVENT_CANCELLED'
 export const GUIDEBOOK_REFERENCE_TYPE = 'GUIDEBOOK'
 export const EVENT_REFERENCE_TYPE = 'EVENT'
 export const EVENT_LIST_REFERENCE_TYPE = 'EVENT_LIST'
@@ -11,16 +13,18 @@ export const EVENT_LIST_REFERENCE_TYPE = 'EVENT_LIST'
 export type NotificationNavigationState = {
   highlightGuidebookId?: number
   returnTo?: string
+  guidebookEventNotice?: 'changed' | 'cancelled'
 }
 
 export type NotificationDestination = {
   pathname: string
   state?: NotificationNavigationState
-  actionLabel: '가이드북 보기' | '행사 보기' | '신규 행사 보기'
+  actionLabel: '가이드북 보기' | '가이드북 확인' | '행사 보기' | '신규 행사 보기'
 }
 
 type DestinationOptions = {
   eventReturnTo?: string
+  guidebookReturnTo?: string
 }
 
 function positiveInteger(value: string | number): number | null {
@@ -76,6 +80,22 @@ export function notificationDestination(
     return {
       pathname: routes.guidebookDetail.replace(':guidebookId', String(targetId)),
       actionLabel: '가이드북 보기',
+    }
+  }
+
+  if (
+    notificationType === GUIDEBOOK_EVENT_CHANGED_NOTIFICATION ||
+    notificationType === GUIDEBOOK_EVENT_CANCELLED_NOTIFICATION
+  ) {
+    return {
+      pathname: routes.guidebookDetail.replace(':guidebookId', String(targetId)),
+      state: {
+        guidebookEventNotice: notificationType === GUIDEBOOK_EVENT_CANCELLED_NOTIFICATION
+          ? 'cancelled'
+          : 'changed',
+        ...(options.guidebookReturnTo ? { returnTo: options.guidebookReturnTo } : {}),
+      },
+      actionLabel: '가이드북 확인',
     }
   }
 

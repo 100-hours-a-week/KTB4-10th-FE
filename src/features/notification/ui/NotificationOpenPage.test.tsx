@@ -114,6 +114,21 @@ describe('Web Push 알림 열기 화면', () => {
     expect(deleteNotificationMock).not.toHaveBeenCalled()
   })
 
+  it('가이드북 행사 취소 Push는 읽음 처리 후 취소 안내 상태로 완성 화면을 연다', async () => {
+    render(
+      <MemoryRouter initialEntries={['/notifications/open?notificationId=305&guidebookId=81&type=GUIDEBOOK_EVENT_CANCELLED']}>
+        <Routes>
+          <Route path="/notifications/open" element={<NotificationOpenPage />} />
+          <Route path="/guidebooks/:guidebookId" element={<Destination />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    await waitFor(() => expect(deleteNotificationMock).toHaveBeenCalledWith('305'))
+    expect(await screen.findByRole('status', { name: '가이드북 이동 정보' }))
+      .toHaveTextContent('/guidebooks/81:{"guidebookEventNotice":"cancelled"}')
+  })
+
   it('이미 읽은 행사 Push 알림도 상세 이동을 계속한다', async () => {
     deleteNotificationMock.mockRejectedValue({ isAxiosError: true, response: { status: 404 } })
     render(
