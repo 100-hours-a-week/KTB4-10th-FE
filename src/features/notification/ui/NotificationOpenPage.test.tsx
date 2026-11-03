@@ -15,7 +15,7 @@ vi.mock('../api/notifications.ts', () => ({
 
 function Destination() {
   const location = useLocation()
-  return <output aria-label="가이드북 이동 정보">{location.pathname}:{JSON.stringify(location.state)}</output>
+  return <output aria-label="가이드북 이동 정보">{location.pathname}{location.search}:{JSON.stringify(location.state)}</output>
 }
 
 describe('Web Push 알림 열기 화면', () => {
@@ -83,6 +83,35 @@ describe('Web Push 알림 열기 화면', () => {
     await waitFor(() => expect(deleteNotificationMock).toHaveBeenCalledWith('303'))
     expect(await screen.findByRole('status', { name: '가이드북 이동 정보' }))
       .toHaveTextContent('/events/777:{"returnTo":"/mypage/notifications"}')
+  })
+
+  it('신규 행사 묶음 Push는 읽음 처리 후 기준일 목록으로 이동한다', async () => {
+    render(
+      <MemoryRouter initialEntries={['/notifications/open?notificationId=304&referenceType=EVENT_LIST&referenceId=2026-11-02&type=NEW_EVENTS_ADDED']}>
+        <Routes>
+          <Route path="/notifications/open" element={<NotificationOpenPage />} />
+          <Route path="/information" element={<Destination />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    await waitFor(() => expect(deleteNotificationMock).toHaveBeenCalledWith('304'))
+    expect(await screen.findByRole('status', { name: '가이드북 이동 정보' }))
+      .toHaveTextContent('/information?view=new&date=2026-11-02:null')
+  })
+
+  it('신규 행사 Push의 기준일이 잘못되면 전체 정보 페이지로 이동한다', async () => {
+    render(
+      <MemoryRouter initialEntries={['/notifications/open?notificationId=304&referenceType=EVENT_LIST&referenceId=2026-02-30&type=NEW_EVENTS_ADDED']}>
+        <Routes>
+          <Route path="/notifications/open" element={<NotificationOpenPage />} />
+          <Route path="/information" element={<h1>행사 정보</h1>} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByRole('heading', { name: '행사 정보' })).toBeInTheDocument()
+    expect(deleteNotificationMock).not.toHaveBeenCalled()
   })
 
   it('이미 읽은 행사 Push 알림도 상세 이동을 계속한다', async () => {

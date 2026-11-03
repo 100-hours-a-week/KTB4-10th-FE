@@ -177,7 +177,7 @@ export function EventListPage() {
 
   useEffect(() => {
     const controller = new AbortController()
-    void getNewEvents(controller.signal)
+    void getNewEvents(filters.date || undefined, controller.signal)
       .then((newEvents) => {
         if (controller.signal.aborted) return
         setNewData(newEvents)
@@ -189,7 +189,7 @@ export function EventListPage() {
         if (!controller.signal.aborted) setNewEventFailed(true)
       })
     return () => controller.abort()
-  }, [])
+  }, [filters.date])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -248,11 +248,11 @@ export function EventListPage() {
   }
 
   function showNewEvents() {
-    updateFilters({ view: 'new' })
+    updateFilters({ view: 'new', date: '' })
   }
 
   function showAllEvents() {
-    updateFilters({ view: 'all' })
+    updateFilters({ view: 'all', date: '' })
   }
 
   const visibleItems = isNewView
@@ -261,6 +261,7 @@ export function EventListPage() {
   const visibleCount = isNewView ? newEventCount : data?.total_items ?? 0
   const viewLoading = isNewView ? newData === null && !newEventFailed : loading
   const viewError = isNewView ? newEventFailed : error
+  const newViewDateText = filters.date ? dateText(filters.date) : null
 
   return (
     <main className="app-shell event-list-page">
@@ -395,7 +396,12 @@ export function EventListPage() {
         {isNewView && !viewLoading && !viewError && visibleItems.length > 0 && (
           <section className="event-new-section" aria-labelledby="new-events-title">
             <div className="event-section-heading">
-              <div><span>New Events</span><h2 id="new-events-title">오늘 새로 등록된 행사</h2></div>
+              <div>
+                <span>New Events</span>
+                <h2 id="new-events-title">
+                  {newViewDateText ? `${newViewDateText} 새로 등록된 행사` : '오늘 새로 등록된 행사'}
+                </h2>
+              </div>
               <strong>{visibleCount}</strong>
             </div>
             <ul className="event-list">{visibleItems.map((event) => (
@@ -438,7 +444,7 @@ export function EventListPage() {
         {!isNewView && !loading && !error && data?.items.length === 0 && <div className="event-state"><span className="event-state__symbol" aria-hidden="true">⌕</span><strong>검색 결과가 없어요</strong><span>검색어나 필터를 바꿔 다시 찾아보세요.</span></div>}
         {isNewView && viewLoading && <div className="event-state event-state--new" role="status"><img className="loading-indicator" src="/assets/loading-indicator.svg" alt="" /><strong>새로운 행사를 찾고 있어요</strong><span>잠시만 기다려 주세요.</span></div>}
         {isNewView && !viewLoading && viewError && <div className="event-state event-state--new" role="alert"><span className="event-state__symbol" aria-hidden="true">!</span><strong>새로운 행사를 불러오지 못했어요</strong><span>잠시 후 다시 시도해 주세요.</span></div>}
-        {isNewView && !viewLoading && !viewError && visibleItems.length === 0 && <div className="event-state event-state--new"><span className="event-state__symbol" aria-hidden="true">⌕</span><strong>오늘 새로 등록된 행사가 없어요</strong><span>전체 행사로 돌아가 다른 행사를 살펴보세요.</span></div>}
+        {isNewView && !viewLoading && !viewError && visibleItems.length === 0 && <div className="event-state event-state--new"><span className="event-state__symbol" aria-hidden="true">⌕</span><strong>{newViewDateText ? '해당 날짜에 새로 등록된 행사가 없어요' : '오늘 새로 등록된 행사가 없어요'}</strong><span>전체 행사로 돌아가 다른 행사를 살펴보세요.</span></div>}
       </div>
       <BottomNavigation />
     </main>

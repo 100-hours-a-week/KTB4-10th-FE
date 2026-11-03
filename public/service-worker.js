@@ -1,8 +1,10 @@
 const GUIDEBOOK_COMPLETED_TYPE = 'GUIDEBOOK_COMPLETED'
 const TRIP_STARTING_TYPE = 'TRIP_STARTING'
 const EVENT_CHANGED_TYPE = 'EVENT_CHANGED'
+const NEW_EVENTS_ADDED_TYPE = 'NEW_EVENTS_ADDED'
 const GUIDEBOOK_REFERENCE_TYPE = 'GUIDEBOOK'
 const EVENT_REFERENCE_TYPE = 'EVENT'
+const EVENT_LIST_REFERENCE_TYPE = 'EVENT_LIST'
 const NOTIFICATION_LIST_PATH = '/mypage/notifications'
 const NOTIFICATION_OPEN_PATH = '/notifications/open'
 const WEB_PUSH_RECEIVED_MESSAGE = 'KGB_WEB_PUSH_RECEIVED'
@@ -24,6 +26,21 @@ function positiveInteger(value) {
   return Number.isSafeInteger(number) && number > 0 ? number : null
 }
 
+function isoDate(value) {
+  if (typeof value !== 'string') return null
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
+  if (!match) return null
+  const year = Number(match[1])
+  const month = Number(match[2])
+  const day = Number(match[3])
+  const parsed = new Date(Date.UTC(year, month - 1, day))
+  return parsed.getUTCFullYear() === year &&
+    parsed.getUTCMonth() === month - 1 &&
+    parsed.getUTCDate() === day
+    ? value
+    : null
+}
+
 function notificationCopy(type) {
   if (type === GUIDEBOOK_COMPLETED_TYPE) {
     return {
@@ -43,6 +60,12 @@ function notificationCopy(type) {
       body: '저장한 행사의 새로운 정보를 확인해 보세요.',
     }
   }
+  if (type === NEW_EVENTS_ADDED_TYPE) {
+    return {
+      title: '새로운 행사가 추가됐어요!',
+      body: '새로 등록된 행사들을 확인해 보세요.',
+    }
+  }
   return null
 }
 
@@ -57,13 +80,21 @@ function parsePushPayload(event) {
   if (!isRecord(raw)) return null
   const payload = isRecord(raw.data) ? raw.data : raw
   const notificationId = boundedId(payload.notification_id)
-  const referenceId = positiveInteger(payload.reference_id)
   const copy = notificationCopy(payload.type)
+  const isNewEventDigest = (
+    payload.reference_type === EVENT_LIST_REFERENCE_TYPE &&
+    payload.type === NEW_EVENTS_ADDED_TYPE
+  )
+  const referenceId = isNewEventDigest
+    ? isoDate(payload.reference_id)
+    : positiveInteger(payload.reference_id)
   const validReference = (
     payload.reference_type === GUIDEBOOK_REFERENCE_TYPE &&
     (payload.type === GUIDEBOOK_COMPLETED_TYPE || payload.type === TRIP_STARTING_TYPE)
   ) || (
     payload.reference_type === EVENT_REFERENCE_TYPE && payload.type === EVENT_CHANGED_TYPE
+  ) || (
+    isNewEventDigest
   )
   if (
     !notificationId ||

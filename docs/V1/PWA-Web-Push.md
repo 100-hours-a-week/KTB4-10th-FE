@@ -59,9 +59,21 @@ Service Worker는 다음 필드를 사용한다.
 }
 ```
 
+신규 행사 묶음 알림은 기준일을 참조 ID로 사용한다.
+
+```json
+{
+  "notification_id": "304",
+  "type": "NEW_EVENTS_ADDED",
+  "reference_type": "EVENT_LIST",
+  "reference_id": "2026-11-02"
+}
+```
+
 - BE는 식별 필드만 전송하고 Service Worker가 알림 유형별 제목과 최소 안내 문구를 구성한다. 알림 원문이나 구독 키를 Push payload에 복제하지 않는다.
-- 네 필드와 `type`·`reference_type` 조합이 유효한 가이드북 완료·일정 임박·관심 행사 변경 payload만 표시한다. 잘못되거나 지원하지 않는 조합은 무시한다.
-- `GUIDEBOOK_COMPLETED + GUIDEBOOK`은 가이드북 완성 화면, `TRIP_STARTING + GUIDEBOOK`은 대상 가이드북 목록, `EVENT_CHANGED + EVENT`는 행사 상세로 이동한다.
+- 네 필드와 `type`·`reference_type` 조합이 유효한 가이드북 완료·일정 임박·관심 행사 변경·신규 행사 묶음 payload만 표시한다. 잘못되거나 지원하지 않는 조합은 무시한다.
+- `GUIDEBOOK_COMPLETED + GUIDEBOOK`은 가이드북 완성 화면, `TRIP_STARTING + GUIDEBOOK`은 대상 가이드북 목록, `EVENT_CHANGED + EVENT`는 행사 상세, `NEW_EVENTS_ADDED + EVENT_LIST`는 참조 기준일의 신규 행사 목록으로 이동한다.
+- 신규 행사 알림은 하루가 지나도 삭제하지 않고 `reference_id`의 과거 목록을 조회한다. 결과가 없거나 조회에 실패하면 전체 행사로 복귀하는 동작을 제공한다.
 - Push 클릭은 먼저 알림을 읽음 처리하고, 이미 읽어 404인 경우에도 대상 화면 이동을 계속한다.
 - 가이드북 목록은 query를 읽어 대상 카드를 잠시 강조한 뒤 query를 제거한다.
 - 열린 동일 origin 창이 있으면 그 창을 이동·포커스하고, 없을 때만 새 창을 연다.

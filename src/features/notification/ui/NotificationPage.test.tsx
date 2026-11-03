@@ -61,6 +61,16 @@ const eventChangedNotification = {
   created_at: '2026-09-28T13:00:00+09:00',
 }
 
+const newEventsNotification = {
+  notification_id: '14',
+  type: 'NEW_EVENTS_ADDED',
+  title: '새로운 행사가 3개 추가되었어요!',
+  body: '새로 등록된 행사를 확인해 보세요.',
+  reference_type: 'EVENT_LIST',
+  reference_id: '2026-11-02',
+  created_at: '2026-11-03T09:00:00+09:00',
+}
+
 function response(items = [olderNotification, newerNotification]) {
   return {
     items,
@@ -74,7 +84,7 @@ function response(items = [olderNotification, newerNotification]) {
 
 function GuidebookDestination() {
   const location = useLocation()
-  return <output aria-label="가이드북 이동 정보">{location.pathname}:{JSON.stringify(location.state)}</output>
+  return <output aria-label="가이드북 이동 정보">{location.pathname}{location.search}:{JSON.stringify(location.state)}</output>
 }
 
 function InformationDestination() {
@@ -91,6 +101,7 @@ function renderPage() {
         <Route path="/guidebooks" element={<GuidebookDestination />} />
         <Route path="/guidebooks/:guidebookId" element={<GuidebookDestination />} />
         <Route path="/events/:contentId" element={<GuidebookDestination />} />
+        <Route path="/information" element={<GuidebookDestination />} />
       </Routes>
     </MemoryRouter>,
   )
@@ -216,6 +227,20 @@ describe('NotificationPage', () => {
     await waitFor(() => expect(deleteNotificationMock).toHaveBeenCalledWith('13'))
     expect(await screen.findByRole('status', { name: '가이드북 이동 정보' }))
       .toHaveTextContent('/events/777:{"returnTo":"/mypage/notifications"}')
+  })
+
+  it('신규 행사 묶음 알림을 누르면 읽음 처리 후 기준일 목록으로 이동한다', async () => {
+    const user = userEvent.setup()
+    getNotificationsMock.mockResolvedValue(response([newEventsNotification]))
+    renderPage()
+
+    await user.click(await screen.findByRole('button', {
+      name: '새로운 행사가 3개 추가되었어요! 신규 행사 보기',
+    }))
+
+    await waitFor(() => expect(deleteNotificationMock).toHaveBeenCalledWith('14'))
+    expect(await screen.findByRole('status', { name: '가이드북 이동 정보' }))
+      .toHaveTextContent('/information?view=new&date=2026-11-02:null')
   })
 
   it('가이드북 알림 읽음 처리에 실패하면 이동하지 않고 안내한다', async () => {
