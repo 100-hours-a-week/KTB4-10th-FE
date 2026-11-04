@@ -370,6 +370,49 @@ describe('가이드북 화면', () => {
     expect(await screen.findByText('가이드북 완료 화면')).toBeInTheDocument()
   })
 
+  it('가이드북 행사 변경 알림에서 진입하면 변경 안내와 알림 목록 복귀 동선을 표시한다', async () => {
+    getBook.mockResolvedValue({
+      guidebook_id: 10,
+      title: '경주 여행',
+      start_date: '2026-10-20',
+      end_date: '2026-10-21',
+      people_count: 2,
+      thumbnail_url: null,
+      regeneration: { remaining_count: 3, expires_at: '2099-10-23T09:10:00Z', available: true },
+      itinerary: [],
+    })
+    render(<MemoryRouter initialEntries={[{
+      pathname: '/guidebooks/10',
+      state: { guidebookEventNotice: 'changed', returnTo: '/mypage/notifications' },
+    }]}><Routes>
+      <Route path="/guidebooks/:guidebookId" element={<GuidebookDetailPage />} />
+    </Routes></MemoryRouter>)
+
+    expect(await screen.findByText('가이드북에 포함된 행사 일정이 변경되었어요.')).toBeInTheDocument()
+    expect(screen.getByText(/생성된 가이드북은 자동으로 수정되지 않으니/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '이전 화면' }))
+      .toHaveAttribute('href', '/mypage/notifications')
+  })
+
+  it('알림 대상 가이드북이 삭제되었으면 재시도 대신 목록 이동을 안내한다', async () => {
+    getBook.mockRejectedValue({
+      isAxiosError: true,
+      response: { status: 404, data: { error: { code: 'RESOURCE_NOT_FOUND' } } },
+    })
+    render(<MemoryRouter initialEntries={[{
+      pathname: '/guidebooks/10',
+      state: { guidebookEventNotice: 'cancelled', returnTo: '/mypage/notifications' },
+    }]}><Routes>
+      <Route path="/guidebooks/:guidebookId" element={<GuidebookDetailPage />} />
+    </Routes></MemoryRouter>)
+
+    expect(await screen.findByText('더 이상 확인할 수 없는 가이드북이에요.')).toBeInTheDocument()
+    expect(screen.getByText('삭제되었거나 접근할 수 없는 가이드북입니다.')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '가이드북 목록으로' }))
+      .toHaveAttribute('href', '/guidebooks')
+    expect(screen.queryByRole('button', { name: '다시 확인' })).not.toBeInTheDocument()
+  })
+
   it('완료 화면은 재생성 진입과 일자별 대표 장소를 표시한다', async () => {
     getBook.mockResolvedValue({
       guidebook_id: 10,

@@ -8,7 +8,7 @@ V1 FE는 표준 Web Push를 받을 수 있는 최소 PWA 기반을 구성한다.
 - 홈 화면 설치 시 `standalone` 표시
 - HTTPS 또는 localhost에서 Service Worker 등록
 - Push 이벤트를 시스템 알림으로 표시
-- 가이드북 알림 클릭 시 완성 화면 또는 목록으로 이동하고, 관심 행사 변경 알림 클릭 시 행사 상세로 이동
+- 가이드북 알림 클릭 시 완성 화면 또는 목록으로 이동하고, 가이드북에 포함된 행사 변경·취소 알림은 영향받은 가이드북에서 주의 사항을 표시
 - 사용자 동의 시 브라우저 Push 구독을 생성하고 현재 회원·세션으로 등록
 - 로그아웃·탈퇴 시 현재 브라우저 구독 해제
 
@@ -70,9 +70,21 @@ Service Worker는 다음 필드를 사용한다.
 }
 ```
 
+가이드북에 포함된 행사 변경·취소 알림은 대상 가이드북을 참조한다.
+
+```json
+{
+  "notification_id": "305",
+  "type": "GUIDEBOOK_EVENT_CHANGED",
+  "reference_type": "GUIDEBOOK",
+  "reference_id": "101"
+}
+```
+
 - BE는 식별 필드만 전송하고 Service Worker가 알림 유형별 제목과 최소 안내 문구를 구성한다. 알림 원문이나 구독 키를 Push payload에 복제하지 않는다.
-- 네 필드와 `type`·`reference_type` 조합이 유효한 가이드북 완료·일정 임박·관심 행사 변경·신규 행사 묶음 payload만 표시한다. 잘못되거나 지원하지 않는 조합은 무시한다.
-- `GUIDEBOOK_COMPLETED + GUIDEBOOK`은 가이드북 완성 화면, `TRIP_STARTING + GUIDEBOOK`은 대상 가이드북 목록, `EVENT_CHANGED + EVENT`는 행사 상세, `NEW_EVENTS_ADDED + EVENT_LIST`는 참조 기준일의 신규 행사 목록으로 이동한다.
+- 네 필드와 `type`·`reference_type` 조합이 유효한 가이드북 완료·일정 임박·포함 행사 변경·취소·관심 행사 변경·신규 행사 묶음 payload만 표시한다. 잘못되거나 지원하지 않는 조합은 무시한다.
+- `GUIDEBOOK_COMPLETED + GUIDEBOOK`은 가이드북 완성 화면, `TRIP_STARTING + GUIDEBOOK`은 대상 가이드북 목록, `GUIDEBOOK_EVENT_CHANGED|CANCELLED + GUIDEBOOK`은 영향받은 가이드북, `EVENT_CHANGED + EVENT`는 행사 상세, `NEW_EVENTS_ADDED + EVENT_LIST`는 참조 기준일의 신규 행사 목록으로 이동한다.
+- 포함 행사 변경·취소 알림으로 연 가이드북에는 생성된 내용이 자동 수정되지 않는다는 안내를 표시한다. 오래된 알림도 대상이 남아 있으면 같은 화면을 열고, 대상이 삭제됐거나 접근할 수 없으면 재시도 대신 가이드북 목록으로 이동하도록 안내한다.
 - 신규 행사 알림은 하루가 지나도 삭제하지 않고 `reference_id`의 과거 목록을 조회한다. 결과가 없거나 조회에 실패하면 전체 행사로 복귀하는 동작을 제공한다.
 - Push 클릭은 먼저 알림을 읽음 처리하고, 이미 읽어 404인 경우에도 대상 화면 이동을 계속한다.
 - 가이드북 목록은 query를 읽어 대상 카드를 잠시 강조한 뒤 query를 제거한다.
@@ -115,5 +127,5 @@ iOS·iPadOS 16.4 이상에서 Web Push를 받으려면 사용자가 KGB를 홈 �
 - Chrome·Edge의 권한 허용 → 구독 등록 → 로그아웃 구독 해제
 - macOS Safari와 iOS 16.4+ 홈 화면 앱의 구독·수신 확인
 - 포그라운드 SSE와 Web Push가 모두 표시되고, 각 채널 내부의 동일 알림 ID 재전송만 억제되는지 확인
-- 알림 클릭 시 기존 창 재사용, 가이드북 대상 강조와 관심 행사 상세 이동 확인
+- 알림 클릭 시 기존 창 재사용, 가이드북 대상 강조·포함 행사 변경 안내와 관심 행사 상세 이동 확인
 - 실제 Push 수신은 BE PR #184와 VAPID 배포 설정을 포함해 확인

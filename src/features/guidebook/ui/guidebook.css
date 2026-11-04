@@ -146,6 +146,11 @@
 .book-result { padding: 36px 22px calc(34px + env(safe-area-inset-bottom)); }
 .book-result > h2 { margin: 0; font-size: 24px; letter-spacing: -.04em; }
 .book-result > .book-hint { margin-top: 10px; }
+.book-event-notice { display: grid; gap: 7px; padding: 15px 16px; margin: 24px 0 -30px; border: 1px solid #e8d6c8; border-radius: 12px; background: #fff8f2; color: #6f452b; font-size: 12px; line-height: 1.65; }
+.book-event-notice strong { font-size: 13px; }
+.book-event-notice span { color: #7c6150; }
+.book-event-notice--cancelled { border-color: #ebcecc; background: #fff5f4; color: #8b302c; }
+.book-event-notice--cancelled span { color: #765654; }
 .book-summary { margin: 56px 0 34px; padding: 18px; border: 1px solid #ededf0; border-radius: 14px; background: #fff; }
 .book-summary-heading { display: flex; align-items: center; gap: 14px; }
 .book-summary-heading h3 { margin: 0 0 8px; font-size: 17px; }

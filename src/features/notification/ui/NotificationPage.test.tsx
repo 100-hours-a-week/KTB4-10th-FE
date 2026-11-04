@@ -71,6 +71,16 @@ const newEventsNotification = {
   created_at: '2026-11-03T09:00:00+09:00',
 }
 
+const guidebookEventCancelledNotification = {
+  notification_id: '15',
+  type: 'GUIDEBOOK_EVENT_CANCELLED',
+  title: '가이드북 일정에 변경 사항이 있어요',
+  body: '가이드북에 포함된 행사가 취소되었어요. 확인해 주세요.',
+  reference_type: 'GUIDEBOOK',
+  reference_id: '81',
+  created_at: '2026-11-03T09:00:00+09:00',
+}
+
 function response(items = [olderNotification, newerNotification]) {
   return {
     items,
@@ -227,6 +237,20 @@ describe('NotificationPage', () => {
     await waitFor(() => expect(deleteNotificationMock).toHaveBeenCalledWith('13'))
     expect(await screen.findByRole('status', { name: '가이드북 이동 정보' }))
       .toHaveTextContent('/events/777:{"returnTo":"/mypage/notifications"}')
+  })
+
+  it('가이드북 행사 취소 알림을 누르면 읽음 처리 후 알림 목록 복귀 상태로 영향받은 가이드북에 이동한다', async () => {
+    const user = userEvent.setup()
+    getNotificationsMock.mockResolvedValue(response([guidebookEventCancelledNotification]))
+    renderPage()
+
+    await user.click(await screen.findByRole('button', {
+      name: '가이드북 일정에 변경 사항이 있어요 가이드북 확인',
+    }))
+
+    await waitFor(() => expect(deleteNotificationMock).toHaveBeenCalledWith('15'))
+    expect(await screen.findByRole('status', { name: '가이드북 이동 정보' }))
+      .toHaveTextContent('/guidebooks/81:{"guidebookEventNotice":"cancelled","returnTo":"/mypage/notifications"}')
   })
 
   it('신규 행사 묶음 알림을 누르면 읽음 처리 후 기준일 목록으로 이동한다', async () => {
