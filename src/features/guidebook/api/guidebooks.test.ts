@@ -50,6 +50,20 @@ describe('생성 전용 SSE API', () => {
     }))
   })
 
+  it('AI가 전송하는 checking 진행 단계를 허용한다', () => {
+    expect(parseGenerationEvent(JSON.stringify({
+      job_id: 31,
+      request_id: '31-0',
+      sequence: 1,
+      status: 'PROCESSING',
+      progress: { step: 'checking', message: '여행 조건을 확인하고 있어요.' },
+      guidebook_id: null,
+      code: null,
+    }))).toEqual(expect.objectContaining({
+      progress: { step: 'checking', message: '여행 조건을 확인하고 있어요.' },
+    }))
+  })
+
   it('잘못된 상태나 진행 단계는 무시한다', () => {
     const base = {
       job_id: 31,

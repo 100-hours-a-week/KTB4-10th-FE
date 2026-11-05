@@ -1,0 +1,279 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200" width="300" height="200" role="img" aria-label="여행자가 걷는 동안 노을이 지고 은하수 밤하늘에 달이 지나가는 로딩 애니메이션">
+<style><![CDATA[
+@property --k-far{syntax:'<color>';inherits:true;initial-value:#DFE8D2}
+@property --k-back{syntax:'<color>';inherits:true;initial-value:#98AF79}
+@property --k-backlit{syntax:'<color>';inherits:true;initial-value:#AEC290}
+@property --k-front{syntax:'<color>';inherits:true;initial-value:#ADC18F}
+@property --k-frontlit{syntax:'<color>';inherits:true;initial-value:#C0D2A4}
+@property --k-meadow{syntax:'<color>';inherits:true;initial-value:#D8E4C2}
+@property --k-tree{syntax:'<color>';inherits:true;initial-value:#8FA86D}
+@property --k-tree2{syntax:'<color>';inherits:true;initial-value:#A3BA80}
+@property --k-road{syntax:'<color>';inherits:true;initial-value:#EFE7D2}
+@property --k-dash{syntax:'<color>';inherits:true;initial-value:#D9CDAE}
+@property --k-jacket{syntax:'<color>';inherits:true;initial-value:#DE8A55}
+@property --k-sleeve{syntax:'<color>';inherits:true;initial-value:#C9733F}
+@property --k-farsleeve{syntax:'<color>';inherits:true;initial-value:#B0613A}
+@property --k-pants{syntax:'<color>';inherits:true;initial-value:#3A4660}
+@property --k-farpants{syntax:'<color>';inherits:true;initial-value:#2A3247}
+@property --k-skin{syntax:'<color>';inherits:true;initial-value:#F2CBA8}
+@property --k-skinshade{syntax:'<color>';inherits:true;initial-value:#E2B38E}
+@property --k-pack{syntax:'<color>';inherits:true;initial-value:#4F6B37}
+@property --k-packdark{syntax:'<color>';inherits:true;initial-value:#3E5530}
+@property --k-roll{syntax:'<color>';inherits:true;initial-value:#EADBB8}
+@property --k-hat{syntax:'<color>';inherits:true;initial-value:#4E6A73}
+@property --k-hatdark{syntax:'<color>';inherits:true;initial-value:#3C545C}
+@property --k-shoe{syntax:'<color>';inherits:true;initial-value:#2B2B2B}
+@property --k-sole{syntax:'<color>';inherits:true;initial-value:#E9E1D2}
+
+/* 하루 색 변화: 새벽·노을(K) → 낮(D) → 노을(K) → 밤(N) */
+.kgb-land{animation:kgbCycle 14s linear infinite}
+@keyframes kgbCycle{
+  0%,48%,100%{--k-far:#D9C6C4;--k-back:#9A8796;--k-backlit:#B89EA4;--k-front:#A8979F;--k-frontlit:#C7ADAC;--k-meadow:#CFBBAA;--k-tree:#8A8579;--k-tree2:#9E9787;--k-road:#E8CFB6;--k-dash:#D5B59B;
+    --k-jacket:#DE8A55;--k-sleeve:#C9733F;--k-farsleeve:#B0613A;--k-pants:#3A4660;--k-farpants:#2A3247;--k-skin:#F2CBA8;--k-skinshade:#E2B38E;--k-pack:#4F6B37;--k-packdark:#3E5530;--k-roll:#EADBB8;--k-hat:#4E6A73;--k-hatdark:#3C545C;--k-shoe:#2B2B2B;--k-sole:#E9E1D2}
+  8%,36%{--k-far:#DFE8D2;--k-back:#98AF79;--k-backlit:#AEC290;--k-front:#ADC18F;--k-frontlit:#C0D2A4;--k-meadow:#D8E4C2;--k-tree:#8FA86D;--k-tree2:#A3BA80;--k-road:#EFE7D2;--k-dash:#D9CDAE;
+    --k-jacket:#DE8A55;--k-sleeve:#C9733F;--k-farsleeve:#B0613A;--k-pants:#3A4660;--k-farpants:#2A3247;--k-skin:#F2CBA8;--k-skinshade:#E2B38E;--k-pack:#4F6B37;--k-packdark:#3E5530;--k-roll:#EADBB8;--k-hat:#4E6A73;--k-hatdark:#3C545C;--k-shoe:#2B2B2B;--k-sole:#E9E1D2}
+  58%,88%{--k-far:#545E93;--k-back:#323C6A;--k-backlit:#3D4878;--k-front:#3E4979;--k-frontlit:#4A5688;--k-meadow:#4B5585;--k-tree:#2E3862;--k-tree2:#374270;--k-road:#6E7099;--k-dash:#8C8FB8;
+    --k-jacket:#A2685E;--k-sleeve:#8E5A55;--k-farsleeve:#74494B;--k-pants:#283050;--k-farpants:#1D233B;--k-skin:#C7A8A8;--k-skinshade:#A88C93;--k-pack:#374745;--k-packdark:#2A3838;--k-roll:#ADA7B5;--k-hat:#3B4E63;--k-hatdark:#2C3B50;--k-shoe:#1E2030;--k-sole:#9A9AB0}
+}
+.f-far{fill:var(--k-far)}.f-back{fill:var(--k-back)}.f-backlit{fill:var(--k-backlit)}.f-front{fill:var(--k-front)}.f-frontlit{fill:var(--k-frontlit)}
+.f-meadow{fill:var(--k-meadow)}.f-tree{fill:var(--k-tree)}.f-tree2{fill:var(--k-tree2)}.f-road{fill:var(--k-road)}.s-dash{stroke:var(--k-dash)}
+.f-jacket{fill:var(--k-jacket)}.f-sleeve{fill:var(--k-sleeve)}.f-farsleeve{fill:var(--k-farsleeve)}.f-pants{fill:var(--k-pants)}.f-farpants{fill:var(--k-farpants)}
+.f-skin{fill:var(--k-skin)}.f-skinshade{fill:var(--k-skinshade)}.f-pack{fill:var(--k-pack)}.f-packdark{fill:var(--k-packdark)}.s-packdark{stroke:var(--k-packdark)}.f-roll{fill:var(--k-roll)}
+.f-hat{fill:var(--k-hat)}.f-hatdark{fill:var(--k-hatdark)}.f-shoe{fill:var(--k-shoe)}.f-sole{fill:var(--k-sole)}
+
+/* 하늘 */
+.kgb-dusk{animation:kgbDusk 14s linear infinite}
+.kgb-night{animation:kgbNight 14s linear infinite}
+.kgb-stars{animation:kgbStars 14s linear infinite}
+.kgb-rim{animation:kgbRim 14s linear infinite}
+@keyframes kgbDusk{0%{opacity:.85}8%,36%{opacity:0}47%{opacity:1}58%,88%{opacity:0}100%{opacity:.85}}
+@keyframes kgbNight{0%,46%{opacity:0}58%,88%{opacity:1}100%{opacity:0}}
+@keyframes kgbStars{0%,52%{opacity:0}62%,86%{opacity:1}95%,100%{opacity:0}}
+@keyframes kgbRim{0%,52%{opacity:0}62%,86%{opacity:.9}95%,100%{opacity:0}}
+.kgb-t1{animation:kgbTw 2.6s ease-in-out infinite}
+.kgb-t2{animation:kgbTw 3.4s ease-in-out -1.2s infinite}
+.kgb-t3{animation:kgbTw 4.6s ease-in-out -2.8s infinite}
+.kgb-t4{animation:kgbTw 5.5s ease-in-out -.7s infinite}
+@keyframes kgbTw{0%,100%{opacity:1}50%{opacity:.35}}
+.kgb-spark{transform-box:fill-box;transform-origin:center;animation:kgbSpark 3.2s ease-in-out infinite}
+.kgb-spark2{transform-box:fill-box;transform-origin:center;animation:kgbSpark 4.4s ease-in-out -1.6s infinite}
+@keyframes kgbSpark{0%,100%{transform:scale(.55);opacity:.6}50%{transform:scale(1.1);opacity:1}}
+.kgb-shoot1{animation:kgbShoot1 14s linear infinite}
+.kgb-shoot2{animation:kgbShoot2 14s linear infinite}
+@keyframes kgbShoot1{0%,66%{opacity:0;transform:translate(0,0)}67%{opacity:1}71%{opacity:0;transform:translate(-56px,28px)}100%{opacity:0;transform:translate(-56px,28px)}}
+@keyframes kgbShoot2{0%,79%{opacity:0;transform:translate(0,0)}80%{opacity:.9}83.5%{opacity:0;transform:translate(-44px,22px)}100%{opacity:0;transform:translate(-44px,22px)}}
+
+/* 해와 달 */
+.kgb-wheel{transform-box:view-box;transform-origin:150px 128px;animation:kgbSpin 14s linear infinite}
+.kgb-moon{transform-box:fill-box;transform-origin:center;animation:kgbUnspin 14s linear infinite}
+@keyframes kgbSpin{to{transform:rotate(-360deg)}}
+@keyframes kgbUnspin{to{transform:rotate(360deg)}}
+
+/* 풍경 흐름 */
+.kgb-far{animation:kgbPan300 40s linear infinite}
+.kgb-trees{animation:kgbPan450 15s linear infinite}
+.kgb-road{animation:kgbRoad .5s linear infinite}
+@keyframes kgbPan300{to{transform:translateX(-300px)}}
+@keyframes kgbPan450{to{transform:translateX(-450px)}}
+@keyframes kgbRoad{to{stroke-dashoffset:24}}
+
+/* 그림자: 해·달 반대편으로 늘어남 */
+.kgb-shadow{transform-box:fill-box;transform-origin:center;animation:kgbShadow 14s linear infinite}
+@keyframes kgbShadow{
+  0%{transform:translateX(-7px) scaleX(1.6);opacity:.05}
+  12%{transform:translateX(-3px) scaleX(1.2);opacity:.13}
+  25%{transform:translateX(0) scaleX(1);opacity:.15}
+  38%{transform:translateX(3px) scaleX(1.2);opacity:.13}
+  50%{transform:translateX(7px) scaleX(1.6);opacity:.03}
+  51%{transform:translateX(-7px) scaleX(1.6);opacity:.03}
+  62%{transform:translateX(-3px) scaleX(1.2);opacity:.1}
+  75%{transform:translateX(0) scaleX(1);opacity:.12}
+  88%{transform:translateX(3px) scaleX(1.2);opacity:.1}
+  100%{transform:translateX(7px) scaleX(1.6);opacity:.05}}
+
+/* 걸음 */
+.kgb-person{animation:kgbBob .5s ease-in-out infinite,kgbCycle 14s linear infinite}
+.kgb-thigh,.kgb-shin,.kgb-uarm,.kgb-farm{transform-box:view-box}
+.kgb-thigh{transform-origin:150px 122px;animation:kgbThigh 1s ease-in-out infinite}
+.kgb-shin{transform-origin:150px 136px;animation:kgbShin 1s linear infinite}
+.kgb-uarm{transform-origin:151px 100px;animation:kgbArm 1s ease-in-out infinite}
+.kgb-farm{transform-origin:151px 111px;animation:kgbFore 1s ease-in-out infinite}
+.kgb-lag{animation-delay:-.5s}
+@keyframes kgbBob{0%,100%{transform:translateY(.4px)}22%{transform:translateY(1.3px)}60%{transform:translateY(-1.8px)}}
+@keyframes kgbThigh{0%,100%{transform:rotate(-26deg)}50%{transform:rotate(24deg)}}
+@keyframes kgbShin{0%,100%{transform:rotate(3deg)}12%{transform:rotate(12deg)}32%{transform:rotate(4deg)}50%{transform:rotate(14deg)}64%{transform:rotate(58deg)}86%{transform:rotate(12deg)}}
+@keyframes kgbArm{0%,100%{transform:rotate(-18deg)}50%{transform:rotate(18deg)}}
+@keyframes kgbFore{0%,100%{transform:rotate(-40deg)}50%{transform:rotate(-14deg)}}
+
+@media (prefers-reduced-motion:reduce){[class*="kgb-"]{animation:none}}
+]]></style>
+<defs>
+  <radialGradient id="kgbFadeG" cx=".5" cy=".5" r=".5"><stop offset=".56" stop-color="#FFFFFF"></stop><stop offset=".82" stop-color="#808080"></stop><stop offset="1" stop-color="#000000"></stop></radialGradient>
+  <mask id="kgbWin" maskUnits="userSpaceOnUse" x="0" y="0" width="300" height="200"><rect width="300" height="200" fill="url(#kgbFadeG)"></rect></mask>
+  <clipPath id="kgbAbove"><rect x="0" y="0" width="300" height="128"></rect></clipPath>
+  <linearGradient id="kgbDay" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F6E8C6"></stop><stop offset=".64" stop-color="#FCF7EA"></stop><stop offset="1" stop-color="#FCF7EA"></stop></linearGradient>
+  <linearGradient id="kgbDuskSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6F6BA8"></stop><stop offset=".36" stop-color="#C98FA4"></stop><stop offset=".56" stop-color="#F0A78A"></stop><stop offset=".64" stop-color="#F7C98C"></stop><stop offset="1" stop-color="#F7C98C"></stop></linearGradient>
+  <linearGradient id="kgbNightSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#151C45"></stop><stop offset=".42" stop-color="#2F3677"></stop><stop offset=".64" stop-color="#7F78B8"></stop><stop offset="1" stop-color="#7F78B8"></stop></linearGradient>
+  <radialGradient id="kgbBand"><stop offset="0" stop-color="#F4F1FF" stop-opacity=".6"></stop><stop offset=".5" stop-color="#B7A6F2" stop-opacity=".22"></stop><stop offset="1" stop-color="#B7A6F2" stop-opacity="0"></stop></radialGradient>
+  <linearGradient id="kgbTrail" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="18" y2="-9"><stop offset="0" stop-color="#FFFFFF"></stop><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"></stop></linearGradient>
+  <radialGradient id="kgbLane"><stop offset="0" stop-color="#1A2152" stop-opacity=".55"></stop><stop offset="1" stop-color="#1A2152" stop-opacity="0"></stop></radialGradient>
+</defs>
+
+<g class="kgb-scene" mask="url(#kgbWin)">
+  <!-- 하늘: 낮 → 노을 → 밤 -->
+  <rect width="300" height="200" fill="url(#kgbDay)"></rect>
+  <rect class="kgb-dusk" width="300" height="200" fill="url(#kgbDuskSky)" opacity="0"></rect>
+  <rect class="kgb-night" width="300" height="200" fill="url(#kgbNightSky)" opacity="0"></rect>
+
+  <!-- 은하수 -->
+  <g class="kgb-stars" opacity="0">
+    <g transform="rotate(-29 150 70)">
+      <ellipse cx="150" cy="70" rx="118" ry="22" fill="url(#kgbBand)"></ellipse>
+      <ellipse cx="116" cy="73" rx="52" ry="14" fill="url(#kgbBand)"></ellipse>
+      <ellipse cx="190" cy="65" rx="46" ry="11" fill="url(#kgbBand)"></ellipse>
+      <ellipse cx="160" cy="69" rx="72" ry="6" fill="url(#kgbBand)"></ellipse>
+    </g>
+    <g transform="rotate(-27 150 72)">
+      <ellipse cx="146" cy="73" rx="72" ry="3.2" fill="url(#kgbLane)"></ellipse>
+      <ellipse cx="196" cy="70" rx="24" ry="2.4" fill="url(#kgbLane)"></ellipse>
+    </g>
+    <g fill="#FFFFFF">
+      <circle cx="135" cy="64" r="0.64" opacity="0.7"></circle><circle cx="89" cy="98" r="0.65" opacity="0.8"></circle><circle cx="75" cy="112" r="0.74" opacity="0.4"></circle><circle cx="83" cy="99" r="0.50" opacity="0.4"></circle><circle cx="93" cy="103" r="0.64" opacity="0.8"></circle><circle cx="154" cy="70" r="0.69" opacity="0.7"></circle><circle cx="140" cy="72" r="0.80" opacity="0.8"></circle><circle class="kgb-t1" cx="127" cy="109" r="0.57"></circle><circle class="kgb-t1" cx="163" cy="67" r="0.59"></circle><circle class="kgb-t1" cx="215" cy="37" r="0.50"></circle><circle cx="148" cy="80" r="0.52" opacity="0.8"></circle><circle cx="107" cy="94" r="0.53" opacity="0.9"></circle><circle class="kgb-t4" cx="199" cy="48" r="0.53"></circle><circle cx="92" cy="107" r="0.67" opacity="0.5"></circle><circle cx="196" cy="53" r="0.53" opacity="0.5"></circle><circle cx="111" cy="100" r="0.79" opacity="0.6"></circle><circle cx="222" cy="33" r="0.76" opacity="0.5"></circle><circle class="kgb-t1" cx="97" cy="100" r="0.60"></circle><circle cx="96" cy="100" r="0.61" opacity="0.5"></circle><circle class="kgb-t4" cx="166" cy="61" r="0.75"></circle><circle class="kgb-t2" cx="96" cy="110" r="0.75"></circle><circle cx="93" cy="116" r="0.69" opacity="0.7"></circle><circle class="kgb-t3" cx="128" cy="80" r="0.51"></circle><circle class="kgb-t4" cx="102" cy="98" r="0.71"></circle><circle class="kgb-t1" cx="114" cy="96" r="0.52"></circle><circle class="kgb-t1" cx="114" cy="102" r="0.78"></circle><circle class="kgb-t2" cx="69" cy="111" r="0.51"></circle><circle cx="76" cy="115" r="0.54" opacity="0.6"></circle><circle cx="185" cy="34" r="0.68" opacity="0.6"></circle><circle class="kgb-t1" cx="123" cy="84" r="0.59"></circle><circle class="kgb-t3" cx="146" cy="72" r="0.80"></circle><circle cx="191" cy="42" r="0.77" opacity="0.8"></circle><circle cx="206" cy="46" r="0.71" opacity="0.8"></circle><circle cx="133" cy="77" r="0.74" opacity="0.7"></circle><circle class="kgb-t1" cx="170" cy="53" r="0.68"></circle><circle cx="219" cy="31" r="0.72" opacity="0.6"></circle><circle cx="209" cy="31" r="0.53" opacity="0.4"></circle><circle cx="166" cy="57" r="0.71" opacity="0.7"></circle><circle class="kgb-t2" cx="108" cy="101" r="0.70"></circle><circle cx="197" cy="45" r="0.60" opacity="0.6"></circle><circle cx="100" cy="94" r="0.69" opacity="0.8"></circle><circle class="kgb-t3" cx="96" cy="104" r="0.56"></circle><circle class="kgb-t1" cx="99" cy="104" r="0.77"></circle><circle class="kgb-t4" cx="111" cy="97" r="0.58"></circle><circle cx="131" cy="88" r="0.66" opacity="0.8"></circle><circle class="kgb-t1" cx="211" cy="33" r="0.75"></circle><circle cx="181" cy="49" r="0.58" opacity="0.7"></circle><circle cx="160" cy="61" r="0.56" opacity="0.5"></circle><circle cx="199" cy="38" r="0.74" opacity="0.5"></circle><circle class="kgb-t2" cx="74" cy="103" r="0.61"></circle><circle class="kgb-t1" cx="94" cy="100" r="0.64"></circle><circle cx="196" cy="43" r="0.57" opacity="0.7"></circle><circle cx="152" cy="74" r="0.75" opacity="0.5"></circle><circle cx="133" cy="80" r="0.77" opacity="0.6"></circle><circle cx="95" cy="102" r="0.67" opacity="0.7"></circle><circle cx="209" cy="38" r="0.60" opacity="0.9"></circle><circle class="kgb-t2" cx="80" cy="119" r="0.78"></circle><circle cx="203" cy="40" r="0.60" opacity="0.8"></circle><circle cx="125" cy="92" r="0.67" opacity="0.6"></circle><circle class="kgb-t1" cx="65" cy="122" r="0.74"></circle><circle class="kgb-t4" cx="87" cy="99" r="0.54"></circle><circle cx="150" cy="74" r="0.57" opacity="0.5"></circle><circle cx="192" cy="47" r="0.69" opacity="0.8"></circle><circle cx="160" cy="63" r="0.75" opacity="0.5"></circle>
+      <circle class="kgb-t3" cx="227" cy="115" r="1.0" fill="#FFE3EE"></circle><circle class="kgb-t1" cx="84" cy="70" r="1.0" fill="#FFE3EE"></circle><circle class="kgb-t4" cx="46" cy="115" r="1.0" fill="#FFE3EE"></circle><circle class="kgb-t3" cx="245" cy="62" r="0.8" fill="#DCE6FF"></circle><circle class="kgb-t3" cx="148" cy="49" r="0.7" fill="#DCE6FF"></circle><circle class="kgb-t2" cx="132" cy="17" r="1.1"></circle><circle class="kgb-t4" cx="102" cy="89" r="0.7"></circle><circle class="kgb-t3" cx="201" cy="27" r="1.1" fill="#FFE3EE"></circle><circle class="kgb-t4" cx="194" cy="105" r="1.0"></circle><circle class="kgb-t2" cx="222" cy="78" r="1.2" fill="#FFE3EE"></circle><circle class="kgb-t2" cx="157" cy="37" r="0.8"></circle><circle class="kgb-t3" cx="203" cy="98" r="1.0"></circle><circle class="kgb-t2" cx="211" cy="34" r="1.2"></circle><circle class="kgb-t2" cx="125" cy="59" r="0.7" fill="#DCE6FF"></circle><circle class="kgb-t2" cx="178" cy="97" r="1.0"></circle><circle class="kgb-t1" cx="119" cy="99" r="1.1"></circle><circle class="kgb-t2" cx="180" cy="50" r="1.2" fill="#FFF2CC"></circle><circle class="kgb-t4" cx="146" cy="17" r="0.7" fill="#FFE3EE"></circle><circle class="kgb-t3" cx="81" cy="35" r="1.2"></circle><circle class="kgb-t3" cx="249" cy="62" r="0.9"></circle><circle class="kgb-t3" cx="134" cy="51" r="0.6"></circle><circle class="kgb-t4" cx="194" cy="102" r="0.9"></circle><circle class="kgb-t2" cx="203" cy="56" r="0.7"></circle><circle class="kgb-t4" cx="214" cy="48" r="1.0"></circle><circle class="kgb-t3" cx="82" cy="75" r="0.8"></circle><circle class="kgb-t4" cx="66" cy="91" r="0.7"></circle><circle class="kgb-t4" cx="113" cy="70" r="1.1"></circle><circle class="kgb-t3" cx="129" cy="89" r="0.8"></circle><circle class="kgb-t1" cx="62" cy="106" r="0.8" fill="#FFF2CC"></circle><circle class="kgb-t2" cx="248" cy="83" r="1.1"></circle>
+    </g>
+    <g transform="translate(108 46)"><circle r="3.5" fill="#E9E4FF" opacity="0.3"></circle><path class="kgb-spark" d="M0-4.5L.8-.8 4.5 0 .8.8 0 4.5-.8.8-4.5 0-.8-.8Z" fill="#FFFFFF"></path></g>
+    <g transform="translate(232 70)"><circle r="3" fill="#E9E4FF" opacity="0.3"></circle><path class="kgb-spark2" d="M0-3.6L.7-.7 3.6 0 .7.7 0 3.6-.7.7-3.6 0-.7-.7Z" fill="#FFFFFF"></path></g>
+    <g transform="translate(172 24)"><circle r="2.6" fill="#FFE3EE" opacity="0.3"></circle><path class="kgb-spark2" d="M0-3L.6-.6 3 0 .6.6 0 3-.6.6-3 0-.6-.6Z" fill="#FFFFFF"></path></g>
+    <g transform="translate(232 32)"><line class="kgb-shoot1" x1="0" y1="0" x2="18" y2="-9" stroke="url(#kgbTrail)" stroke-width="1.3" stroke-linecap="round" opacity="0"></line></g>
+    <g transform="translate(150 22)"><line class="kgb-shoot2" x1="0" y1="0" x2="18" y2="-9" stroke="url(#kgbTrail)" stroke-width="1" stroke-linecap="round" opacity="0"></line></g>
+  </g>
+
+  <!-- 해와 달: 한 바퀴에 반대편으로 붙어 오른쪽에서 떠 왼쪽으로 짐 -->
+  <g clip-path="url(#kgbAbove)">
+    <g class="kgb-wheel">
+      <circle cx="222" cy="128" r="20" fill="#F5C46A" opacity="0.25"></circle>
+      <circle cx="222" cy="128" r="11" fill="#F5C46A"></circle>
+      <g transform="translate(78 128)">
+        <g class="kgb-moon">
+          <circle r="28" fill="#B5CDF8" opacity="0.1"></circle>
+          <circle r="17" fill="#B5CDF8" opacity="0.22"></circle>
+          <path d="M3.5-10A10.6 10.6 0 1 0 3.5 10 8 8 0 1 1 3.5-10Z" fill="#B5CDF8"></path>
+        </g>
+      </g>
+    </g>
+  </g>
+
+  <!-- 먼 능선 (이음매 없이 반복) -->
+  <g class="kgb-land"><g class="kgb-far">
+    <path class="f-far" fill="#DFE8D2" d="M0 128V106C25 106 45 96 75 98S125 108 150 104S205 94 235 98S280 106 300 106V128Z"></path>
+    <path class="f-far" fill="#DFE8D2" transform="translate(300 0)" d="M0 128V106C25 106 45 96 75 98S125 108 150 104S205 94 235 98S280 106 300 106V128Z"></path>
+  </g>
+
+  <!-- 산: 봉우리를 양옆으로 비켜 사람 머리 뒤는 하늘. 빛은 오른쪽 위에서 -->
+  <path class="f-back" fill="#98AF79" d="M122 128C142 120 156 108 170 99C180 92 188 86 196 84C203 83 207 87 213 92C224 101 238 114 262 128Z"></path>
+  <path class="f-backlit" fill="#AEC290" d="M196 84C203 83 207 87 213 92C224 101 238 114 262 128H230C220 112 208 96 196 84Z"></path>
+  <path class="f-front" fill="#ADC18F" d="M36 128C54 120 68 108 80 98C88 91 94 86 100 85C106 84 110 88 116 94C126 104 140 115 162 128Z"></path>
+  <path class="f-frontlit" fill="#C0D2A4" d="M100 85C106 84 110 88 116 94C126 104 140 115 162 128H134C124 112 112 97 100 85Z"></path>
+
+  <!-- 들판과 나무 (450px 간격으로 반복, 모양 다양화) -->
+  <rect class="f-meadow" y="128" width="300" height="72" fill="#D8E4C2"></rect>
+  <g class="kgb-trees">
+    <g>
+      <g transform="translate(16 0)"><rect x="-1" y="126" width="2" height="8" fill="#7C6A52"></rect><circle class="f-tree" cy="123" r="7" fill="#8FA86D"></circle></g>
+      <g transform="translate(29 0)"><rect x="-1" y="128" width="2" height="6" fill="#7C6A52"></rect><circle class="f-tree2" cy="126" r="5" fill="#A3BA80"></circle></g>
+      <g transform="translate(74 0)"><circle class="f-tree2" cx="-4" cy="131" r="4" fill="#A3BA80"></circle><circle class="f-tree" cx="2" cy="130" r="5" fill="#8FA86D"></circle><circle class="f-tree2" cx="7" cy="132" r="3.4" fill="#A3BA80"></circle></g>
+      <g transform="translate(120 0)"><rect x="-1" y="129" width="2" height="5" fill="#7C6A52"></rect><ellipse class="f-tree" cy="121" rx="4.2" ry="9" fill="#8FA86D"></ellipse></g>
+      <g transform="translate(206 0)"><rect x="-1" y="126" width="2" height="8" fill="#7C6A52"></rect><circle class="f-tree" cy="123" r="7" fill="#8FA86D"></circle></g>
+      <g transform="translate(264 0)"><rect x="-1" y="129" width="2" height="5" fill="#7C6A52"></rect><ellipse class="f-tree2" cy="122" rx="3.8" ry="8" fill="#A3BA80"></ellipse></g>
+      <g transform="translate(274 0)"><rect x="-1" y="127" width="2" height="7" fill="#7C6A52"></rect><circle class="f-tree" cy="124" r="6" fill="#8FA86D"></circle></g>
+      <g transform="translate(330 0)"><circle class="f-tree2" cx="-3" cy="131" r="3.6" fill="#A3BA80"></circle><circle class="f-tree" cx="3" cy="130.5" r="4.5" fill="#8FA86D"></circle></g>
+      <g transform="translate(372 0)"><rect x="-1" y="127" width="2" height="7" fill="#7C6A52"></rect><circle class="f-tree" cy="124" r="6" fill="#8FA86D"></circle></g>
+      <g transform="translate(410 0)"><rect x="-1" y="129" width="2" height="5" fill="#7C6A52"></rect><ellipse class="f-tree" cy="121" rx="4.2" ry="9" fill="#8FA86D"></ellipse></g>
+      <g transform="translate(421 0)"><rect x="-1" y="128" width="2" height="6" fill="#7C6A52"></rect><circle class="f-tree2" cy="126" r="5" fill="#A3BA80"></circle></g>
+    </g>
+    <g transform="translate(450 0)">
+      <g transform="translate(16 0)"><rect x="-1" y="126" width="2" height="8" fill="#7C6A52"></rect><circle class="f-tree" cy="123" r="7" fill="#8FA86D"></circle></g>
+      <g transform="translate(29 0)"><rect x="-1" y="128" width="2" height="6" fill="#7C6A52"></rect><circle class="f-tree2" cy="126" r="5" fill="#A3BA80"></circle></g>
+      <g transform="translate(74 0)"><circle class="f-tree2" cx="-4" cy="131" r="4" fill="#A3BA80"></circle><circle class="f-tree" cx="2" cy="130" r="5" fill="#8FA86D"></circle><circle class="f-tree2" cx="7" cy="132" r="3.4" fill="#A3BA80"></circle></g>
+      <g transform="translate(120 0)"><rect x="-1" y="129" width="2" height="5" fill="#7C6A52"></rect><ellipse class="f-tree" cy="121" rx="4.2" ry="9" fill="#8FA86D"></ellipse></g>
+      <g transform="translate(206 0)"><rect x="-1" y="126" width="2" height="8" fill="#7C6A52"></rect><circle class="f-tree" cy="123" r="7" fill="#8FA86D"></circle></g>
+      <g transform="translate(264 0)"><rect x="-1" y="129" width="2" height="5" fill="#7C6A52"></rect><ellipse class="f-tree2" cy="122" rx="3.8" ry="8" fill="#A3BA80"></ellipse></g>
+      <g transform="translate(274 0)"><rect x="-1" y="127" width="2" height="7" fill="#7C6A52"></rect><circle class="f-tree" cy="124" r="6" fill="#8FA86D"></circle></g>
+    </g>
+  </g>
+
+  <!-- 흙길 -->
+  <rect class="f-road" y="145" width="300" height="13" fill="#EFE7D2"></rect>
+  <line class="kgb-road s-dash" x1="0" y1="151.5" x2="300" y2="151.5" stroke="#D9CDAE" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="11 13"></line>
+  <ellipse class="kgb-shadow" cx="151" cy="152.6" rx="12" ry="2.2" fill="#1E2340" opacity="0.14"></ellipse></g>
+
+  <!-- 여행자 -->
+  <g class="kgb-person">
+    <!-- 먼 다리 -->
+    <g class="kgb-thigh kgb-lag">
+      <path class="f-farpants" fill="#2A3247" d="M146.4 122Q150 119.4 153.6 122L152.9 136.4Q150 138.6 147.1 136.4Z"></path>
+      <g class="kgb-shin kgb-lag">
+        <path class="f-farpants" fill="#2A3247" d="M147 136Q145.4 141.5 147.5 148.2H151.9L152.9 136Z"></path>
+        <path class="f-shoe" fill="#2B2B2B" d="M146.6 147.2H152.2Q156.8 147.2 158.2 150.4Q158.5 151.7 157.2 151.7H146.8Q145.8 151.7 145.8 150.7Z"></path>
+        <path class="f-sole" fill="#E9E1D2" d="M145.8 150.6H158.2V151.7H145.8Z"></path>
+      </g>
+    </g>
+    <!-- 가까운 다리 -->
+    <g class="kgb-thigh">
+      <path class="f-pants" fill="#3A4660" d="M146.4 122Q150 119.4 153.6 122L152.9 136.4Q150 138.6 147.1 136.4Z"></path>
+      <g class="kgb-shin">
+        <path class="f-pants" fill="#3A4660" d="M147 136Q145.4 141.5 147.5 148.2H151.9L152.9 136Z"></path>
+        <path class="f-shoe" fill="#2B2B2B" d="M146.6 147.2H152.2Q156.8 147.2 158.2 150.4Q158.5 151.7 157.2 151.7H146.8Q145.8 151.7 145.8 150.7Z"></path>
+        <path class="f-sole" fill="#E9E1D2" d="M145.8 150.6H158.2V151.7H145.8Z"></path>
+      </g>
+    </g>
+    <!-- 상체 (살짝 앞으로 기울임) -->
+    <g transform="rotate(4 150 122)">
+      <!-- 먼 팔 -->
+      <g class="kgb-uarm">
+        <path class="f-farsleeve" fill="#B0613A" d="M148.4 100Q151 97.8 153.6 100L153 111Q151 112.6 149 111Z"></path>
+        <g class="kgb-farm">
+          <path class="f-farsleeve" fill="#B0613A" d="M149 111H153L152.4 119.6H149.6Z"></path>
+          <ellipse class="f-skinshade" fill="#E2B38E" cx="151" cy="121.4" rx="2.3" ry="2.7"></ellipse>
+        </g>
+      </g>
+      <!-- 배낭 -->
+      <rect class="f-roll" fill="#EADBB8" x="130.5" y="92.6" width="16" height="6" rx="3"></rect>
+      <path class="s-packdark" stroke="#3E5530" stroke-width=".8" fill="none" d="M135 92.8V98.4M142 92.8V98.4"></path>
+      <rect class="f-pack" fill="#4F6B37" x="131.5" y="97.5" width="13.5" height="23.5" rx="5"></rect>
+      <path class="f-packdark" fill="#3E5530" d="M131.5 103Q131.5 97.5 138.2 97.5Q145 97.5 145 103Z"></path>
+      <rect class="f-packdark" fill="#3E5530" x="133.2" y="110.5" width="8.6" height="7" rx="2"></rect>
+      <!-- 목과 몸통 -->
+      <rect class="f-skinshade" fill="#E2B38E" x="150.2" y="91.5" width="4" height="5.5" rx="1.5"></rect>
+      <path class="f-jacket" fill="#DE8A55" d="M144 99.5Q144 95.6 148.2 95.6H154Q158.6 96 158.6 101L158 120Q157.8 125 153 125H147.6Q143.5 125 143.6 121Z"></path>
+      <path class="f-sleeve" fill="#C9733F" d="M143.6 121.2H158V120Q157.8 125 153 125H147.6Q143.5 125 143.6 121.2Z"></path>
+      <path class="s-packdark" stroke="#3E5530" stroke-width="2.2" stroke-linecap="round" fill="none" d="M148.6 96.6Q146.6 106 147.6 117.5"></path>
+      <!-- 머리 -->
+      <circle class="f-skin" fill="#F2CBA8" cx="152.6" cy="85.2" r="7.6"></circle>
+      <circle class="f-skin" fill="#F2CBA8" cx="159.8" cy="86.4" r="1.5"></circle>
+      <path fill="#4A3428" d="M145.4 83.4Q144.6 89.4 148.8 91.6L150.4 86Z"></path>
+      <circle class="f-skinshade" fill="#E2B38E" cx="150.6" cy="86.2" r="1.5"></circle>
+      <circle fill="#2B2B2B" cx="157" cy="84.6" r=".8"></circle>
+      <!-- 버킷햇 -->
+      <path class="f-hat" fill="#4E6A73" d="M145.4 80.6Q145.9 73 152.6 73Q159.3 73 159.8 80.6Z"></path>
+      <path class="f-hatdark" fill="#3C545C" d="M145.5 79H159.7V80.7H145.5Z"></path>
+      <path class="f-hatdark" fill="#3C545C" d="M141.6 81.3Q152.6 78.6 163.9 81.3Q152.6 83.6 141.6 81.3Z"></path>
+      <!-- 가까운 팔 -->
+      <g class="kgb-uarm kgb-lag">
+        <path class="f-sleeve" fill="#C9733F" d="M148.4 100Q151 97.8 153.6 100L153 111Q151 112.6 149 111Z"></path>
+        <g class="kgb-farm kgb-lag">
+          <path class="f-sleeve" fill="#C9733F" d="M149 111H153L152.4 119.6H149.6Z"></path>
+          <ellipse class="f-skin" fill="#F2CBA8" cx="151" cy="121.4" rx="2.3" ry="2.7"></ellipse>
+        </g>
+      </g>
+      <!-- 밤: 달빛 윤곽 -->
+      <g class="kgb-rim" opacity="0" fill="none" stroke="#CFE0FF" stroke-width=".9" stroke-linecap="round">
+        <path d="M147 76.4Q152.6 72.4 158.6 76.6"></path>
+        <path d="M159.4 82.6Q160.6 85 159.8 88"></path>
+        <path d="M150 96.2Q155 95.6 157.8 98.6"></path>
+        <path d="M131.4 93.4H145.6"></path>
+      </g>
+    </g>
+  </g>
+</g>
+</svg>
