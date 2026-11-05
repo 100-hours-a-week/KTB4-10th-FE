@@ -4,7 +4,7 @@ import type { ApiResponse } from '../../../shared/api/types.ts'
 
 export type Companion = 'ALONE' | 'FRIEND' | 'COUPLE' | 'FAMILY' | 'GROUP'
 export type GenerationRequest = { province: string; city: string; start_date: string; end_date: string; companion: Companion; people_count: number }
-export type GenerationProgress = { step: 'queued' | 'arranging' | 'writing' | 'rendering'; message: string }
+export type GenerationProgress = { step: 'queued' | 'checking' | 'arranging' | 'writing' | 'rendering'; message: string }
 export type GenerationEvent = { job_id: number; request_id: string; sequence: number; status: Job['status']; progress: GenerationProgress | null; guidebook_id: number | null; code: string | null }
 export type Job = { job_id: number; job_type?: 'INITIAL' | 'REGENERATION'; status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELED'; guidebook_id: number | null; attempt_count?: number; initial_request?: GenerationRequest | null; error?: { code: string; message: string; retryable?: boolean } | null; progress?: GenerationProgress | null; sequence?: number; request_id?: string }
 export type Book = { guidebook_id: number; title: string; start_date: string; end_date: string; thumbnail_url: string | null; companion: Companion }
@@ -23,7 +23,7 @@ export const getJob = (id: number, signal?: AbortSignal) => get<Job>(`guidebook-
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim() ?? ''
 const generationStatuses = new Set<Job['status']>(['PENDING', 'PROCESSING', 'COMPLETED', 'FAILED', 'CANCELED'])
-const progressSteps = new Set<GenerationProgress['step']>(['queued', 'arranging', 'writing', 'rendering'])
+const progressSteps = new Set<GenerationProgress['step']>(['queued', 'checking', 'arranging', 'writing', 'rendering'])
 
 export function getGenerationStreamUrl(id: number): string {
   return `${apiBaseUrl.replace(/\/$/, '')}/api/v1/guidebook-generations/${id}/stream`

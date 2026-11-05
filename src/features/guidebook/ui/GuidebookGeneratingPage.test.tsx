@@ -41,10 +41,10 @@ describe('가이드북 생성 상태 화면', () => {
     expect(screen.getByText(/완성되면 알림으로 알려드릴게요/)).toBeInTheDocument()
     expect(screen.getByText('다른 화면을 이용해도 생성은 계속돼요.')).toBeInTheDocument()
     expect(screen.queryByRole('list')).not.toBeInTheDocument()
-    const animation = container.querySelector('.book-travel-animation')
+    const animation = container.querySelector('.book-generation-animation')
     expect(animation).toBeInTheDocument()
-    expect(animation?.querySelector('svg')).toBeInTheDocument()
-    expect(animation).toHaveTextContent('여행 준비 중')
+    expect(animation).toHaveAttribute('src', '/assets/guidebook/kgb-loader.svg')
+    expect(animation).toHaveAttribute('alt', '')
   })
 
   it('SSE로 받은 현재 진행 단계 문구를 표시한다', () => {
@@ -60,6 +60,21 @@ describe('가이드북 생성 상태 화면', () => {
     </Routes></MemoryRouter>)
 
     expect(screen.getByText('가이드북 문구를 작성하고 있어요.')).toBeInTheDocument()
+  })
+
+  it('SSE로 받은 checking 단계 문구를 표시한다', () => {
+    generation.job = {
+      job_id: 29,
+      status: 'PROCESSING',
+      guidebook_id: null,
+      attempt_count: 0,
+      progress: { step: 'checking', message: '여행 조건을 확인하고 있어요.' },
+    }
+    render(<MemoryRouter initialEntries={['/guidebooks/generating/29']}><Routes>
+      <Route path="/guidebooks/generating/:jobId" element={<GuidebookGeneratingPage />} />
+    </Routes></MemoryRouter>)
+
+    expect(screen.getByText('여행 조건을 확인하고 있어요.')).toBeInTheDocument()
   })
 
   it('오류 안내와 남은 재시도 횟수를 표시하고 다시 시도한다', () => {
