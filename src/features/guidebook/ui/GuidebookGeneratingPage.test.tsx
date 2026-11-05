@@ -47,6 +47,21 @@ describe('가이드북 생성 상태 화면', () => {
     expect(animation).toHaveTextContent('여행 준비 중')
   })
 
+  it('SSE로 받은 현재 진행 단계 문구를 표시한다', () => {
+    generation.job = {
+      job_id: 29,
+      status: 'PROCESSING',
+      guidebook_id: null,
+      attempt_count: 0,
+      progress: { step: 'writing', message: '가이드북 문구를 작성하고 있어요.' },
+    }
+    render(<MemoryRouter initialEntries={['/guidebooks/generating/29']}><Routes>
+      <Route path="/guidebooks/generating/:jobId" element={<GuidebookGeneratingPage />} />
+    </Routes></MemoryRouter>)
+
+    expect(screen.getByText('가이드북 문구를 작성하고 있어요.')).toBeInTheDocument()
+  })
+
   it('오류 안내와 남은 재시도 횟수를 표시하고 다시 시도한다', () => {
     render(<MemoryRouter initialEntries={['/guidebooks/generating/29']}><Routes>
       <Route path="/guidebooks/generating/:jobId" element={<GuidebookGeneratingPage />} />

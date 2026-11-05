@@ -57,7 +57,7 @@ export function GuidebookGeneratingPage() {
         </div>
       ) : <div className="book-spark" aria-hidden="true">!</div>}
       <h2>{failed ? '가이드북을 만들지 못했어요' : canceled ? '생성이 취소되었어요' : '가이드북을 만들고 있어요'}</h2>
-      <p>{failed ? failureMessage : canceled ? '새 여행 조건으로 다시 시작할 수 있어요.' : '취향에 맞는 여행을 한 권에 담고 있어요.\n완성되면 알림으로 알려드릴게요.'}</p>
+      <p>{failed ? failureMessage : canceled ? '새 여행 조건으로 다시 시작할 수 있어요.' : job?.progress?.message ?? '취향에 맞는 여행을 한 권에 담고 있어요.\n완성되면 알림으로 알려드릴게요.'}</p>
       {generating && <p className="book-generation-background">다른 화면을 이용해도 생성은 계속돼요.</p>}
       {error && <p className="book-error" role="alert">{error}</p>}
       {error && job && <button className="secondary-button" onClick={refresh}>상태 다시 확인</button>}

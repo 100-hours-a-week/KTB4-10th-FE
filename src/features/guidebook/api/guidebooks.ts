@@ -4,7 +4,9 @@ import type { ApiResponse } from '../../../shared/api/types.ts'
 
 export type Companion = 'ALONE' | 'FRIEND' | 'COUPLE' | 'FAMILY' | 'GROUP'
 export type GenerationRequest = { province: string; city: string; start_date: string; end_date: string; companion: Companion; people_count: number }
-export type Job = { job_id: number; job_type?: 'INITIAL' | 'REGENERATION'; status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELED'; guidebook_id: number | null; attempt_count?: number; initial_request?: GenerationRequest | null; error?: { code: string; message: string; retryable?: boolean } | null }
+export type GenerationProgress = { step: 'queued' | 'arranging' | 'writing' | 'rendering'; message: string }
+export type GenerationEvent = { job_id: number; request_id: string; sequence: number; status: Job['status']; progress: GenerationProgress | null; guidebook_id: number | null; code: string | null }
+export type Job = { job_id: number; job_type?: 'INITIAL' | 'REGENERATION'; status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELED'; guidebook_id: number | null; attempt_count?: number; initial_request?: GenerationRequest | null; error?: { code: string; message: string; retryable?: boolean } | null; progress?: GenerationProgress | null; sequence?: number; request_id?: string }
 export type Book = { guidebook_id: number; title: string; start_date: string; end_date: string; thumbnail_url: string | null; companion: Companion }
 export type BookList = { items: Book[]; next_cursor: string | null; has_more: boolean }
 export type RegenerationAvailability = { remaining_count: number; expires_at: string | null; available: boolean }
@@ -18,6 +20,40 @@ export const listBooks = (cursor?: string, signal?: AbortSignal) => get<BookList
 export const getBook = (id: string, signal?: AbortSignal) => get<Detail>(`guidebooks/${id}`, signal)
 export const getViewer = (id: string, signal?: AbortSignal) => get<Viewer>(`guidebooks/${id}/viewer`, signal)
 export const getJob = (id: number, signal?: AbortSignal) => get<Job>(`guidebook-generations/${id}`, signal)
+
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim() ?? ''
+const generationStatuses = new Set<Job['status']>(['PENDING', 'PROCESSING', 'COMPLETED', 'FAILED', 'CANCELED'])
+const progressSteps = new Set<GenerationProgress['step']>(['queued', 'arranging', 'writing', 'rendering'])
+
+export function getGenerationStreamUrl(id: number): string {
+  return `${apiBaseUrl.replace(/\/$/, '')}/api/v1/guidebook-generations/${id}/stream`
+}
+
+export function openGenerationStream(id: number): EventSource {
+  return new EventSource(getGenerationStreamUrl(id), { withCredentials: true })
+}
+
+export function parseGenerationEvent(data: string): GenerationEvent | null {
+  try {
+    const value: unknown = JSON.parse(data)
+    if (typeof value !== 'object' || value === null) return null
+    const event = value as Record<string, unknown>
+    if (!Number.isSafeInteger(event.job_id) || Number(event.job_id) < 1) return null
+    if (typeof event.request_id !== 'string' || !/^\d+-\d+$/.test(event.request_id)) return null
+    if (!Number.isSafeInteger(event.sequence) || Number(event.sequence) < 0) return null
+    if (typeof event.status !== 'string' || !generationStatuses.has(event.status as Job['status'])) return null
+    if (event.guidebook_id !== null && (!Number.isSafeInteger(event.guidebook_id) || Number(event.guidebook_id) < 1)) return null
+    if (event.code !== null && typeof event.code !== 'string') return null
+    if (event.progress !== null) {
+      if (typeof event.progress !== 'object') return null
+      const progress = event.progress as Record<string, unknown>
+      if (typeof progress.step !== 'string' || !progressSteps.has(progress.step as GenerationProgress['step']) || typeof progress.message !== 'string') return null
+    }
+    return event as GenerationEvent
+  } catch {
+    return null
+  }
+}
 export async function createBook(data: GenerationRequest, key: string) {
   return (await requestWithCsrf<Job>({ method: 'post', url: '/api/v1/guidebook-generations', data, headers: { 'Idempotency-Key': key }, timeout: 20000 })).data
 }
