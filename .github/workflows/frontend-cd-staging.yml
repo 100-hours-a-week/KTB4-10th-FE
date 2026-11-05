@@ -1,0 +1,102 @@
+name: Frontend-CD-Staging
+
+on:
+  push:
+    branches:
+      - dev
+    paths-ignore:
+      - "README.md"
+      - "docs/**"
+
+jobs:
+  frontend-cd-staging:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    env:
+      AWS_REGION: ap-northeast-2
+      S3_BUCKET_NAME: kgb-staging-frontend
+      CLOUDFRONT_DISTRIBUTION_ID: E8ZJMI6K6NOU3
+      SERVICE_URL: https://d3d0bke776h5r6.cloudfront.net
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        env:
+          VITE_API_BASE_URL: ""
+          VITE_KAKAO_MAP_APP_KEY: ${{ secrets.VITE_KAKAO_MAP_APP_KEY }}
+          # Staging은 Sentry 미사용 (DSN/Auth Token 미주입)
+        run: npm run build
+
+      # 현재 배포 Commit을 확인하기 위한 파일 생성
+      - name: Create version.json
+        run: |
+          echo "{\"commitSha\":\"${GITHUB_SHA}\"}" > dist/version.json
+
+      # GitHub OIDC로 staging 전용 IAM Role 사용 (Access Key 미사용)
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::742875367096:role/kgb-staging-frontend-deploy-role
+          aws-region: ${{ env.AWS_REGION }}
+
+      # 이전 정적 Asset을 별도로 보존하지 않음
+      - name: Upload to S3
+        run: |
+          aws s3 sync dist/ \
+            "s3://${S3_BUCKET_NAME}/" \
+            --delete
+
+      # 캐시 무효화
+      - name: Invalidate CloudFront Cache
+        id: invalidate
+        run: |
+          INVALIDATION_ID=$(aws cloudfront create-invalidation \
+            --distribution-id "${CLOUDFRONT_DISTRIBUTION_ID}" \
+            --paths "/*" \
+            --query 'Invalidation.Id' \
+            --output text)
+
+          echo "invalidation_id=${INVALIDATION_ID}" >> "$GITHUB_OUTPUT"
+
+      # 캐시 무효화 완료 대기
+      - name: Wait for CloudFront Invalidation
+        run: |
+          aws cloudfront wait invalidation-completed \
+            --distribution-id "${CLOUDFRONT_DISTRIBUTION_ID}" \
+            --id "${{ steps.invalidate.outputs.invalidation_id }}"
+
+      # 실제 배포된 Commit 확인
+      - name: Verify deployed version
+        run: |
+          RESPONSE=$(curl -fsS "${SERVICE_URL}/version.json")
+          DEPLOYED_SHA=$(echo "$RESPONSE" | jq -r '.commitSha')
+
+          if [ "${DEPLOYED_SHA}" != "${GITHUB_SHA}" ]; then
+            echo "배포 실패: 제공 중인 버전이 배포 대상과 일치하지 않음"
+            exit 1
+          fi
+
+          echo "배포 버전 확인 성공"
+
+      # Service URL이 정상적으로 응답하는지 확인
+      - name: 서비스 응답 확인
+        run: |
+          if curl -fsS "${SERVICE_URL}/" > /dev/null; then
+            echo "서비스 응답 확인 성공"
+          else
+            echo "서비스 응답 확인 실패"
+            exit 1
+          fi
