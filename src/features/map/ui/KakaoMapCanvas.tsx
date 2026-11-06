@@ -46,6 +46,7 @@ type KakaoMapCanvasProps = {
   items: MapMarkerItem[]
   clusters: MapCluster[]
   selectedContentId: string | null
+  disableClustering?: boolean
   onBoundsChange: (bounds: MapBounds) => void
   onViewportChange: (viewport: MapViewport) => void
   onError: (message: string) => void
@@ -190,6 +191,7 @@ export function KakaoMapCanvas({
   items,
   clusters,
   selectedContentId,
+  disableClustering = false,
   onBoundsChange,
   onViewportChange,
   onError,
@@ -400,6 +402,13 @@ export function KakaoMapCanvas({
       clientClusterStyle(120),
     ]
 
+    if (disableClustering) {
+      contentMarkersRef.current.forEach((marker) => marker.setMap(map))
+      return () => {
+        contentMarkersRef.current.forEach((marker) => marker.setMap(null))
+      }
+    }
+
     const clusterer = new maps.MarkerClusterer({
       map,
       markers: contentMarkersRef.current,
@@ -442,6 +451,7 @@ export function KakaoMapCanvas({
       clusterer.clear()
     }
   }, [
+    disableClustering,
     items,
     mapRef,
     onSelectItem,

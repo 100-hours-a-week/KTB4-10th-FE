@@ -55,6 +55,15 @@ describe('지도 콘텐츠 브라우저 캐시', () => {
     expect(getMock).toHaveBeenCalledTimes(2)
   })
 
+  it('필터가 다르면 별도 요청하고 가이드북 응답은 캐시하지 않는다', async () => {
+    await getMapMarkers(bounds, { filter: 'PLACE', guidebookId: null })
+    await getMapMarkers(bounds, { filter: 'EVENT', guidebookId: null })
+    await getMapMarkers(bounds, { filter: 'GUIDEBOOK', guidebookId: 27 })
+    await getMapMarkers(bounds, { filter: 'GUIDEBOOK', guidebookId: 27 })
+
+    expect(getMock).toHaveBeenCalledTimes(4)
+  })
+
   it('미세한 좌표 차이는 같은 화면 영역 키로 정규화한다', () => {
     expect(mapContentCacheKey(bounds)).toBe(mapContentCacheKey({
       ...bounds,
