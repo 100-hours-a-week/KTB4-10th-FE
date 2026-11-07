@@ -15,6 +15,7 @@ const {
   getBookMock,
   listAllBooksMock,
   mapCanvasCallbacksMock,
+  searchMapContentsMock,
 } = vi.hoisted(() => ({
   getMapContentsMock: vi.fn(),
   getMapMarkersMock: vi.fn(),
@@ -25,6 +26,7 @@ const {
   getBookMock: vi.fn(),
   listAllBooksMock: vi.fn(),
   mapCanvasCallbacksMock: vi.fn(),
+  searchMapContentsMock: vi.fn(),
 }))
 
 vi.mock('../api/map.ts', () => ({
@@ -45,6 +47,10 @@ vi.mock('../../notification/model/webPush.ts', () => ({
 vi.mock('../api/favorites.ts', () => ({
   removeFavorite: removeFavoriteMock,
   saveFavorite: saveFavoriteMock,
+}))
+
+vi.mock('../api/search.ts', () => ({
+  searchMapContents: searchMapContentsMock,
 }))
 
 vi.mock('../../auth/api/auth.ts', () => ({
@@ -71,7 +77,7 @@ vi.mock('./KakaoMapCanvas.tsx', () => ({
     onBoundsChange: (bounds: object) => void
     onMapClick: () => void
     onSelectItem: (item: object) => void
-    focusTarget: { latitude: number; longitude: number; requestId: number } | null
+    focusTarget: { latitude: number; longitude: number; requestId: number; level?: number } | null
     center: { latitude: number; longitude: number }
     initialLevel?: number
     onViewportChange: (viewport: object) => void
@@ -82,7 +88,7 @@ vi.mock('./KakaoMapCanvas.tsx', () => ({
       <output aria-label="지도 초기 상태">{`${center.latitude},${center.longitude},${initialLevel ?? 5}`}</output>
       <output aria-label="지도 이동 요청">
         {focusTarget
-          ? `${focusTarget.latitude},${focusTarget.longitude},${focusTarget.requestId}`
+          ? `${focusTarget.latitude},${focusTarget.longitude},${focusTarget.requestId},${focusTarget.level ?? '유지'}`
           : '없음'}
       </output>
       <output aria-label="클러스터 사용 여부">{disableClustering ? '사용 안 함' : '사용'}</output>
@@ -128,6 +134,9 @@ describe('MapPage', () => {
     enableWebPushMock.mockResolvedValue(undefined)
     listAllBooksMock.mockResolvedValue([])
     getBookMock.mockResolvedValue({ itinerary: [] })
+    searchMapContentsMock.mockResolvedValue({
+      items: [], page: 1, size: 20, total_items: 0, total_pages: 0,
+    })
   })
 
   afterEach(() => {
@@ -151,6 +160,78 @@ describe('MapPage', () => {
     expect(screen.getByRole('status', {
       name: '위치 권한이 없어 카카오 본사 인근을 보여드릴게요.',
     })).toBeInTheDocument()
+  })
+
+  it('검색 중 바텀시트를 접고 닫으면 이전 단계를 복원한다', async () => {
+    const user = userEvent.setup()
+    localStorage.setItem('kgb.location-prompt-completed', 'true')
+    render(<MemoryRouter><MapPage /></MemoryRouter>)
+
+    await user.click(screen.getByRole('button', { name: '장소 목록 펼치기' }))
+    expect(document.querySelector('.map-content-sheet--expanded')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: '지도 검색 열기' }))
+    expect(document.querySelector('.map-content-sheet--collapsed')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '장소 목록 펼치기' })).toBeDisabled()
+
+    await user.click(screen.getByRole('button', { name: '검색 닫기' }))
+    expect(document.querySelector('.map-content-sheet--expanded')).toBeInTheDocument()
+  })
+
+  it('지역을 콘텐츠보다 먼저 표시하고 콘텐츠 선택 시 지도와 바텀시트로 이동한다', async () => {
+    const user = userEvent.setup()
+    localStorage.setItem('kgb.location-prompt-completed', 'true')
+    searchMapContentsMock.mockResolvedValue({
+      items: [{
+        content_id: 'event-search',
+        title: '서울 검색 행사',
+        content_type: 'EVENT',
+        region: { administrative_code: '11', name: '서울특별시' },
+        address: '서울 중구',
+        latitude: 37.5665,
+        longitude: 126.978,
+        thumbnail_url: null,
+        event_period: { start_date: '2026-11-08', end_date: '2026-11-09' },
+        is_favorite: true,
+        is_in_guidebook: true,
+      }],
+      page: 1,
+      size: 20,
+      total_items: 1,
+      total_pages: 1,
+    })
+    render(<MemoryRouter><MapPage /></MemoryRouter>)
+
+    await user.click(screen.getByRole('button', { name: '지도 검색 열기' }))
+    await user.type(screen.getByRole('searchbox', { name: '지역, 행사, 장소 검색' }), '서울')
+    await user.click(screen.getByRole('button', { name: /^검색$/ }))
+
+    expect(searchMapContentsMock).toHaveBeenCalledWith('서울', expect.any(AbortSignal))
+    const region = await screen.findByRole('button', { name: /서울특별시/ })
+    const content = await screen.findByRole('button', { name: /서울 검색 행사/ })
+    expect(region.compareDocumentPosition(content) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(content.querySelector('img[alt="즐겨찾기"]')).toBeInTheDocument()
+    expect(content.querySelector('img[alt="가이드북 포함"]')).toBeInTheDocument()
+
+    await user.click(content)
+    expect(document.querySelector('.map-content-sheet--default')).toBeInTheDocument()
+    expect(screen.getByText('서울 검색 행사')).toBeInTheDocument()
+    expect(screen.getByLabelText('지도 이동 요청')).toHaveTextContent('37.5665,126.978,1,5')
+  })
+
+  it('지역 선택 시 대표 중심과 광역 줌으로 이동한다', async () => {
+    const user = userEvent.setup()
+    localStorage.setItem('kgb.location-prompt-completed', 'true')
+    render(<MemoryRouter><MapPage /></MemoryRouter>)
+
+    await user.click(screen.getByRole('button', { name: '지도 검색 열기' }))
+    await user.type(screen.getByRole('searchbox', { name: '지역, 행사, 장소 검색' }), '강원')
+    await user.keyboard('{Enter}')
+    await user.click(await screen.findByRole('button', { name: /강원특별자치도/ }))
+
+    expect(screen.getByLabelText('지도 이동 요청')).toHaveTextContent('37.8228,128.1555,1,11')
+    expect(screen.getByRole('button', { name: '강원 지역 선택 해제' })).toBeInTheDocument()
+    expect(document.querySelector('.map-content-sheet--default')).toBeInTheDocument()
   })
 
   it('첫 진입 시 위치 안내를 표시하고 거절해도 지도를 이용할 수 있다', async () => {
