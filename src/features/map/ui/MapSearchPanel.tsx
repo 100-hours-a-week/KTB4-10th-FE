@@ -87,13 +87,13 @@ export function MapSearchPanel({
         <input
           ref={inputRef}
           type="search"
+          enterKeyHint="search"
           value={query}
           maxLength={10}
           placeholder="지역, 행사, 장소 검색"
           aria-label="지역, 행사, 장소 검색"
           onChange={(event) => setQuery(event.target.value.slice(0, 10))}
         />
-        <button type="submit" className="map-search-panel__submit">검색</button>
         <button type="button" className="map-search-panel__close" aria-label="검색 닫기" onClick={onClose}>×</button>
       </form>
 

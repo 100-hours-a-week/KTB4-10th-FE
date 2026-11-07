@@ -158,9 +158,11 @@ describe('MapPage', () => {
     await user.click(screen.getByRole('button', { name: '지도 검색 열기' }))
     expect(document.querySelector('.map-content-sheet--collapsed')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '장소 목록 펼치기' })).toBeDisabled()
+    expect(new Set(mapCanvasCallbacksMock.mock.calls.map((call) => call[1])).size).toBe(1)
 
     await user.click(screen.getByRole('button', { name: '검색 닫기' }))
     expect(document.querySelector('.map-content-sheet--expanded')).toBeInTheDocument()
+    expect(new Set(mapCanvasCallbacksMock.mock.calls.map((call) => call[1])).size).toBe(1)
   })
 
   it('지역을 콘텐츠보다 먼저 표시하고 콘텐츠 선택 시 지도와 바텀시트로 이동한다', async () => {
@@ -189,7 +191,7 @@ describe('MapPage', () => {
 
     await user.click(screen.getByRole('button', { name: '지도 검색 열기' }))
     await user.type(screen.getByRole('searchbox', { name: '지역, 행사, 장소 검색' }), '서울')
-    await user.click(screen.getByRole('button', { name: /^검색$/ }))
+    await user.keyboard('{Enter}')
 
     expect(searchMapContentsMock).toHaveBeenCalledWith('서울', expect.any(AbortSignal))
     const region = await screen.findByRole('button', { name: /서울특별시/ })
@@ -215,7 +217,7 @@ describe('MapPage', () => {
     await user.click(await screen.findByRole('button', { name: /강원특별자치도/ }))
 
     expect(screen.getByLabelText('지도 이동 요청')).toHaveTextContent('37.8228,128.1555,1,11')
-    expect(screen.getByRole('button', { name: '강원 지역 선택 해제' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '강원 지역 선택 해제' })).not.toBeInTheDocument()
     expect(document.querySelector('.map-content-sheet--default')).toBeInTheDocument()
   })
 
