@@ -215,7 +215,7 @@ export function MapPage() {
   const [isFilterLoading, setIsFilterLoading] = useState(false)
   const [guidebookFilterTitle, setGuidebookFilterTitle] = useState<string | null>(null)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
-  const [selectedRegion, setSelectedRegion] = useState<string | null>(null)
+  const isSearchOpenRef = useRef(false)
   const searchRestoreRef = useRef<{
     sheetLevel: SheetLevel
     sheetView: SheetView
@@ -225,6 +225,10 @@ export function MapPage() {
   useEffect(() => {
     selectedItemRef.current = selectedItem
   }, [selectedItem])
+
+  useEffect(() => {
+    isSearchOpenRef.current = isSearchOpen
+  }, [isSearchOpen])
 
   useEffect(() => {
     itemsRef.current = items
@@ -597,6 +601,7 @@ export function MapPage() {
       sheetView: sheetViewRef.current,
       selectedItem: selectedItemRef.current,
     }
+    isSearchOpenRef.current = true
     setIsSearchOpen(true)
     setSheetDragHeight(null)
     changeSheetView('list')
@@ -604,6 +609,7 @@ export function MapPage() {
   }, [changeSheetLevel, changeSheetView, isSearchOpen])
 
   const closeSearch = useCallback(() => {
+    isSearchOpenRef.current = false
     setIsSearchOpen(false)
     const previous = searchRestoreRef.current
     searchRestoreRef.current = null
@@ -616,8 +622,8 @@ export function MapPage() {
   const selectSearchContent = useCallback((item: MapSearchContent) => {
     const selected: MapContentItem = { ...item, address: item.address ?? '' }
     searchRestoreRef.current = null
+    isSearchOpenRef.current = false
     setIsSearchOpen(false)
-    setSelectedRegion(null)
     setSelectedItem(selected)
     setItems((current) => (
       current.some((candidate) => candidate.content_id === item.content_id)
@@ -637,8 +643,8 @@ export function MapPage() {
 
   const selectSearchRegion = useCallback((region: MapSearchRegion) => {
     searchRestoreRef.current = null
+    isSearchOpenRef.current = false
     setIsSearchOpen(false)
-    setSelectedRegion(region.label)
     setSelectedItem(null)
     changeSheetView('list')
     sheetLevelRef.current = 'default'
@@ -653,16 +659,15 @@ export function MapPage() {
   }, [changeSheetView])
 
   const handleMapClick = useCallback(() => {
-    if (isSearchOpen) {
+    if (isSearchOpenRef.current) {
       closeSearch()
       return
     }
-    setSelectedRegion(null)
     setSelectedItem(null)
     changeSheetView('list')
     changeSheetLevel(sheetLevelRef.current === 'expanded' ? 'default' : 'collapsed')
     setSheetDragHeight(null)
-  }, [changeSheetLevel, changeSheetView, closeSearch, isSearchOpen])
+  }, [changeSheetLevel, changeSheetView, closeSearch])
 
   const selectMapItem = useCallback((item: MapMarkerItem) => {
     setSelectedItem(
@@ -788,17 +793,6 @@ export function MapPage() {
       ) : (
         <button type="button" className="map-search-open" aria-label="지도 검색 열기" onClick={openSearch}>
           <img src="/assets/map-controls/search.png" alt="" aria-hidden="true" />
-        </button>
-      )}
-
-      {selectedRegion && !isSearchOpen && (
-        <button
-          type="button"
-          className="map-region-chip"
-          aria-label={`${selectedRegion} 지역 선택 해제`}
-          onClick={() => setSelectedRegion(null)}
-        >
-          {selectedRegion}<span aria-hidden="true">×</span>
         </button>
       )}
 

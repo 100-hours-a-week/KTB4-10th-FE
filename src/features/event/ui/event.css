@@ -165,31 +165,19 @@
 }
 
 .event-search button {
-  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 0;
   border: 0;
   background: transparent;
   cursor: pointer;
 }
 
-.event-search button span {
-  position: absolute;
-  top: 14px;
-  left: 10px;
-  width: 17px;
-  height: 17px;
-  border: 2px solid #6f716b;
-  border-radius: 50%;
-}
-
-.event-search button span::after {
-  position: absolute;
-  right: -5px;
-  bottom: -3px;
-  width: 7px;
-  height: 2px;
-  background: #6f716b;
-  content: '';
-  transform: rotate(45deg);
+.event-search button img {
+  width: 21px;
+  height: 21px;
+  object-fit: contain;
+  opacity: .72;
 }
 
 .event-new-note {
