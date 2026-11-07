@@ -312,7 +312,9 @@ export function EventListPage() {
             })}
             placeholder="행사명을 검색해보세요 (최대 10자)"
           />
-          <button type="submit" aria-label="검색"><span aria-hidden="true" /></button>
+          <button type="submit" aria-label="검색">
+            <img src="/assets/map-controls/search.png" alt="" aria-hidden="true" />
+          </button>
         </form>
 
         <section ref={filterRef} className="event-filters" aria-label="행사 필터">
