@@ -647,6 +647,7 @@ button:disabled {
 
 .map-filter__trigger {
   --filter-button-color: rgb(255 255 255 / 97%);
+  --filter-button-hover-color: #f5f5f7;
   --filter-icon-color: #141417;
 
   display: grid;
@@ -654,24 +655,27 @@ button:disabled {
   height: 44px;
   place-items: center;
   padding: 0;
-  border: 1px solid rgb(20 20 23 / 10%);
+  border: 1px solid rgb(20 20 23 / 12%);
   border-radius: 14px;
   background: var(--filter-button-color);
-  box-shadow: 0 5px 18px rgb(20 20 23 / 12%);
+  box-shadow: 0 5px 18px rgb(20 20 23 / 14%);
   cursor: pointer;
   transition: background 120ms ease, transform 120ms ease;
 }
 
 .map-filter__trigger--place {
   --filter-button-color: #4a6754;
+  --filter-button-hover-color: #587762;
   --filter-icon-color: #fff;
 }
 .map-filter__trigger--event {
   --filter-button-color: #5b4b8a;
+  --filter-button-hover-color: #6b5a9b;
   --filter-icon-color: #fff;
 }
 .map-filter__trigger--guidebook {
   --filter-button-color: #f5c542;
+  --filter-button-hover-color: #f7ce5d;
   --filter-icon-color: #141417;
 }
 
@@ -683,6 +687,7 @@ button:disabled {
   mask: url('/assets/map-controls/filter.png') center / contain no-repeat;
 }
 
+.map-filter__trigger:hover { background: var(--filter-button-hover-color); }
 .map-filter__trigger:active { transform: scale(.92); }
 
 .map-filter__trigger:disabled {
@@ -896,23 +901,24 @@ button:disabled {
   bottom: calc(env(safe-area-inset-bottom) + 254px);
   display: grid;
   overflow: hidden;
-  border: 1px solid rgb(20 20 23 / 10%);
-  border-radius: 13px;
-  background: #fff;
-  box-shadow: 0 5px 18px rgb(20 20 23 / 12%);
+  width: 44px;
+  border: 1px solid rgb(20 20 23 / 12%);
+  border-radius: 14px;
+  background: rgb(255 255 255 / 97%);
+  box-shadow: 0 5px 18px rgb(20 20 23 / 14%);
 }
 
 .map-controls button {
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   padding: 0;
   border: 0;
   border-bottom: 1px solid #ededf0;
-  background: #fff;
+  background: rgb(255 255 255 / 97%);
   color: #242428;
   cursor: pointer;
   font-size: 22px;
-  transition: background 100ms ease, transform 100ms ease;
+  transition: background 120ms ease, transform 120ms ease;
 }
 
 .map-controls button:hover {
@@ -932,8 +938,8 @@ button:disabled {
 }
 
 .map-controls img {
-  width: 19px;
-  height: 19px;
+  width: 21px;
+  height: 21px;
   object-fit: contain;
   pointer-events: none;
 }
