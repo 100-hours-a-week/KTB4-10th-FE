@@ -52,6 +52,8 @@ const FILTER_LABELS: Record<MapContentFilter, string> = {
   GUIDEBOOK: '가이드북',
 }
 
+const FILTER_OPTIONS: readonly MapContentFilter[] = ['ALL', 'PLACE', 'EVENT', 'GUIDEBOOK']
+
 const FILTER_CONTENT_LABELS: Record<MapContentFilter, string> = {
   ALL: '장소·행사',
   PLACE: '장소',
@@ -378,7 +380,8 @@ export function MapPage() {
   const changeFilter = async (filter: MapContentFilter) => {
     setIsFilterOpen(false)
     const current = filterSelectionRef.current
-    const nextFilter = current.filter === filter ? 'ALL' : filter
+    if (current.filter === filter) return
+    const nextFilter = filter
     const requestId = filterRequestIdRef.current + 1
     filterRequestIdRef.current = requestId
 
@@ -596,6 +599,7 @@ export function MapPage() {
 
   const openSearch = useCallback(() => {
     if (isSearchOpen) return
+    setIsFilterOpen(false)
     searchRestoreRef.current = {
       sheetLevel: sheetLevelRef.current,
       sheetView: sheetViewRef.current,
@@ -756,18 +760,20 @@ export function MapPage() {
       <div className="map-filter">
         <button
           type="button"
-          className={`map-filter__trigger${activeFilter !== 'ALL' ? ' map-filter__trigger--active' : ''}`}
+          className={`map-filter__trigger map-filter__trigger--${activeFilter.toLowerCase()}${activeFilter !== 'ALL' ? ' map-filter__trigger--active' : ''}`}
           aria-haspopup="menu"
           aria-expanded={isFilterOpen}
           disabled={isFilterLoading}
           onClick={() => setIsFilterOpen((open) => !open)}
         >
-          <span>{isFilterLoading ? '불러오는 중' : FILTER_LABELS[activeFilter]}</span>
-          <span aria-hidden="true">⌄</span>
+          <span className="map-filter__icon" aria-hidden="true" />
+          <span className="visually-hidden">
+            {isFilterLoading ? '불러오는 중' : FILTER_LABELS[activeFilter]}
+          </span>
         </button>
         {isFilterOpen && (
           <div className="map-filter__menu" role="menu" aria-label="지도 콘텐츠 필터">
-            {(['PLACE', 'EVENT', 'GUIDEBOOK'] as const).map((filter) => (
+            {FILTER_OPTIONS.map((filter) => (
               <button
                 type="button"
                 role="menuitemcheckbox"

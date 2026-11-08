@@ -331,7 +331,7 @@ describe('MapPage', () => {
     expect(callbackSets.every((callbacks) => callbacks.size === 1)).toBe(true)
   })
 
-  it('장소 필터를 다시 누르면 전체 필터로 해제한다', async () => {
+  it('전체 선택지로 필터를 기본 상태로 돌린다', async () => {
     const user = userEvent.setup()
     localStorage.setItem('kgb.location-prompt-completed', 'true')
     render(<MemoryRouter><MapPage /></MemoryRouter>)
@@ -347,7 +347,7 @@ describe('MapPage', () => {
     expect(screen.getByRole('button', { name: '장소' })).toHaveClass('map-filter__trigger--active')
 
     await user.click(screen.getByRole('button', { name: '장소' }))
-    await user.click(screen.getByRole('menuitemcheckbox', { name: '장소' }))
+    await user.click(screen.getByRole('menuitemcheckbox', { name: '전체' }))
 
     await waitFor(() => expect(getMapMarkersMock).toHaveBeenLastCalledWith(
       expect.any(Object),

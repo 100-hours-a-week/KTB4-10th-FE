@@ -638,7 +638,7 @@ button:disabled {
 .map-filter {
   position: absolute;
   z-index: 4;
-  top: calc(env(safe-area-inset-top) + 14px);
+  top: calc(env(safe-area-inset-top) + 66px);
   right: 14px;
   display: grid;
   justify-items: end;
@@ -646,29 +646,35 @@ button:disabled {
 }
 
 .map-filter__trigger {
-  display: flex;
-  min-width: 92px;
-  height: 42px;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 0 14px;
+  --filter-icon-color: #fff;
+
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  padding: 0;
   border: 1px solid rgb(20 20 23 / 10%);
-  border-radius: 13px;
-  background: rgb(255 255 255 / 96%);
+  border-radius: 14px;
+  background: #242428;
   box-shadow: 0 5px 18px rgb(20 20 23 / 12%);
-  color: #242428;
   cursor: pointer;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 700;
+  transition: background 120ms ease, transform 120ms ease;
 }
 
-.map-filter__trigger--active {
-  border-color: #4a6754;
-  background: #4a6754;
-  color: #fff;
+.map-filter__trigger--place { --filter-icon-color: #4a6754; }
+.map-filter__trigger--event { --filter-icon-color: #b76e42; }
+.map-filter__trigger--guidebook { --filter-icon-color: #5b4b8a; }
+.map-filter__trigger--active { background: rgb(255 255 255 / 97%); }
+
+.map-filter__icon {
+  width: 21px;
+  height: 21px;
+  background: var(--filter-icon-color);
+  -webkit-mask: url('/assets/map-controls/filter.png') center / contain no-repeat;
+  mask: url('/assets/map-controls/filter.png') center / contain no-repeat;
 }
+
+.map-filter__trigger:active { transform: scale(.92); }
 
 .map-filter__trigger:disabled {
   cursor: wait;
@@ -722,7 +728,7 @@ button:disabled {
   position: absolute;
   z-index: 4;
   top: calc(env(safe-area-inset-top) + 14px);
-  left: 14px;
+  right: 14px;
   display: grid;
   width: 44px;
   height: 44px;
@@ -746,7 +752,14 @@ button:disabled {
   z-index: 5;
   top: calc(env(safe-area-inset-top) + 14px);
   right: 14px;
-  left: 14px;
+  width: calc(100% - 28px);
+  animation: map-search-expand-left 180ms ease-out;
+  transform-origin: right center;
+}
+
+@keyframes map-search-expand-left {
+  from { width: 44px; opacity: .72; }
+  to { width: calc(100% - 28px); opacity: 1; }
 }
 
 .map-search-panel__form {
