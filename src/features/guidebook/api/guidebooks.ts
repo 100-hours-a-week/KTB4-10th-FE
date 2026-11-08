@@ -10,7 +10,8 @@ export type Job = { job_id: number; job_type?: 'INITIAL' | 'REGENERATION'; statu
 export type Book = { guidebook_id: number; title: string; start_date: string; end_date: string; thumbnail_url: string | null; companion: Companion }
 export type BookList = { items: Book[]; next_cursor: string | null; has_more: boolean }
 export type RegenerationAvailability = { remaining_count: number; expires_at: string | null; available: boolean }
-export type Detail = Omit<Book, 'companion'> & { people_count: number; regeneration?: RegenerationAvailability; itinerary: { day_number: number; itinerary_date: string; items: { item_id: number; sequence: number; scheduled_time: string | null; place_snapshot: { title?: string } | null }[] }[] }
+export type PlaceSnapshot = { title?: string; name?: string; coordinates?: { lat: number; lng: number } }
+export type Detail = Omit<Book, 'companion'> & { people_count: number; regeneration?: RegenerationAvailability; itinerary: { day_number: number; itinerary_date: string; items: { item_id: number; sequence: number; scheduled_time: string | null; place_snapshot: PlaceSnapshot | null }[] }[] }
 export type Viewer = { guidebook_id: number; content_html: string; version: number; updated_at: string }
 export type RegenerationJob = Job & { job_type: 'REGENERATION'; current_version: number }
 async function get<T>(path: string, signal?: AbortSignal): Promise<T> {
@@ -72,4 +73,36 @@ export async function regenerateBook(id: number, feedback: string, key: string) 
 export async function deleteBook(id: number) {
   await ensureCsrfToken()
   await http.delete(`/api/v1/guidebooks/${id}`)
+}
+
+export async function listAllBooks(signal?: AbortSignal): Promise<Book[]> {
+  const books: Book[] = []
+  const seenCursors = new Set<string>()
+  let cursor: string | undefined
+  do {
+    const page = await listBooks(cursor, signal)
+    books.push(...page.items.filter((book) => (
+      !books.some((current) => current.guidebook_id === book.guidebook_id)
+    )))
+    if (!page.has_more || !page.next_cursor || seenCursors.has(page.next_cursor)) break
+    seenCursors.add(page.next_cursor)
+    cursor = page.next_cursor
+  } while (cursor)
+  return books
+}
+
+export function selectNearestBook(books: Book[], today: string): Book | null {
+  const ongoing = books
+    .filter((book) => book.start_date <= today && today <= book.end_date)
+    .toSorted((left, right) => left.start_date.localeCompare(right.start_date))
+  if (ongoing[0]) return ongoing[0]
+
+  const upcoming = books
+    .filter((book) => book.start_date > today)
+    .toSorted((left, right) => left.start_date.localeCompare(right.start_date))
+  if (upcoming[0]) return upcoming[0]
+
+  return books
+    .filter((book) => book.end_date < today)
+    .toSorted((left, right) => right.end_date.localeCompare(left.end_date))[0] ?? null
 }

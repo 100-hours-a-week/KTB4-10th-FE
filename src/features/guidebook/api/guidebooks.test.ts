@@ -3,6 +3,7 @@ import {
   getGenerationStreamUrl,
   openGenerationStream,
   parseGenerationEvent,
+  selectNearestBook,
 } from './guidebooks.ts'
 
 class FakeEventSource extends EventTarget {
@@ -79,5 +80,34 @@ describe('생성 전용 SSE API', () => {
       status: 'PROCESSING',
       progress: { step: 'unknown', message: '진행 중' },
     }))).toBeNull()
+  })
+})
+
+describe('지도용 가장 가까운 가이드북 선택', () => {
+  const book = (id: number, start: string, end: string) => ({
+    guidebook_id: id,
+    title: `여행 ${id}`,
+    start_date: start,
+    end_date: end,
+    thumbnail_url: null,
+    companion: 'FRIEND' as const,
+  })
+
+  it('진행 중, 예정, 지난 여행 순서로 가장 가까운 여행을 선택한다', () => {
+    expect(selectNearestBook([
+      book(1, '2026-10-01', '2026-10-03'),
+      book(2, '2026-11-05', '2026-11-07'),
+      book(3, '2026-11-10', '2026-11-12'),
+    ], '2026-11-06')?.guidebook_id).toBe(2)
+
+    expect(selectNearestBook([
+      book(1, '2026-10-01', '2026-10-03'),
+      book(3, '2026-11-10', '2026-11-12'),
+    ], '2026-11-06')?.guidebook_id).toBe(3)
+
+    expect(selectNearestBook([
+      book(1, '2026-10-01', '2026-10-03'),
+      book(4, '2026-10-20', '2026-10-22'),
+    ], '2026-11-06')?.guidebook_id).toBe(4)
   })
 })

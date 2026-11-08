@@ -14,6 +14,13 @@ export type MapBounds = {
   zoom: number
 }
 
+export type MapContentFilter = 'ALL' | 'PLACE' | 'EVENT' | 'GUIDEBOOK'
+
+export type MapFilterSelection = {
+  filter: MapContentFilter
+  guidebookId: number | null
+}
+
 export type MapMarkerItem = {
   content_id: string
   title: string
@@ -83,8 +90,13 @@ function roundedCoordinate(value: number): string {
   return value.toFixed(4)
 }
 
-export function mapContentCacheKey(bounds: MapBounds): string {
+export function mapContentCacheKey(
+  bounds: MapBounds,
+  selection: MapFilterSelection = { filter: 'ALL', guidebookId: null },
+): string {
   return [
+    selection.filter,
+    selection.guidebookId ?? '',
     bounds.zoom,
     roundedCoordinate(bounds.south),
     roundedCoordinate(bounds.west),
@@ -207,16 +219,26 @@ export function filterContentsWithinBounds(
   ))
 }
 
-export async function getMapMarkers(bounds: MapBounds): Promise<MapMarkerResult> {
-  const cacheKey = mapContentCacheKey(bounds)
+export async function getMapMarkers(
+  bounds: MapBounds,
+  selection: MapFilterSelection = { filter: 'ALL', guidebookId: null },
+): Promise<MapMarkerResult> {
+  const cacheKey = mapContentCacheKey(bounds, selection)
+  const useCache = selection.filter !== 'GUIDEBOOK'
   const cached = mapContentCache.get(cacheKey)
-  if (cached && cached.expiresAt > Date.now()) return cached.result
+  if (useCache && cached && cached.expiresAt > Date.now()) return cached.result
   if (cached) mapContentCache.delete(cacheKey)
 
-  const pending = pendingMapContentRequests.get(cacheKey)
+  const pending = useCache ? pendingMapContentRequests.get(cacheKey) : undefined
   if (pending) return pending
 
-  const request = http.get<unknown>(MAP_MARKERS_PATH, { params: bounds })
+  const request = http.get<unknown>(MAP_MARKERS_PATH, {
+    params: {
+      ...bounds,
+      filter: selection.filter,
+      guidebook_id: selection.guidebookId ?? undefined,
+    },
+  })
     .then((response) => {
       if (!isApiResponse(response.data) || !isRecord(response.data.data)) {
         throw new Error('지도 콘텐츠 응답 계약이 올바르지 않습니다.')
@@ -234,21 +256,29 @@ export async function getMapMarkers(bounds: MapBounds): Promise<MapMarkerResult>
       }
 
       const result: MapMarkerResult = { mode, clusters, markers }
-      cacheResult(cacheKey, result)
+      if (useCache) cacheResult(cacheKey, result)
       return result
     })
-    .finally(() => pendingMapContentRequests.delete(cacheKey))
+    .finally(() => {
+      if (useCache) pendingMapContentRequests.delete(cacheKey)
+    })
 
-  pendingMapContentRequests.set(cacheKey, request)
+  if (useCache) pendingMapContentRequests.set(cacheKey, request)
   return request
 }
 
 export async function getMapContents(
   bounds: Omit<MapBounds, 'zoom'>,
   cursor: string | null = null,
+  selection: MapFilterSelection = { filter: 'ALL', guidebookId: null },
 ): Promise<MapContentPage> {
   const response = await http.get<unknown>(MAP_CONTENTS_PATH, {
-    params: { ...bounds, cursor: cursor ?? undefined },
+    params: {
+      ...bounds,
+      filter: selection.filter,
+      guidebook_id: selection.guidebookId ?? undefined,
+      cursor: cursor ?? undefined,
+    },
   })
   if (!isApiResponse(response.data) || !isRecord(response.data.data)) {
     throw new Error('지도 바텀시트 응답 계약이 올바르지 않습니다.')

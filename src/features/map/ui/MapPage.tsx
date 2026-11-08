@@ -10,6 +10,8 @@ import {
   type MapBounds,
   type MapCluster,
   type MapContentItem,
+  type MapContentFilter,
+  type MapFilterSelection,
   type MapMarkerItem,
 } from '../api/map.ts'
 import { removeFavorite, saveFavorite } from '../api/favorites.ts'
@@ -28,6 +30,7 @@ import {
 } from '../model/mapNavigationState.ts'
 import { KakaoMapCanvas } from './KakaoMapCanvas.tsx'
 import { PermissionModal } from './PermissionModal.tsx'
+import { getBook, listAllBooks, selectNearestBook } from '../../guidebook/api/guidebooks.ts'
 
 const DEFAULT_CENTER = { latitude: 37.3952969470752, longitude: 127.110449292622 }
 const LOCATION_PROMPT_KEY = 'kgb.location-prompt-completed'
@@ -38,6 +41,27 @@ type PermissionStep = 'location' | 'notification' | null
 type SheetLevel = MapSheetLevel
 type SheetView = MapSheetView
 type MapFocusTarget = typeof DEFAULT_CENTER & { requestId: number; level?: number }
+
+const FILTER_LABELS: Record<MapContentFilter, string> = {
+  ALL: '전체',
+  PLACE: '장소',
+  EVENT: '행사',
+  GUIDEBOOK: '가이드북',
+}
+
+const FILTER_CONTENT_LABELS: Record<MapContentFilter, string> = {
+  ALL: '장소·행사',
+  PLACE: '장소',
+  EVENT: '행사',
+  GUIDEBOOK: '가이드북 장소',
+}
+
+function localDateString(date = new Date()): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
 
 function initialPermissionStep(): PermissionStep {
   return localStorage.getItem(LOCATION_PROMPT_KEY) ? null : 'location'
@@ -138,6 +162,8 @@ export function MapPage() {
   )
   const latestContentRequestRef = useRef(0)
   const currentBoundsRef = useRef<MapBounds | null>(null)
+  const filterSelectionRef = useRef<MapFilterSelection>({ filter: 'ALL', guidebookId: null })
+  const filterRequestIdRef = useRef(0)
   const sheetLevelRef = useRef<SheetLevel>(restoredNavigationState?.sheetLevel ?? 'collapsed')
   const sheetViewRef = useRef<SheetView>(restoredNavigationState?.sheetView ?? 'list')
   const lastRequestedCursorRef = useRef<string | null>(null)
@@ -168,6 +194,10 @@ export function MapPage() {
   const [toast, setToast] = useState<string | null>(null)
   const [mapError, setMapError] = useState<string | null>(null)
   const [favoritePendingId, setFavoritePendingId] = useState<string | null>(null)
+  const [activeFilter, setActiveFilter] = useState<MapContentFilter>('ALL')
+  const [isFilterOpen, setIsFilterOpen] = useState(false)
+  const [isFilterLoading, setIsFilterLoading] = useState(false)
+  const [guidebookFilterTitle, setGuidebookFilterTitle] = useState<string | null>(null)
 
   useEffect(() => {
     selectedItemRef.current = selectedItem
@@ -205,7 +235,7 @@ export function MapPage() {
       west: bounds.west,
       north: bounds.north,
       east: bounds.east,
-    })
+    }, null, filterSelectionRef.current)
       .then((contentPage) => {
         if (requestId !== latestContentRequestRef.current) return
         setItems(contentPage.items)
@@ -240,7 +270,7 @@ export function MapPage() {
     setHasMore(false)
     setIsNextPageLoading(false)
 
-    getMapMarkers(bounds)
+    getMapMarkers(bounds, filterSelectionRef.current)
       .then((result) => {
         if (requestId !== markerRequestIdRef.current) return
         setMarkers(result.markers)
@@ -288,7 +318,7 @@ export function MapPage() {
       west: bounds.west,
       north: bounds.north,
       east: bounds.east,
-    }, requestedCursor)
+    }, requestedCursor, filterSelectionRef.current)
       .then(async (page) => {
         const remainingDelay = NEXT_PAGE_LOADING_MINIMUM_MS - (performance.now() - startedAt)
         if (remainingDelay > 0) {
@@ -317,6 +347,71 @@ export function MapPage() {
     focusRequestIdRef.current += 1
     setFocusTarget({ ...DEFAULT_CENTER, requestId: focusRequestIdRef.current })
   }, [])
+
+  const changeFilter = async (filter: MapContentFilter) => {
+    setIsFilterOpen(false)
+    const current = filterSelectionRef.current
+    const nextFilter = current.filter === filter ? 'ALL' : filter
+    const requestId = filterRequestIdRef.current + 1
+    filterRequestIdRef.current = requestId
+
+    let selection: MapFilterSelection = { filter: nextFilter, guidebookId: null }
+    let guidebookTitle: string | null = null
+    let guidebookCenter: { latitude: number; longitude: number } | null = null
+
+    if (nextFilter === 'GUIDEBOOK') {
+      setIsFilterLoading(true)
+      try {
+        const books = await listAllBooks()
+        const nearest = selectNearestBook(books, localDateString())
+        if (!nearest) {
+          setToast('표시할 가이드북 여행이 없어요.')
+          return
+        }
+        const detail = await getBook(String(nearest.guidebook_id))
+        if (requestId !== filterRequestIdRef.current) return
+        const coordinates = detail.itinerary.flatMap((day) => day.items)
+          .map((item) => item.place_snapshot?.coordinates)
+          .filter((coordinate): coordinate is { lat: number; lng: number } => Boolean(
+            coordinate && Number.isFinite(coordinate.lat) && Number.isFinite(coordinate.lng),
+          ))
+        if (coordinates.length > 0) {
+          guidebookCenter = {
+            latitude: coordinates.reduce((sum, coordinate) => sum + coordinate.lat, 0) / coordinates.length,
+            longitude: coordinates.reduce((sum, coordinate) => sum + coordinate.lng, 0) / coordinates.length,
+          }
+        }
+        selection = { filter: 'GUIDEBOOK', guidebookId: nearest.guidebook_id }
+        guidebookTitle = nearest.title
+      } catch {
+        if (requestId === filterRequestIdRef.current) {
+          setToast('가이드북 여행 정보를 불러오지 못했어요.')
+        }
+        return
+      } finally {
+        if (requestId === filterRequestIdRef.current) setIsFilterLoading(false)
+      }
+    }
+
+    if (requestId !== filterRequestIdRef.current) return
+    filterSelectionRef.current = selection
+    setActiveFilter(selection.filter)
+    setGuidebookFilterTitle(guidebookTitle)
+    setSelectedItem(null)
+    changeSheetView('list')
+    clearMapContentCache()
+
+    if (guidebookCenter) {
+      focusRequestIdRef.current += 1
+      setFocusTarget({
+        ...guidebookCenter,
+        requestId: focusRequestIdRef.current,
+        level: 8,
+      })
+      return
+    }
+    if (currentBoundsRef.current) requestMapData(currentBoundsRef.current)
+  }
 
   const requestCurrentPosition = useCallback((afterRequest?: () => void) => {
     if (!navigator.geolocation) {
@@ -544,6 +639,7 @@ export function MapPage() {
           focusTarget={focusTarget}
           items={responseMode === 'MARKER' ? markers : []}
           clusters={clusters}
+          disableClustering={activeFilter === 'GUIDEBOOK'}
           selectedContentId={selectedItem?.content_id ?? null}
           mapRef={mapRef}
           onBoundsChange={requestMapData}
@@ -553,6 +649,37 @@ export function MapPage() {
           onSelectItem={selectMapItem}
         />
       )}
+
+      <div className="map-filter">
+        <button
+          type="button"
+          className={`map-filter__trigger${activeFilter !== 'ALL' ? ' map-filter__trigger--active' : ''}`}
+          aria-haspopup="menu"
+          aria-expanded={isFilterOpen}
+          disabled={isFilterLoading}
+          onClick={() => setIsFilterOpen((open) => !open)}
+        >
+          <span>{isFilterLoading ? '불러오는 중' : FILTER_LABELS[activeFilter]}</span>
+          <span aria-hidden="true">⌄</span>
+        </button>
+        {isFilterOpen && (
+          <div className="map-filter__menu" role="menu" aria-label="지도 콘텐츠 필터">
+            {(['PLACE', 'EVENT', 'GUIDEBOOK'] as const).map((filter) => (
+              <button
+                type="button"
+                role="menuitemcheckbox"
+                aria-checked={activeFilter === filter}
+                className={activeFilter === filter ? 'map-filter__option--active' : undefined}
+                key={filter}
+                onClick={() => void changeFilter(filter)}
+              >
+                <span>{FILTER_LABELS[filter]}</span>
+                {activeFilter === filter && <span aria-hidden="true">✓</span>}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
       <div className="map-controls" aria-label="지도 조작">
         <button type="button" aria-label="확대" onClick={() => changeZoom(-1)}>
@@ -616,7 +743,9 @@ export function MapPage() {
 
         {isContentsLoading && items.length === 0 && sheetLevel === 'expanded' ? (
           <div className="map-content-sheet__empty">
-            <strong>주변 장소와 행사를 찾고 있어요</strong>
+            <strong>{activeFilter === 'ALL'
+              ? '주변 장소와 행사를 찾고 있어요'
+              : `${FILTER_CONTENT_LABELS[activeFilter]} 정보를 찾고 있어요`}</strong>
           </div>
         ) : contentsError && items.length === 0 && !selectedItem && sheetLevel === 'expanded' ? (
           <div className="map-content-sheet__empty">
@@ -625,7 +754,9 @@ export function MapPage() {
           </div>
         ) : items.length === 0 && visibleMapContentCount === 0 && !selectedItem ? (
           <div className="map-content-sheet__empty">
-            <strong>이 지도 영역에 표시할 장소·행사가 없어요</strong>
+            <strong>{activeFilter === 'ALL'
+              ? '이 지도 영역에 표시할 장소·행사가 없어요'
+              : `이 지도 영역에 표시할 ${FILTER_CONTENT_LABELS[activeFilter]} 정보가 없어요`}</strong>
             <p>관광 콘텐츠 적재 여부를 확인하거나 다른 지역으로 이동해 주세요.</p>
           </div>
         ) : (
@@ -633,15 +764,17 @@ export function MapPage() {
             <div className="map-content-sheet__summary" hidden={sheetView === 'overview'}>
               <strong>
                 {responseMode === 'CLUSTER'
-                  ? `현재 화면 장소·행사 ${visibleMapContentCount}개`
-                  : `주변 장소·행사 ${visibleMapContentCount}개`}
+                  ? `현재 화면 ${FILTER_CONTENT_LABELS[activeFilter]} ${visibleMapContentCount}개`
+                  : `${activeFilter === 'GUIDEBOOK' && guidebookFilterTitle ? `${guidebookFilterTitle} ` : '주변 '}${FILTER_CONTENT_LABELS[activeFilter]} ${visibleMapContentCount}개`}
               </strong>
             </div>
             {sheetLevel === 'expanded' && sheetView === 'list' ? (
               <div
                 className="map-content-sheet__list"
                 role="region"
-                aria-label="주변 장소와 행사 목록"
+                aria-label={activeFilter === 'ALL'
+                  ? '주변 장소와 행사 목록'
+                  : `${FILTER_CONTENT_LABELS[activeFilter]} 목록`}
                 onScroll={(event) => {
                   const list = event.currentTarget
                   const remaining = list.scrollHeight - list.scrollTop - list.clientHeight
@@ -669,7 +802,9 @@ export function MapPage() {
                 )}
                 {!hasMore && items.length > 0 && (
                   <p className="map-content-sheet__list-end">
-                    현재 영역의 장소와 행사를 모두 확인했어요
+                    {activeFilter === 'ALL'
+                      ? '현재 영역의 장소와 행사를 모두 확인했어요'
+                      : `현재 영역의 ${FILTER_CONTENT_LABELS[activeFilter]} 정보를 모두 확인했어요`}
                   </p>
                 )}
               </div>

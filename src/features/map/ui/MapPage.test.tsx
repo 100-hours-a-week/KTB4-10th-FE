@@ -12,6 +12,8 @@ const {
   saveFavoriteMock,
   updatePushEnabledMock,
   enableWebPushMock,
+  getBookMock,
+  listAllBooksMock,
   mapCanvasCallbacksMock,
 } = vi.hoisted(() => ({
   getMapContentsMock: vi.fn(),
@@ -20,6 +22,8 @@ const {
   saveFavoriteMock: vi.fn(),
   updatePushEnabledMock: vi.fn(),
   enableWebPushMock: vi.fn(),
+  getBookMock: vi.fn(),
+  listAllBooksMock: vi.fn(),
   mapCanvasCallbacksMock: vi.fn(),
 }))
 
@@ -47,6 +51,12 @@ vi.mock('../../auth/api/auth.ts', () => ({
   getCachedCurrentMember: () => ({ member_id: 1 }),
 }))
 
+vi.mock('../../guidebook/api/guidebooks.ts', () => ({
+  getBook: getBookMock,
+  listAllBooks: listAllBooksMock,
+  selectNearestBook: (books: Array<{ start_date: string; end_date: string }>) => books[0] ?? null,
+}))
+
 vi.mock('./KakaoMapCanvas.tsx', () => ({
   KakaoMapCanvas: ({
     onBoundsChange,
@@ -56,6 +66,7 @@ vi.mock('./KakaoMapCanvas.tsx', () => ({
     center,
     initialLevel,
     onViewportChange,
+    disableClustering,
   }: {
     onBoundsChange: (bounds: object) => void
     onMapClick: () => void
@@ -64,6 +75,7 @@ vi.mock('./KakaoMapCanvas.tsx', () => ({
     center: { latitude: number; longitude: number }
     initialLevel?: number
     onViewportChange: (viewport: object) => void
+    disableClustering?: boolean
   }) => (
     mapCanvasCallbacksMock(onBoundsChange, onMapClick, onSelectItem),
     <div>
@@ -73,6 +85,7 @@ vi.mock('./KakaoMapCanvas.tsx', () => ({
           ? `${focusTarget.latitude},${focusTarget.longitude},${focusTarget.requestId}`
           : '없음'}
       </output>
+      <output aria-label="클러스터 사용 여부">{disableClustering ? '사용 안 함' : '사용'}</output>
       <button type="button" onClick={() => {
         onViewportChange({ center: { latitude: 37.55, longitude: 126.95 }, level: 4 })
         onBoundsChange({
@@ -113,6 +126,8 @@ describe('MapPage', () => {
     saveFavoriteMock.mockResolvedValue({ content_id: 'place-1', is_favorite: true })
     updatePushEnabledMock.mockResolvedValue({ language_code: 'ko', push_enabled: false })
     enableWebPushMock.mockResolvedValue(undefined)
+    listAllBooksMock.mockResolvedValue([])
+    getBookMock.mockResolvedValue({ itinerary: [] })
   })
 
   afterEach(() => {
@@ -217,7 +232,7 @@ describe('MapPage', () => {
       north: 37.6,
       east: 127,
       zoom: 18,
-    }))
+    }, { filter: 'ALL', guidebookId: null }))
     expect(getMapContentsMock).not.toHaveBeenCalled()
 
     await user.click(screen.getByRole('button', { name: '장소 목록 펼치기' }))
@@ -226,11 +241,82 @@ describe('MapPage', () => {
       west: 126.9,
       north: 37.6,
       east: 127,
-    })
+    }, null, { filter: 'ALL', guidebookId: null })
     const callbackSets = [0, 1, 2].map((index) => new Set(
       mapCanvasCallbacksMock.mock.calls.map((call) => call[index]),
     ))
     expect(callbackSets.every((callbacks) => callbacks.size === 1)).toBe(true)
+  })
+
+  it('장소 필터를 다시 누르면 전체 필터로 해제한다', async () => {
+    const user = userEvent.setup()
+    localStorage.setItem('kgb.location-prompt-completed', 'true')
+    render(<MemoryRouter><MapPage /></MemoryRouter>)
+
+    await user.click(screen.getByRole('button', { name: '지도 범위 조회' }))
+    await user.click(screen.getByRole('button', { name: '전체' }))
+    await user.click(screen.getByRole('menuitemcheckbox', { name: '장소' }))
+
+    await waitFor(() => expect(getMapMarkersMock).toHaveBeenLastCalledWith(
+      expect.any(Object),
+      { filter: 'PLACE', guidebookId: null },
+    ))
+    expect(screen.getByRole('button', { name: '장소' })).toHaveClass('map-filter__trigger--active')
+
+    await user.click(screen.getByRole('button', { name: '장소' }))
+    await user.click(screen.getByRole('menuitemcheckbox', { name: '장소' }))
+
+    await waitFor(() => expect(getMapMarkersMock).toHaveBeenLastCalledWith(
+      expect.any(Object),
+      { filter: 'ALL', guidebookId: null },
+    ))
+    expect(screen.getByRole('button', { name: '전체' })).not.toHaveClass('map-filter__trigger--active')
+  })
+
+  it('가장 가까운 가이드북의 장소를 지도와 바텀시트에 함께 요청한다', async () => {
+    const user = userEvent.setup()
+    localStorage.setItem('kgb.location-prompt-completed', 'true')
+    listAllBooksMock.mockResolvedValue([{
+      guidebook_id: 27,
+      title: '제주 여행',
+      start_date: '2026-11-10',
+      end_date: '2026-11-12',
+      thumbnail_url: null,
+      companion: 'FRIEND',
+    }])
+    getBookMock.mockResolvedValue({
+      itinerary: [{
+        day_number: 1,
+        itinerary_date: '2026-11-10',
+        items: [
+          { item_id: 1, sequence: 1, scheduled_time: null, place_snapshot: { coordinates: { lat: 33.4, lng: 126.5 } } },
+          { item_id: 2, sequence: 2, scheduled_time: null, place_snapshot: { coordinates: { lat: 33.6, lng: 126.7 } } },
+        ],
+      }],
+    })
+    render(<MemoryRouter><MapPage /></MemoryRouter>)
+
+    await user.click(screen.getByRole('button', { name: '지도 범위 조회' }))
+    await user.click(screen.getByRole('button', { name: '전체' }))
+    await user.click(screen.getByRole('menuitemcheckbox', { name: '가이드북' }))
+
+    expect(await screen.findByRole('button', { name: '가이드북' }))
+      .toHaveClass('map-filter__trigger--active')
+    expect(screen.getByLabelText('지도 이동 요청')).toHaveTextContent('33.5,126.6')
+    expect(screen.getByLabelText('클러스터 사용 여부')).toHaveTextContent('사용 안 함')
+
+    await user.click(screen.getByRole('button', { name: '지도 범위 조회' }))
+    await waitFor(() => expect(getMapMarkersMock).toHaveBeenLastCalledWith(
+      expect.any(Object),
+      { filter: 'GUIDEBOOK', guidebookId: 27 },
+    ))
+
+    await user.click(screen.getByRole('button', { name: '장소 목록 펼치기' }))
+    expect(getMapContentsMock).toHaveBeenLastCalledWith(
+      expect.any(Object),
+      null,
+      { filter: 'GUIDEBOOK', guidebookId: 27 },
+    )
   })
 
   it('광역 줌에서 클러스터 전체 개수와 대표 콘텐츠를 표시한다', async () => {
@@ -314,7 +400,7 @@ describe('MapPage', () => {
       west: 126.9,
       north: 37.6,
       east: 127,
-    }, 'cursor-10')
+    }, 'cursor-10', { filter: 'ALL', guidebookId: null })
     expect(await screen.findByText('장소 11', {}, { timeout: 1_000 })).toBeInTheDocument()
   })
 
