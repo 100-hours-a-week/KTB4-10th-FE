@@ -53,7 +53,10 @@
 .book-empty p { font-size: 14px; color: #73737d; line-height: 1.7; margin-bottom: 30px; }
 .book-button { display: flex; justify-content: center; align-items: center; text-decoration: none; }
 .book-more { width: 100%; margin-top: 20px; }
-.book-job { display: grid; gap: 7px; padding: 16px; margin-bottom: 16px; border-radius: 10px; background: #f0f0f3; color: inherit; text-decoration: none; font-size: 13px; }
+.book-job { display: flex; align-items: center; gap: 12px; padding: 16px; margin-bottom: 16px; border-radius: 10px; background: #f0f0f3; color: inherit; font-size: 13px; }
+.book-job-link { display: grid; flex: 1; min-width: 0; gap: 7px; color: inherit; text-decoration: none; }
+.book-job-dismiss { flex-shrink: 0; min-height: 44px; padding: 8px 12px; border: 1px solid #d9d9df; border-radius: 8px; background: #fff; color: #666670; font: inherit; font-size: 12px; cursor: pointer; }
+.book-job-dismiss:focus-visible { outline: 2px solid #242428; outline-offset: 2px; }
 .book-job span { font-size: 12px; color: #73737d; }
 .book-dialog { width: min(calc(100% - 48px), 330px); border: 0; border-radius: 16px; padding: 26px 22px; color: #141417; }
 .book-dialog::backdrop { background: rgb(20 20 23 / 48%); }
@@ -124,6 +127,18 @@
 .book-generation .book-generation__indicator { width: 42px; height: 42px; margin-bottom: 30px; }
 .book-generation .book-generation-background { margin: 18px 0 4px; color: #92929b; font-size: 11px; }
 .book-generation .book-error { color: #b42318; }
+.book-progress { max-width: 380px; margin: 28px auto 22px; text-align: left; }
+.book-progress-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; font-size: 12px; font-weight: 600; color: #242428; }
+.book-progress-heading > :last-child { color: #81818a; font-size: 11px; font-weight: 400; }
+.book-progress-track { height: 8px; overflow: hidden; border-radius: 999px; background: #ededf1; }
+.book-progress-fill { height: 100%; border-radius: inherit; background: #242428; transition: width .35s ease; }
+.book-progress-track--waiting { background: repeating-linear-gradient(110deg, #ededf1 0 12px, #dddde4 12px 24px); }
+.book-progress-stages { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 4px; padding: 0; margin: 12px 0 0; list-style: none; color: #8c8c96; font-size: 10px; text-align: center; }
+.book-progress-stage--done { color: #666670; }
+.book-progress-stage--current { color: #242428; font-weight: 700; }
+@media (prefers-reduced-motion: reduce) {
+  .book-progress-fill { transition: none; }
+}
 .book-retry-count { margin: 24px 0 14px; color: #61616b; }
 .book-retry-count strong { color: #242428; }
 .book-generation .secondary-button { padding: 0 18px; }
@@ -157,10 +172,17 @@
 .book-regenerate h2 { margin: 0 0 42px; font-size: 20px; line-height: 1.45; letter-spacing: -.035em; }
 .book-regenerate label { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; font-size: 14px; font-weight: 700; }
 .book-feedback-count { color: #81818a; font-size: 11px; font-weight: 400; }
-.book-regenerate textarea { display: block; width: 100%; min-height: 260px; padding: 16px; resize: vertical; border: 1px solid #d9d9df; border-radius: 14px; background: #fff; color: #242428; font: inherit; font-size: 14px; line-height: 1.7; }
-.book-regenerate textarea::placeholder { color: #aaaab2; }
-.book-regenerate textarea:focus { border-color: #242428; outline: 2px solid rgb(36 36 40 / 12%); outline-offset: 2px; }
-.book-regenerate textarea:disabled { background: #f5f5f7; color: #777781; }
+.book-regenerate textarea,
+.book-user-request textarea { display: block; width: 100%; min-height: 260px; padding: 16px; resize: vertical; border: 1px solid #d9d9df; border-radius: 14px; background: #fff; color: #242428; font: inherit; font-size: 14px; line-height: 1.7; }
+.book-regenerate textarea::placeholder,
+.book-user-request textarea::placeholder { color: #aaaab2; }
+.book-regenerate textarea:focus,
+.book-user-request textarea:focus { border-color: #242428; outline: 2px solid rgb(36 36 40 / 12%); outline-offset: 2px; }
+.book-regenerate textarea:disabled,
+.book-user-request textarea:disabled { background: #f5f5f7; color: #777781; }
+.book-user-request-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.book-user-request textarea { min-height: 130px; }
+.book-user-request textarea[aria-invalid="true"] { border-color: #ba3030; }
 .book-feedback-hint { min-height: 38px; margin: 9px 0 22px; color: #81818a; font-size: 11px; line-height: 1.7; }
 .book-regeneration-status { margin: -8px 0 16px; color: #81818a; font-size: 13px; line-height: 1.6; }
 .book-regenerate > .primary-button { width: 100%; }

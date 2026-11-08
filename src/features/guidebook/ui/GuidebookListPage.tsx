@@ -181,10 +181,13 @@ export function GuidebookListPage() {
       <button className="book-create-link" type="button" onClick={openCreate} aria-label="가이드북 만들기">생성</button>
     </PageHeader>
     <div className="book-content">
-      {job && job.status !== 'COMPLETED' && <Link className="book-job" to={`/guidebooks/generating/${job.job_id}`}>
-        <strong>{isRunning(job) ? '가이드북을 만들고 있어요' : job.status === 'FAILED' ? '가이드북 생성에 실패했어요' : '생성이 취소되었어요'}</strong>
-        <span>{job.status === 'FAILED' ? '다시 시도하기' : '진행 상황 확인'} ›</span>
-      </Link>}
+      {job && job.status !== 'COMPLETED' && <div className="book-job">
+        <Link className="book-job-link" to={`/guidebooks/generating/${job.job_id}`}>
+          <strong>{isRunning(job) ? '가이드북을 만들고 있어요' : job.status === 'FAILED' ? '가이드북 생성에 실패했어요' : '생성이 취소되었어요'}</strong>
+          <span>{job.status === 'FAILED' ? '실패 내용 확인' : '진행 상황 확인'} ›</span>
+        </Link>
+        {job.status === 'FAILED' && <button className="book-job-dismiss" type="button" onClick={dismiss}>취소하기</button>}
+      </div>}
       {jobError && <State error onRetry={job ? refresh : undefined}>{jobError}</State>}
       {error && <State error onRetry={() => failedCursor.current ? void loadMore() : setRevision((value) => value + 1)}>{error}</State>}
       {data?.items.length === 0 && !loading && !error && <div className="book-empty"><BookCover /><h2>아직 가이드북이 없어요</h2><p>여행할 곳을 고르고<br />나만의 여행을 만들어 보세요.</p><button className="primary-button book-button" type="button" onClick={openCreate}>가이드북 만들기</button></div>}

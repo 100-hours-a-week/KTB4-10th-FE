@@ -44,9 +44,9 @@
 | 사용자 유즈케이스 | Method | Path | FE 사용 위치 | 현재 처리 | 관련 검증 |
 | --- | --- | --- | --- | --- | --- |
 | 생성권 상태를 본다 | GET | `/credits/wallet` | `/guidebooks/new` | 잔액, 활성 작업, 생성 가능 여부로 제출 가능 상태를 결정한다. | `GuidebookPages.test.tsx` |
-| 가이드북 생성을 접수한다 | POST | `/guidebook-generations` | `/guidebooks/new` | `Idempotency-Key`, 지역·기간·동행 조건을 CSRF 요청으로 전송한다. | `GuidebookPages.test.tsx` |
-| 생성 상태를 확인한다 | GET | `/guidebook-generations/{jobId}` | 전역 `GenerationProvider`, 생성 화면 | 2초 간격으로 조회하며 완료·실패·취소에서 중단한다. | `GenerationProvider.test.tsx` |
-| 실패 작업을 재시도한다 | POST | `/guidebook-generations/{jobId}/retry` | 생성 실패 화면 | retry 가능 오류에서 CSRF 요청 후 상태 조회를 재개한다. | `GuidebookGeneratingPage.test.tsx` |
+| 가이드북 생성을 접수한다 | POST | `/guidebook-generations` | `/guidebooks/new` | `Idempotency-Key`, 지역·기간·동행 조건과 선택 `user_request`를 CSRF 요청으로 전송한다. 자연어는 trim 후 공백 불가·최대 200자, 미입력 생략. 취향 수정 초안과 응답 유실 재요청에도 보존한다. BE #337 배포가 필요하다. | `GuidebookPages.test.tsx` |
+| 생성 상태를 확인한다 | GET / SSE | `/guidebook-generations/{jobId}`, `/{jobId}/stream` | 전역 `GenerationProvider`, 생성 화면 | 콜백의 progress.step/message를 SSE로 받아 단계 진행바와 안내를 표시한다. 재생성은 장소 확인을 제외한다. 실패 상세는 상태 GET으로 복원한다. | `GenerationProvider.test.tsx`, `GuidebookGeneratingPage.test.tsx` |
+| 실패 작업을 재시도한다 | POST | `/guidebook-generations/{jobId}/retry` | 생성 실패 화면 | retryable=true인 서버 오류만 동일 입력으로 재시도한다. 입력 오류는 조건/피드백 수정으로 연결하며 상태 GET의 initial_request·submitted_feedback을 복원한다. 재생성 조건 변경은 새 가이드북 생성으로 안내한다. | `GuidebookGeneratingPage.test.tsx` |
 | 내 가이드북 목록을 본다 | GET | `/guidebooks?size=20&cursor=...` | `/guidebooks` | cursor 기반 다음 목록을 조회한다. | `GuidebookPages.test.tsx` |
 | 일정·장소 상세를 본다 | GET | `/guidebooks/{guidebookId}` | `/guidebooks/{id}` | 여행 일정과 장소 snapshot을 화면 데이터로 표시한다. | `GuidebookPages.test.tsx` |
 | HTML 가이드북을 본다 | GET | `/guidebooks/{guidebookId}/viewer` | `/guidebooks/{id}/viewer` | 서버 HTML을 sandbox iframe `srcDoc`으로 표시한다. | `GuidebookPages.test.tsx` |

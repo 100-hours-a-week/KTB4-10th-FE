@@ -156,7 +156,11 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
           { generation_time_ms: Math.max(0, Date.now() - generationStartedAt.current) },
         )
       }
-      setJob(next); setError('')
+      setJob((current) => ({
+        ...(current?.job_id === jobId ? current : {}),
+        ...next,
+        error: null,
+      })); setError('')
       if (isTerminalStatus(next.status)) {
         stream.close()
         if (next.status === 'FAILED') {
