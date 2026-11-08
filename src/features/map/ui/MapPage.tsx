@@ -19,8 +19,10 @@ import { updatePushEnabled } from '../../member/api/memberSettings.ts'
 import { notifyRealtimeNotificationSettingChanged } from '../../notification/model/events.ts'
 import { enableWebPush, webPushErrorMessage } from '../../notification/model/webPush.ts'
 import { getCachedCurrentMember } from '../../auth/api/auth.ts'
+import type { MapSearchContent } from '../api/search.ts'
 import type { KakaoMap } from '../lib/kakaoMaps.ts'
 import { clampKakaoMapLevel } from '../lib/mapViewport.ts'
+import type { MapSearchRegion } from '../model/mapSearchRegions.ts'
 import {
   getMapNavigationState,
   saveMapNavigationState,
@@ -29,13 +31,16 @@ import {
   type MapViewport,
 } from '../model/mapNavigationState.ts'
 import { KakaoMapCanvas } from './KakaoMapCanvas.tsx'
+import { MapSearchPanel } from './MapSearchPanel.tsx'
 import { PermissionModal } from './PermissionModal.tsx'
 import { getBook, listAllBooks, selectNearestBook } from '../../guidebook/api/guidebooks.ts'
 
 const DEFAULT_CENTER = { latitude: 37.3952969470752, longitude: 127.110449292622 }
+const DEFAULT_MAP_LEVEL = 5
 const LOCATION_PROMPT_KEY = 'kgb.location-prompt-completed'
 const NOTIFICATION_PROMPT_KEY = 'kgb.notification-prompt-completed'
 const NEXT_PAGE_LOADING_MINIMUM_MS = 350
+const REGION_HIGHLIGHT_DURATION_MS = 2000
 
 type PermissionStep = 'location' | 'notification' | null
 type SheetLevel = MapSheetLevel
@@ -48,6 +53,8 @@ const FILTER_LABELS: Record<MapContentFilter, string> = {
   EVENT: '행사',
   GUIDEBOOK: '가이드북',
 }
+
+const FILTER_OPTIONS: readonly MapContentFilter[] = ['ALL', 'PLACE', 'EVENT', 'GUIDEBOOK']
 
 const FILTER_CONTENT_LABELS: Record<MapContentFilter, string> = {
   ALL: '장소·행사',
@@ -85,6 +92,19 @@ function markerAsContentItem(marker: MapMarkerItem): MapContentItem {
     ...marker,
     address: '',
     event_period: null,
+  }
+}
+
+function contentAsMarker(item: MapContentItem): MapMarkerItem {
+  return {
+    content_id: item.content_id,
+    title: item.title,
+    content_type: item.content_type,
+    latitude: item.latitude,
+    longitude: item.longitude,
+    thumbnail_url: item.thumbnail_url,
+    is_favorite: item.is_favorite,
+    is_in_guidebook: item.is_in_guidebook ?? false,
   }
 }
 
@@ -196,16 +216,44 @@ export function MapPage() {
   const [favoritePendingId, setFavoritePendingId] = useState<string | null>(null)
   const [activeFilter, setActiveFilter] = useState<MapContentFilter>('ALL')
   const [isFilterOpen, setIsFilterOpen] = useState(false)
+  const filterRef = useRef<HTMLDivElement>(null)
   const [isFilterLoading, setIsFilterLoading] = useState(false)
   const [guidebookFilterTitle, setGuidebookFilterTitle] = useState<string | null>(null)
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [regionHighlight, setRegionHighlight] = useState<string | null>(null)
+  const isSearchOpenRef = useRef(false)
+  const searchRestoreRef = useRef<{
+    sheetLevel: SheetLevel
+    sheetView: SheetView
+    selectedItem: MapContentItem | null
+  } | null>(null)
 
   useEffect(() => {
     selectedItemRef.current = selectedItem
   }, [selectedItem])
 
   useEffect(() => {
+    isSearchOpenRef.current = isSearchOpen
+  }, [isSearchOpen])
+
+  useEffect(() => {
     itemsRef.current = items
   }, [items])
+
+  useEffect(() => {
+    if (!isFilterOpen) return
+    const closeFilterOnOutsidePointer = (event: PointerEvent) => {
+      if (!filterRef.current?.contains(event.target as Node)) setIsFilterOpen(false)
+    }
+    document.addEventListener('pointerdown', closeFilterOnOutsidePointer)
+    return () => document.removeEventListener('pointerdown', closeFilterOnOutsidePointer)
+  }, [isFilterOpen])
+
+  useEffect(() => {
+    if (!regionHighlight) return
+    const timeoutId = window.setTimeout(() => setRegionHighlight(null), REGION_HIGHLIGHT_DURATION_MS)
+    return () => window.clearTimeout(timeoutId)
+  }, [regionHighlight])
 
   useEffect(() => () => {
     const { memberId } = initialNavigation
@@ -351,7 +399,8 @@ export function MapPage() {
   const changeFilter = async (filter: MapContentFilter) => {
     setIsFilterOpen(false)
     const current = filterSelectionRef.current
-    const nextFilter = current.filter === filter ? 'ALL' : filter
+    if (current.filter === filter) return
+    const nextFilter = filter
     const requestId = filterRequestIdRef.current + 1
     filterRequestIdRef.current = requestId
 
@@ -559,12 +608,92 @@ export function MapPage() {
   const visibleMapContentCount = responseMode === 'CLUSTER'
     ? clusteredContentCount
     : markers.length
+  const canvasMarkers = responseMode === 'MARKER'
+    ? selectedItem && !markers.some((marker) => marker.content_id === selectedItem.content_id)
+      ? [...markers, contentAsMarker(selectedItem)]
+      : markers
+    : selectedItem
+      ? [contentAsMarker(selectedItem)]
+      : []
+
+  const openSearch = useCallback(() => {
+    if (isSearchOpen) return
+    setIsFilterOpen(false)
+    searchRestoreRef.current = {
+      sheetLevel: sheetLevelRef.current,
+      sheetView: sheetViewRef.current,
+      selectedItem: selectedItemRef.current,
+    }
+    isSearchOpenRef.current = true
+    setIsSearchOpen(true)
+    setSheetDragHeight(null)
+    changeSheetView('list')
+    changeSheetLevel('collapsed')
+  }, [changeSheetLevel, changeSheetView, isSearchOpen])
+
+  const closeSearch = useCallback(() => {
+    isSearchOpenRef.current = false
+    setIsSearchOpen(false)
+    const previous = searchRestoreRef.current
+    searchRestoreRef.current = null
+    if (!previous) return
+    setSelectedItem(previous.selectedItem)
+    changeSheetView(previous.sheetView)
+    changeSheetLevel(previous.sheetLevel)
+  }, [changeSheetLevel, changeSheetView])
+
+  const selectSearchContent = useCallback((item: MapSearchContent) => {
+    const selected: MapContentItem = { ...item, address: item.address ?? '' }
+    searchRestoreRef.current = null
+    setRegionHighlight(null)
+    isSearchOpenRef.current = false
+    setIsSearchOpen(false)
+    setSelectedItem(selected)
+    setItems((current) => (
+      current.some((candidate) => candidate.content_id === item.content_id)
+        ? current.map((candidate) => candidate.content_id === item.content_id ? selected : candidate)
+        : [selected, ...current]
+    ))
+    changeSheetView('list')
+    changeSheetLevel('default')
+    focusRequestIdRef.current += 1
+    setFocusTarget({
+      latitude: item.latitude,
+      longitude: item.longitude,
+      requestId: focusRequestIdRef.current,
+      level: DEFAULT_MAP_LEVEL,
+    })
+  }, [changeSheetLevel, changeSheetView])
+
+  const selectSearchRegion = useCallback((region: MapSearchRegion) => {
+    searchRestoreRef.current = null
+    isSearchOpenRef.current = false
+    setIsSearchOpen(false)
+    setRegionHighlight(region.fullName)
+    setSelectedItem(null)
+    changeSheetView('list')
+    sheetLevelRef.current = 'default'
+    setSheetLevel('default')
+    focusRequestIdRef.current += 1
+    setFocusTarget({
+      latitude: region.latitude,
+      longitude: region.longitude,
+      requestId: focusRequestIdRef.current,
+      level: DEFAULT_MAP_LEVEL,
+    })
+  }, [changeSheetView])
+
   const handleMapClick = useCallback(() => {
+    if (isSearchOpenRef.current) {
+      closeSearch()
+      return
+    }
+    setRegionHighlight(null)
     setSelectedItem(null)
     changeSheetView('list')
     changeSheetLevel(sheetLevelRef.current === 'expanded' ? 'default' : 'collapsed')
     setSheetDragHeight(null)
-  }, [changeSheetLevel, changeSheetView])
+  }, [changeSheetLevel, changeSheetView, closeSearch])
 
   const selectMapItem = useCallback((item: MapMarkerItem) => {
     setSelectedItem(
@@ -637,7 +766,7 @@ export function MapPage() {
           initialLevel={restoredNavigationState?.viewport.level}
           currentPosition={position}
           focusTarget={focusTarget}
-          items={responseMode === 'MARKER' ? markers : []}
+          items={canvasMarkers}
           clusters={clusters}
           disableClustering={activeFilter === 'GUIDEBOOK'}
           selectedContentId={selectedItem?.content_id ?? null}
@@ -650,21 +779,23 @@ export function MapPage() {
         />
       )}
 
-      <div className="map-filter">
+      <div ref={filterRef} className="map-filter">
         <button
           type="button"
-          className={`map-filter__trigger${activeFilter !== 'ALL' ? ' map-filter__trigger--active' : ''}`}
+          className={`map-filter__trigger map-filter__trigger--${activeFilter.toLowerCase()}${activeFilter !== 'ALL' ? ' map-filter__trigger--active' : ''}`}
           aria-haspopup="menu"
           aria-expanded={isFilterOpen}
           disabled={isFilterLoading}
           onClick={() => setIsFilterOpen((open) => !open)}
         >
-          <span>{isFilterLoading ? '불러오는 중' : FILTER_LABELS[activeFilter]}</span>
-          <span aria-hidden="true">⌄</span>
+          <span className="map-filter__icon" aria-hidden="true" />
+          <span className="visually-hidden">
+            {isFilterLoading ? '불러오는 중' : FILTER_LABELS[activeFilter]}
+          </span>
         </button>
         {isFilterOpen && (
           <div className="map-filter__menu" role="menu" aria-label="지도 콘텐츠 필터">
-            {(['PLACE', 'EVENT', 'GUIDEBOOK'] as const).map((filter) => (
+            {FILTER_OPTIONS.map((filter) => (
               <button
                 type="button"
                 role="menuitemcheckbox"
@@ -674,12 +805,29 @@ export function MapPage() {
                 onClick={() => void changeFilter(filter)}
               >
                 <span>{FILTER_LABELS[filter]}</span>
-                {activeFilter === filter && <span aria-hidden="true">✓</span>}
               </button>
             ))}
           </div>
         )}
       </div>
+
+      {isSearchOpen ? (
+        <MapSearchPanel
+          onClose={closeSearch}
+          onSelectContent={selectSearchContent}
+          onSelectRegion={selectSearchRegion}
+        />
+      ) : (
+        <button type="button" className="map-search-open" aria-label="지도 검색 열기" onClick={openSearch}>
+          <img src="/assets/map-controls/search.png" alt="" aria-hidden="true" />
+        </button>
+      )}
+
+      {regionHighlight && (
+        <div className="map-region-highlight" role="status" aria-label={`${regionHighlight} 지역으로 이동`}>
+          {regionHighlight}
+        </div>
+      )}
 
       <div className="map-controls" aria-label="지도 조작">
         <button type="button" aria-label="확대" onClick={() => changeZoom(-1)}>
@@ -702,7 +850,7 @@ export function MapPage() {
 
       <section
         ref={sheetRef}
-        className={`map-content-sheet map-content-sheet--${sheetLevel}${sheetDragHeight !== null ? ' map-content-sheet--dragging' : ''}`}
+        className={`map-content-sheet map-content-sheet--${sheetLevel}${sheetDragHeight !== null ? ' map-content-sheet--dragging' : ''}${isSearchOpen ? ' map-content-sheet--searching' : ''}`}
         aria-live="polite"
         style={sheetDragHeight === null ? undefined : { height: `${sheetDragHeight}px` }}
       >
@@ -711,7 +859,9 @@ export function MapPage() {
           className="map-content-sheet__handle-button"
           aria-label={sheetLevel === 'expanded' ? '장소 목록 접기' : '장소 목록 펼치기'}
           aria-expanded={sheetLevel === 'expanded'}
+          disabled={isSearchOpen}
           onClick={() => {
+            if (isSearchOpen) return
             if (sheetWasDragged.current) {
               sheetWasDragged.current = false
               return
@@ -719,6 +869,7 @@ export function MapPage() {
             changeSheetLevel(sheetLevel === 'expanded' ? 'default' : 'expanded')
           }}
           onPointerDown={(event) => {
+            if (isSearchOpen) return
             sheetWasDragged.current = false
             const measuredHeight = sheetRef.current?.getBoundingClientRect().height ?? 0
             sheetDragStart.current = {
