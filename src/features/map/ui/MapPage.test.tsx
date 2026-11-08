@@ -221,7 +221,7 @@ describe('MapPage', () => {
     expect(screen.getByLabelText('지도 이동 요청')).toHaveTextContent('37.5665,126.978,1,5')
   })
 
-  it('지역 선택 시 대표 중심과 광역 줌으로 이동한다', async () => {
+  it('지역 선택 시 대표 중심과 기본 줌으로 이동하고 지역명을 잠시 표시한다', async () => {
     const user = userEvent.setup()
     localStorage.setItem('kgb.location-prompt-completed', 'true')
     render(<MemoryRouter><MapPage /></MemoryRouter>)
@@ -231,7 +231,8 @@ describe('MapPage', () => {
     await user.keyboard('{Enter}')
     await user.click(await screen.findByRole('button', { name: /강원특별자치도/ }))
 
-    expect(screen.getByLabelText('지도 이동 요청')).toHaveTextContent('37.8228,128.1555,1,11')
+    expect(screen.getByLabelText('지도 이동 요청')).toHaveTextContent('37.8228,128.1555,1,5')
+    expect(screen.getByRole('status', { name: '강원특별자치도 지역으로 이동' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: '강원 지역 선택 해제' })).not.toBeInTheDocument()
     expect(document.querySelector('.map-content-sheet--default')).toBeInTheDocument()
   })
@@ -354,6 +355,21 @@ describe('MapPage', () => {
       { filter: 'ALL', guidebookId: null },
     ))
     expect(screen.getByRole('button', { name: '전체' })).not.toHaveClass('map-filter__trigger--active')
+  })
+
+  it('필터 메뉴 밖을 누르면 현재 선택을 유지하고 메뉴만 닫는다', async () => {
+    const user = userEvent.setup()
+    localStorage.setItem('kgb.location-prompt-completed', 'true')
+    render(<MemoryRouter><MapPage /></MemoryRouter>)
+
+    await user.click(screen.getByRole('button', { name: '전체' }))
+    expect(screen.getByRole('menu', { name: '지도 콘텐츠 필터' })).toBeInTheDocument()
+
+    fireEvent.pointerDown(document.body)
+
+    expect(screen.queryByRole('menu', { name: '지도 콘텐츠 필터' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '전체' })).toBeInTheDocument()
+    expect(getMapMarkersMock).not.toHaveBeenCalled()
   })
 
   it('가장 가까운 가이드북의 장소를 지도와 바텀시트에 함께 요청한다', async () => {

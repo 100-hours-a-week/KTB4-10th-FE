@@ -646,7 +646,8 @@ button:disabled {
 }
 
 .map-filter__trigger {
-  --filter-icon-color: #fff;
+  --filter-button-color: rgb(255 255 255 / 97%);
+  --filter-icon-color: #141417;
 
   display: grid;
   width: 44px;
@@ -655,16 +656,24 @@ button:disabled {
   padding: 0;
   border: 1px solid rgb(20 20 23 / 10%);
   border-radius: 14px;
-  background: #242428;
+  background: var(--filter-button-color);
   box-shadow: 0 5px 18px rgb(20 20 23 / 12%);
   cursor: pointer;
   transition: background 120ms ease, transform 120ms ease;
 }
 
-.map-filter__trigger--place { --filter-icon-color: #4a6754; }
-.map-filter__trigger--event { --filter-icon-color: #b76e42; }
-.map-filter__trigger--guidebook { --filter-icon-color: #5b4b8a; }
-.map-filter__trigger--active { background: rgb(255 255 255 / 97%); }
+.map-filter__trigger--place {
+  --filter-button-color: #4a6754;
+  --filter-icon-color: #fff;
+}
+.map-filter__trigger--event {
+  --filter-button-color: #5b4b8a;
+  --filter-icon-color: #fff;
+}
+.map-filter__trigger--guidebook {
+  --filter-button-color: #f5c542;
+  --filter-icon-color: #141417;
+}
 
 .map-filter__icon {
   width: 21px;
@@ -689,9 +698,9 @@ button:disabled {
 
 .map-filter__menu {
   display: grid;
-  width: 144px;
+  width: 104px;
   overflow: hidden;
-  padding: 6px;
+  padding: 5px;
   border: 1px solid rgb(20 20 23 / 10%);
   border-radius: 14px;
   background: rgb(255 255 255 / 98%);
@@ -699,11 +708,9 @@ button:disabled {
 }
 
 .map-filter__menu button {
-  display: flex;
+  display: block;
   min-height: 42px;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 12px;
+  padding: 0 10px;
   border: 0;
   border-radius: 9px;
   background: transparent;
@@ -715,12 +722,12 @@ button:disabled {
 }
 
 .map-filter__menu button:hover {
-  background: #f2f3f0;
+  background: #f4f4f6;
 }
 
 .map-filter__menu .map-filter__option--active {
-  background: #e5efd9;
-  color: #3f5a34;
+  background: #e8e8eb;
+  color: #141417;
   font-weight: 800;
 }
 
@@ -760,6 +767,28 @@ button:disabled {
 @keyframes map-search-expand-left {
   from { width: 44px; opacity: .72; }
   to { width: calc(100% - 28px); opacity: 1; }
+}
+
+.map-region-highlight {
+  position: absolute;
+  z-index: 4;
+  top: 42%;
+  left: 50%;
+  padding: 8px 13px;
+  border-radius: 999px;
+  background: rgb(36 36 40 / 92%);
+  box-shadow: 0 6px 18px rgb(20 20 23 / 20%);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  animation: map-region-highlight-in 180ms ease-out;
+}
+
+@keyframes map-region-highlight-in {
+  from { opacity: 0; transform: translate(-50%, calc(-50% + 6px)); }
+  to { opacity: 1; transform: translate(-50%, -50%); }
 }
 
 .map-search-panel__form {

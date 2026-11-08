@@ -36,9 +36,11 @@ import { PermissionModal } from './PermissionModal.tsx'
 import { getBook, listAllBooks, selectNearestBook } from '../../guidebook/api/guidebooks.ts'
 
 const DEFAULT_CENTER = { latitude: 37.3952969470752, longitude: 127.110449292622 }
+const DEFAULT_MAP_LEVEL = 5
 const LOCATION_PROMPT_KEY = 'kgb.location-prompt-completed'
 const NOTIFICATION_PROMPT_KEY = 'kgb.notification-prompt-completed'
 const NEXT_PAGE_LOADING_MINIMUM_MS = 350
+const REGION_HIGHLIGHT_DURATION_MS = 2000
 
 type PermissionStep = 'location' | 'notification' | null
 type SheetLevel = MapSheetLevel
@@ -214,9 +216,11 @@ export function MapPage() {
   const [favoritePendingId, setFavoritePendingId] = useState<string | null>(null)
   const [activeFilter, setActiveFilter] = useState<MapContentFilter>('ALL')
   const [isFilterOpen, setIsFilterOpen] = useState(false)
+  const filterRef = useRef<HTMLDivElement>(null)
   const [isFilterLoading, setIsFilterLoading] = useState(false)
   const [guidebookFilterTitle, setGuidebookFilterTitle] = useState<string | null>(null)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [regionHighlight, setRegionHighlight] = useState<string | null>(null)
   const isSearchOpenRef = useRef(false)
   const searchRestoreRef = useRef<{
     sheetLevel: SheetLevel
@@ -235,6 +239,21 @@ export function MapPage() {
   useEffect(() => {
     itemsRef.current = items
   }, [items])
+
+  useEffect(() => {
+    if (!isFilterOpen) return
+    const closeFilterOnOutsidePointer = (event: PointerEvent) => {
+      if (!filterRef.current?.contains(event.target as Node)) setIsFilterOpen(false)
+    }
+    document.addEventListener('pointerdown', closeFilterOnOutsidePointer)
+    return () => document.removeEventListener('pointerdown', closeFilterOnOutsidePointer)
+  }, [isFilterOpen])
+
+  useEffect(() => {
+    if (!regionHighlight) return
+    const timeoutId = window.setTimeout(() => setRegionHighlight(null), REGION_HIGHLIGHT_DURATION_MS)
+    return () => window.clearTimeout(timeoutId)
+  }, [regionHighlight])
 
   useEffect(() => () => {
     const { memberId } = initialNavigation
@@ -626,6 +645,7 @@ export function MapPage() {
   const selectSearchContent = useCallback((item: MapSearchContent) => {
     const selected: MapContentItem = { ...item, address: item.address ?? '' }
     searchRestoreRef.current = null
+    setRegionHighlight(null)
     isSearchOpenRef.current = false
     setIsSearchOpen(false)
     setSelectedItem(selected)
@@ -641,7 +661,7 @@ export function MapPage() {
       latitude: item.latitude,
       longitude: item.longitude,
       requestId: focusRequestIdRef.current,
-      level: 5,
+      level: DEFAULT_MAP_LEVEL,
     })
   }, [changeSheetLevel, changeSheetView])
 
@@ -649,6 +669,7 @@ export function MapPage() {
     searchRestoreRef.current = null
     isSearchOpenRef.current = false
     setIsSearchOpen(false)
+    setRegionHighlight(region.fullName)
     setSelectedItem(null)
     changeSheetView('list')
     sheetLevelRef.current = 'default'
@@ -658,7 +679,7 @@ export function MapPage() {
       latitude: region.latitude,
       longitude: region.longitude,
       requestId: focusRequestIdRef.current,
-      level: region.level,
+      level: DEFAULT_MAP_LEVEL,
     })
   }, [changeSheetView])
 
@@ -667,6 +688,7 @@ export function MapPage() {
       closeSearch()
       return
     }
+    setRegionHighlight(null)
     setSelectedItem(null)
     changeSheetView('list')
     changeSheetLevel(sheetLevelRef.current === 'expanded' ? 'default' : 'collapsed')
@@ -757,7 +779,7 @@ export function MapPage() {
         />
       )}
 
-      <div className="map-filter">
+      <div ref={filterRef} className="map-filter">
         <button
           type="button"
           className={`map-filter__trigger map-filter__trigger--${activeFilter.toLowerCase()}${activeFilter !== 'ALL' ? ' map-filter__trigger--active' : ''}`}
@@ -783,7 +805,6 @@ export function MapPage() {
                 onClick={() => void changeFilter(filter)}
               >
                 <span>{FILTER_LABELS[filter]}</span>
-                {activeFilter === filter && <span aria-hidden="true">✓</span>}
               </button>
             ))}
           </div>
@@ -800,6 +821,12 @@ export function MapPage() {
         <button type="button" className="map-search-open" aria-label="지도 검색 열기" onClick={openSearch}>
           <img src="/assets/map-controls/search.png" alt="" aria-hidden="true" />
         </button>
+      )}
+
+      {regionHighlight && (
+        <div className="map-region-highlight" role="status" aria-label={`${regionHighlight} 지역으로 이동`}>
+          {regionHighlight}
+        </div>
       )}
 
       <div className="map-controls" aria-label="지도 조작">
