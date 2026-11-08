@@ -3,10 +3,10 @@ import { ensureCsrfToken, requestWithCsrf } from '../../../shared/api/csrf.ts'
 import type { ApiResponse } from '../../../shared/api/types.ts'
 
 export type Companion = 'ALONE' | 'FRIEND' | 'COUPLE' | 'FAMILY' | 'GROUP'
-export type GenerationRequest = { province: string; city: string; start_date: string; end_date: string; companion: Companion; people_count: number }
+export type GenerationRequest = { province: string; city: string; start_date: string; end_date: string; companion: Companion; people_count: number; user_request?: string | null }
 export type GenerationProgress = { step: 'queued' | 'checking' | 'arranging' | 'writing' | 'rendering'; message: string }
 export type GenerationEvent = { job_id: number; request_id: string; sequence: number; status: Job['status']; progress: GenerationProgress | null; guidebook_id: number | null; code: string | null }
-export type Job = { job_id: number; job_type?: 'INITIAL' | 'REGENERATION'; status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELED'; guidebook_id: number | null; attempt_count?: number; initial_request?: GenerationRequest | null; error?: { code: string; message: string; retryable?: boolean } | null; progress?: GenerationProgress | null; sequence?: number; request_id?: string }
+export type Job = { job_id: number; job_type?: 'INITIAL' | 'REGENERATION'; status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELED'; guidebook_id: number | null; attempt_count?: number; initial_request?: GenerationRequest | null; submitted_feedback?: string | null; error?: { code: string; message: string; retryable?: boolean } | null; progress?: GenerationProgress | null; sequence?: number; request_id?: string }
 export type Book = { guidebook_id: number; title: string; start_date: string; end_date: string; thumbnail_url: string | null; companion: Companion }
 export type BookList = { items: Book[]; next_cursor: string | null; has_more: boolean }
 export type RegenerationAvailability = { remaining_count: number; expires_at: string | null; available: boolean }

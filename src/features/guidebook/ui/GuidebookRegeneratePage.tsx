@@ -20,7 +20,10 @@ export function GuidebookRegeneratePage() {
   const { track } = useGeneration()
   const [guidebook, setGuidebook] = useState<Detail | null>(null)
   const [availabilityError, setAvailabilityError] = useState('')
-  const [feedback, setFeedback] = useState('')
+  const restoredDraft = (location.state as { feedbackDraft?: { guidebookId?: number; feedback?: string } } | null)?.feedbackDraft
+  const [feedback, setFeedback] = useState(
+    restoredDraft?.guidebookId === id && typeof restoredDraft.feedback === 'string' ? restoredDraft.feedback : '',
+  )
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const key = useRef(idempotencyKey(guidebookId))
@@ -41,7 +44,7 @@ export function GuidebookRegeneratePage() {
   }, [guidebookId, validId])
 
   async function submit() {
-    if (!canRegenerate || !trimmedFeedback || submitting) return
+    if (!canRegenerate || !trimmedFeedback || trimmedFeedback.length > feedbackLimit || submitting) return
     setSubmitting(true); setError('')
     try {
       const job = await regenerateBook(id, trimmedFeedback, key.current)
@@ -68,7 +71,11 @@ export function GuidebookRegeneratePage() {
         maxLength={feedbackLimit}
         rows={10}
         placeholder="예) 둘째 날은 조금 더 여유롭게 구성해 주세요."
-        onChange={(event) => setFeedback(event.target.value)}
+        onChange={(event) => {
+          setFeedback(event.target.value)
+          key.current = idempotencyKey(guidebookId)
+          setError('')
+        }}
         disabled={submitting || !canRegenerate}
       />
       <p className="book-feedback-hint">방문 장소, 방문 순서, 일정의 분위기처럼 바꾸고 싶은 내용을 자유롭게 적어주세요.</p>
@@ -77,7 +84,7 @@ export function GuidebookRegeneratePage() {
       {availabilityError && <p className="book-error" role="alert">{availabilityError}</p>}
       {guidebook && !regenerationState?.available && <p className="book-error" role="alert">{regenerationUnavailableMessage(regenerationState?.reason ?? 'unavailable')}</p>}
       {error && <p className="book-error" role="alert">{error}</p>}
-      <button className="primary-button" disabled={!canRegenerate || !trimmedFeedback || submitting} onClick={() => void submit()}>
+      <button className="primary-button" disabled={!canRegenerate || !trimmedFeedback || trimmedFeedback.length > feedbackLimit || submitting} onClick={() => void submit()}>
         {submitting ? '수정 요청 중…' : '수정 요청'}
       </button>
       <button className="book-text-button" disabled={submitting} onClick={() => navigate(returnTo, { replace: true })}>수정 취소</button>

@@ -4,6 +4,7 @@ import { Link, MemoryRouter, useLocation } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { GenerationProvider } from './GenerationProvider.tsx'
 import { jobStorageKey, useGeneration } from './generation.ts'
+import { GenerationProgressBar } from '../ui/GenerationProgressBar.tsx'
 
 const {
   getCurrentMember,
@@ -37,14 +38,16 @@ vi.mock('../api/guidebooks.ts', () => ({
 vi.mock('../../../shared/lib/analytics.ts', () => ({ trackEvent }))
 
 function Consumer() {
-  const { job, track, retry, error, refresh, sessionFailure, checkSession } = useGeneration()
+  const { job, track, retry, error, refresh, sessionFailure, checkSession, dismiss } = useGeneration()
   const { pathname } = useLocation()
   return <><div data-testid="job">{job?.status ?? 'none'}</div><div data-testid="progress">{job?.progress?.step ?? 'none'}</div><div>{pathname}</div>
+    <GenerationProgressBar job={job} />
     <div>{error}</div><div data-testid="session-failure">{sessionFailure ?? 'none'}</div>
     <button onClick={() => track({ job_id: 31, status: 'PENDING', guidebook_id: null }, Date.now())}>생성 접수</button>
     <button onClick={() => void retry()}>재시도</button>
     <button onClick={refresh}>상태 다시 확인</button>
     <button onClick={checkSession}>세션 다시 확인</button>
+    <button onClick={dismiss}>추적 해제</button>
     <Link to="/map">지도 이동</Link><Link to="/preferences">취향 이동</Link>
   </>
 }
@@ -99,12 +102,23 @@ describe('전역 생성 작업 SSE', () => {
     await act(async () => { fireEvent.click(screen.getByText('생성 접수')) })
 
     act(() => stream.dispatchEvent(generationEvent('PROCESSING', 1, {
+      progress: { step: 'checking', message: '장소를 확인하고 있어요.' },
+    })))
+    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '2')
+    act(() => stream.dispatchEvent(generationEvent('PROCESSING', 2, {
       progress: { step: 'arranging', message: '여행 일정을 구성하고 있어요.' },
     })))
     expect(screen.getByTestId('job')).toHaveTextContent('PROCESSING')
     expect(screen.getByTestId('progress')).toHaveTextContent('arranging')
+    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '3')
+    act(() => stream.dispatchEvent(generationEvent('PROCESSING', 1, {
+      progress: { step: 'checking', message: '늦게 도착한 이전 단계' },
+    })))
+    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '3')
+    act(() => stream.dispatchEvent(new Event('error')))
+    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '3')
 
-    act(() => stream.dispatchEvent(generationEvent('COMPLETED', 2, { guidebook_id: 10 })))
+    act(() => stream.dispatchEvent(generationEvent('COMPLETED', 3, { guidebook_id: 10 })))
     expect(screen.getByTestId('job')).toHaveTextContent('COMPLETED')
     expect(stream.close).toHaveBeenCalled()
     expect(trackEvent).toHaveBeenCalledWith('guidebook_generate_success', {
@@ -130,6 +144,21 @@ describe('전역 생성 작업 SSE', () => {
     view.unmount()
 
     expect(stream.close).toHaveBeenCalled()
+  })
+
+  it('실패 추적 해제는 현재 작업과 새로고침 복원 정보를 제거한다', async () => {
+    const view = await mount()
+    await act(async () => { fireEvent.click(screen.getByText('생성 접수')) })
+    await act(async () => { stream.dispatchEvent(generationEvent('FAILED', 1)) })
+    expect(screen.getByTestId('job')).toHaveTextContent('FAILED')
+    expect(localStorage.getItem(jobStorageKey(1))).not.toBeNull()
+    await act(async () => { fireEvent.click(screen.getByText('추적 해제')) })
+    expect(screen.getByTestId('job')).toHaveTextContent('none')
+    expect(localStorage.getItem(jobStorageKey(1))).toBeNull()
+    expect(retryJob).not.toHaveBeenCalled()
+    view.unmount()
+    await mount()
+    expect(screen.getByTestId('job')).toHaveTextContent('none')
   })
 
   it('연결 오류를 안내하고 사용자가 새 연결을 열 수 있다', async () => {

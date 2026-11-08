@@ -61,6 +61,12 @@ export function GuidebookCreatePage() {
   const location = useLocation()
   const { track, job } = useGeneration()
   const restoredDraft = (location.state as { guidebookDraft?: GenerationRequest } | null)?.guidebookDraft
+  const editFeedback = (location.state as { editFeedback?: boolean } | null)?.editFeedback === true
+  const fromRegenerationFailure = (location.state as { fromRegenerationFailure?: boolean } | null)?.fromRegenerationFailure === true
+  const userRequestInput = useRef<HTMLTextAreaElement>(null)
+  useEffect(() => {
+    if (editFeedback) userRequestInput.current?.focus()
+  }, [editFeedback])
   const [form, setForm] = useState<GenerationRequest>(restoredDraft ?? { province: '', city: '', start_date: '', end_date: '', companion: 'ALONE', people_count: 1 })
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -114,6 +120,11 @@ export function GuidebookCreatePage() {
   const maxDate = yearLimit(minDate)
   const endLimit = form.start_date ? [dayOffset(form.start_date, 6), maxDate].sort()[0] : maxDate
   const rule = companions[form.companion]
+  const userRequest = form.user_request ?? ''
+  const trimmedUserRequest = userRequest.trim()
+  const userRequestError = userRequest && !trimmedUserRequest
+    ? '여행 요청은 공백만 입력할 수 없어요. 입력하지 않으려면 내용을 지워 주세요.'
+    : trimmedUserRequest.length > 200 ? '여행 요청은 200자 이내로 입력해 주세요.' : ''
   const hasRequiredConditions = Boolean(
     regions[form.province]?.includes(form.city) &&
     form.start_date &&
@@ -131,6 +142,7 @@ export function GuidebookCreatePage() {
   async function submit(event: FormEvent) {
     event.preventDefault()
     if (locked.current || isRunning(job) || creditBlocked) return
+    if (userRequestError) return
     if (!regions[form.province]?.includes(form.city) || !form.start_date || !form.end_date ||
       form.start_date < minDate || form.end_date < form.start_date || form.end_date > maxDate ||
       form.end_date > dayOffset(form.start_date, 6)) {
@@ -138,7 +150,10 @@ export function GuidebookCreatePage() {
     }
     locked.current = true; setSubmitting(true); setError('')
     const isNewGeneration = submission.current === null
-    const attempt = submission.current ?? { key: crypto.randomUUID(), body: { ...form }, startedAt: Date.now() }
+    const body: GenerationRequest = { ...form }
+    if (trimmedUserRequest) body.user_request = trimmedUserRequest
+    else delete body.user_request
+    const attempt = submission.current ?? { key: crypto.randomUUID(), body, startedAt: Date.now() }
     submission.current = attempt
     if (isNewGeneration) trackEvent('guidebook_generate_start')
     try {
@@ -160,6 +175,7 @@ export function GuidebookCreatePage() {
     <BookHeader title="가이드 생성" />
     <form className="book-form" onSubmit={(event) => void submit(event)}>
       <p className="book-form-intro">다음 여행은<br /><strong>어디로 떠나시나요?</strong></p>
+      {fromRegenerationFailure && <p className="book-notice">조건을 변경하면 새 가이드북을 만들어요. 기존 가이드북은 유지되고 새 가이드북이 완성되면 생성권 1개를 사용해요.</p>}
       {walletError && <p className="book-hint">생성권을 확인하지 못했어요. <button className="book-inline-button" type="button" onClick={() => { setWalletError(false); setWalletRevision((value) => value + 1) }}>다시 조회</button></p>}
       {creditBlocked && <p className="book-hint">{wallet?.credit_balance === 0 ? '사용 가능한 생성권이 없어요.' : '현재 가이드북을 새로 생성할 수 없어요. 진행 중인 작업과 취향 설정을 확인해 주세요.'}</p>}
       {isRunning(job) && <p className="book-notice">이미 만들고 있는 가이드북이 있어요. <Link to={`/guidebooks/generating/${job!.job_id}`}>진행 상황 보기</Link></p>}
@@ -177,6 +193,25 @@ export function GuidebookCreatePage() {
           <label><span>동행</span><span className="book-select-field"><select aria-label="동행" value={form.companion} onChange={(event) => { const value = event.target.value as Companion; update('companion', value); update('people_count', companions[value][1]) }}>{Object.entries(companions).map(([value, item]) => <option key={value} value={value}>{item[0]}</option>)}</select><img src="/assets/guidebook/down-arrow.png" alt="" aria-hidden="true" /></span></label>
           <label><span>인원</span><span className="book-select-field"><select aria-label="인원" value={form.people_count} onChange={(event) => update('people_count', Number(event.target.value))}>{Array.from({ length: rule[2] - rule[1] + 1 }, (_, i) => rule[1] + i).map((count) => <option value={count} key={count}>{count}명</option>)}</select><img src="/assets/guidebook/down-arrow.png" alt="" aria-hidden="true" /></span></label>
         </div><small>본인을 포함한 인원을 선택해 주세요.</small></section>
+        <section className="book-user-request">
+          <div className="book-user-request-heading">
+            <label htmlFor="guidebook-user-request">여행 요청 (선택)</label>
+            <span className="book-feedback-count" aria-live="polite">{userRequest.length} / 200</span>
+          </div>
+          <textarea
+            id="guidebook-user-request"
+            ref={userRequestInput}
+            value={userRequest}
+            maxLength={200}
+            rows={4}
+            placeholder="예) 첫날은 오후에 시작하고 싶어요."
+            aria-describedby={`guidebook-user-request-hint${userRequestError ? ' guidebook-user-request-error' : ''}`}
+            aria-invalid={Boolean(userRequestError)}
+            onChange={(event) => update('user_request', event.target.value)}
+          />
+          <small id="guidebook-user-request-hint">원하는 여행 일정이나 방문 시간을 알려 주세요. 이번 가이드북에 반영해요.</small>
+          {userRequestError && <p id="guidebook-user-request-error" className="book-error" role="alert">{userRequestError}</p>}
+        </section>
       </fieldset>
       <div className="book-notice">저장한 취향을 바탕으로 여행을 구성해요.<br />생성권은 가이드북이 완성되면 1개 사용돼요.
         <div className="book-preference-row">
@@ -192,7 +227,7 @@ export function GuidebookCreatePage() {
       </div>
       {error && <p className="book-error" role="alert">{error}</p>}
       {uncertain && <p className="book-hint">같은 여행 조건으로 접수 결과를 다시 확인해요.</p>}
-      <button className="primary-button" disabled={submitting || isRunning(job) || creditBlocked || (!uncertain && !hasRequiredConditions)}>{submitting ? '접수 중…' : uncertain ? '같은 요청 다시 확인' : '생성'}</button>
+      <button className="primary-button" disabled={submitting || isRunning(job) || creditBlocked || Boolean(userRequestError) || (!uncertain && !hasRequiredConditions)}>{submitting ? '접수 중…' : uncertain ? '같은 요청 다시 확인' : '생성'}</button>
       {uncertain && <button type="button" className="book-text-button" onClick={() => { setUncertain(false); submission.current = null }}>조건 수정</button>}
     </form>
   </main>

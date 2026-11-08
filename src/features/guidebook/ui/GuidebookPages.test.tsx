@@ -8,25 +8,51 @@ import { GuidebookPrintPage } from './GuidebookPrintPage.tsx'
 import { GuidebookDetailPage } from './GuidebookDetailPage.tsx'
 import { GuidebookRegeneratePage } from './GuidebookRegeneratePage.tsx'
 import { today, dayOffset } from '../model/conditions.ts'
+import type { Job } from '../api/guidebooks.ts'
 
-const { createBook, listBooks, deleteBook, getBook, getViewer, regenerateBook, track, trackEvent, getCreditWallet, getMemberPreferences, getPreferenceOptions } = vi.hoisted(() => ({
+const { createBook, listBooks, deleteBook, getBook, getViewer, regenerateBook, track, trackEvent, getCreditWallet, getMemberPreferences, getPreferenceOptions, banner, dismiss } = vi.hoisted(() => ({
   createBook: vi.fn(), listBooks: vi.fn(), deleteBook: vi.fn(), getBook: vi.fn(), getViewer: vi.fn(), regenerateBook: vi.fn(), track: vi.fn(), trackEvent: vi.fn(), getCreditWallet: vi.fn(), getMemberPreferences: vi.fn(), getPreferenceOptions: vi.fn(),
+  banner: { job: null as Job | null }, dismiss: vi.fn(),
 }))
 vi.mock('../../../shared/lib/analytics.ts', () => ({ trackEvent }))
 vi.mock('../api/credits.ts', () => ({ getCreditWallet }))
 vi.mock('../api/guidebooks.ts', () => ({ createBook, listBooks, deleteBook, getBook, getViewer, regenerateBook }))
 vi.mock('../../preference/api/preferences.ts', () => ({ getMemberPreferences, getPreferenceOptions }))
 vi.mock('../model/generation.ts', () => ({
-  isRunning: () => false,
-  useGeneration: () => ({ track, job: null, error: '', dismiss: vi.fn(), refresh: vi.fn() }),
+  isRunning: (job: Job | null) => job?.status === 'PENDING' || job?.status === 'PROCESSING',
+  useGeneration: () => ({ track, job: banner.job, error: '', dismiss, refresh: vi.fn() }),
 }))
 
 describe('가이드북 화면', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    banner.job = null
     getCreditWallet.mockResolvedValue({ credit_balance: 3, active_job_id: null, can_generate: true })
     getMemberPreferences.mockResolvedValue([{ preference_type: 'THEME', preference_code: 'NATURE' }])
     getPreferenceOptions.mockResolvedValue([{ preference_type: 'THEME', code: 'NATURE', label: '자연', parent_code: null, sort_order: 1 }])
+  })
+
+  it('실패 배너의 취소하기는 상세 이동이나 서버 삭제 없이 추적 해제만 요청한다', async () => {
+    banner.job = { job_id: 31, status: 'FAILED', guidebook_id: null }
+    listBooks.mockResolvedValue({ items: [], next_cursor: null, has_more: false })
+    render(<MemoryRouter initialEntries={['/guidebooks']}><Routes>
+      <Route path="/guidebooks" element={<GuidebookListPage />} />
+      <Route path="/guidebooks/generating/:jobId" element={<p>실패 상세 화면</p>} />
+    </Routes></MemoryRouter>)
+    expect(await screen.findByText('가이드북 생성에 실패했어요')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /실패 내용 확인/ })).toHaveAttribute('href', '/guidebooks/generating/31')
+    fireEvent.click(screen.getByRole('button', { name: '취소하기' }))
+    expect(dismiss).toHaveBeenCalledOnce()
+    expect(deleteBook).not.toHaveBeenCalled()
+    expect(screen.queryByText('실패 상세 화면')).not.toBeInTheDocument()
+  })
+
+  it.each(['PENDING', 'PROCESSING'] as const)('%s 배너에는 실패 취소 버튼이 없다', async (status) => {
+    banner.job = { job_id: 31, status, guidebook_id: null }
+    listBooks.mockResolvedValue({ items: [], next_cursor: null, has_more: false })
+    render(<MemoryRouter><GuidebookListPage /></MemoryRouter>)
+    expect(await screen.findByText('가이드북을 만들고 있어요')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '취소하기' })).not.toBeInTheDocument()
   })
 
   it('생성권이 0개이면 안내하고 새 생성을 막는다', async () => {
@@ -100,11 +126,15 @@ describe('가이드북 화면', () => {
     fireEvent.change(screen.getByLabelText('시·군·구'), { target: { value: '경주시' } })
     fireEvent.change(screen.getByLabelText('시작일'), { target: { value: today() } })
     fireEvent.change(screen.getByLabelText('종료일'), { target: { value: dayOffset(today(), 2) } })
+    fireEvent.change(screen.getByLabelText('여행 요청 (선택)'), { target: { value: ' 첫날은 오후에 시작하고 싶어요 ' } })
     fireEvent.click(screen.getByRole('button', { name: '생성' }))
-    fireEvent.click(await screen.findByRole('button', { name: '같은 요청 다시 확인' }))
+    const retry = await screen.findByRole('button', { name: '같은 요청 다시 확인' })
+    expect(screen.getByLabelText('여행 요청 (선택)')).toBeDisabled()
+    fireEvent.click(retry)
     expect(await screen.findByText('생성 진행 화면')).toBeInTheDocument()
     expect(createBook).toHaveBeenCalledTimes(2)
     expect(createBook.mock.calls[0]).toEqual(createBook.mock.calls[1])
+    expect(createBook.mock.calls[0][0].user_request).toBe('첫날은 오후에 시작하고 싶어요')
     expect(track).toHaveBeenCalledWith(
       { job_id: 31, status: 'PENDING', guidebook_id: null },
       expect.any(Number),
@@ -113,6 +143,46 @@ describe('가이드북 화면', () => {
       ['guidebook_generate_start'],
       ['guidebook_generate_accepted'],
     ])
+  })
+
+  it.each(['', '가'.repeat(200)])('여행 요청을 생략하거나 200자까지 입력해 생성한다 (%s)', async (text) => {
+    createBook.mockResolvedValue({ job_id: 31, status: 'PENDING', guidebook_id: null })
+    render(<MemoryRouter><GuidebookCreatePage /></MemoryRouter>)
+    fireEvent.change(screen.getByLabelText('시·도'), { target: { value: '서울특별시' } })
+    fireEvent.change(screen.getByLabelText('시·군·구'), { target: { value: '중구' } })
+    fireEvent.change(screen.getByLabelText('시작일'), { target: { value: today() } })
+    fireEvent.change(screen.getByLabelText('종료일'), { target: { value: today() } })
+    fireEvent.change(screen.getByLabelText('여행 요청 (선택)'), { target: { value: text } })
+    expect(screen.getByLabelText('여행 요청 (선택)')).toHaveAttribute('maxlength', '200')
+    fireEvent.click(screen.getByRole('button', { name: '생성' }))
+    await waitFor(() => expect(createBook).toHaveBeenCalledOnce())
+    if (text) expect(createBook.mock.calls[0][0].user_request).toBe(text)
+    else expect(createBook.mock.calls[0][0]).not.toHaveProperty('user_request')
+  })
+
+  it.each(['   ', '가'.repeat(201)])('공백 또는 초과 요청은 생성 전에 막는다 (%s)', async (text) => {
+    render(<MemoryRouter initialEntries={[{ pathname: '/', state: { guidebookDraft: {
+      province: '서울특별시', city: '중구', start_date: today(), end_date: today(),
+      companion: 'ALONE', people_count: 1, user_request: text,
+    } } }]}><GuidebookCreatePage /></MemoryRouter>)
+    expect(screen.getByLabelText('여행 요청 (선택)')).toHaveAttribute('aria-invalid', 'true')
+    expect(screen.getByRole('alert')).toHaveTextContent(text.trim() ? '200자 이내' : '공백만 입력할 수 없어요')
+    expect(screen.getByRole('button', { name: '생성' })).toBeDisabled()
+    fireEvent.submit(screen.getByRole('button', { name: '생성' }).closest('form')!)
+    expect(createBook).not.toHaveBeenCalled()
+    fireEvent.change(screen.getByLabelText('여행 요청 (선택)'), { target: { value: '' } })
+    expect(screen.getByRole('button', { name: '생성' })).toBeEnabled()
+  })
+
+  it('취향 수정으로 이동할 때 여행 요청 초안을 전달하고 복귀 시 복원한다', async () => {
+    const draft = { province: '서울특별시', city: '중구', start_date: today(), end_date: today(),
+      companion: 'ALONE', people_count: 1, user_request: '첫날 오후 시작' }
+    render(<MemoryRouter initialEntries={[{ pathname: '/guidebooks/new', state: { guidebookDraft: draft } }]}>
+      <GuidebookCreatePage />
+    </MemoryRouter>)
+    expect(screen.getByLabelText('여행 요청 (선택)')).toHaveValue('첫날 오후 시작')
+    expect(await screen.findByLabelText('저장된 여행 취향')).toHaveTextContent('자연')
+    expect(screen.getByRole('link', { name: '취향 수정하기' })).toHaveAttribute('href', '/preferences')
   })
 
   it('혼자는 1명, 연인은 2명만 선택하며 시도 변경 시 시군구를 비운다', () => {
@@ -490,7 +560,7 @@ expect(await screen.findByText('경주 여행')).toBeInTheDocument()
     regenerateBook.mockResolvedValue({ job_id: 41, job_type: 'REGENERATION', status: 'PENDING', guidebook_id: 10, current_version: 1 })
     render(<MemoryRouter initialEntries={[{
       pathname: '/guidebooks/10/regenerate',
-      state: { returnTo: '/guidebooks/10' },
+      state: { returnTo: '/guidebooks/10', feedbackDraft: { guidebookId: 10, feedback: '기존 수정 요청' } },
     }]}><Routes>
       <Route path="/guidebooks/:guidebookId/regenerate" element={<GuidebookRegeneratePage />} />
       <Route path="/guidebooks/generating/:jobId" element={<p>재생성 진행 화면</p>} />
@@ -499,7 +569,8 @@ expect(await screen.findByText('경주 여행')).toBeInTheDocument()
     expect(screen.queryByLabelText('표지 제목')).not.toBeInTheDocument()
     const submit = await screen.findByRole('button', { name: '수정 요청' })
     await waitFor(() => expect(screen.getByRole('textbox', { name: /수정 요청/ })).toBeEnabled())
-    expect(submit).toBeDisabled()
+    expect(screen.getByRole('textbox', { name: /수정 요청/ })).toHaveValue('기존 수정 요청')
+    expect(submit).toBeEnabled()
     fireEvent.change(screen.getByRole('textbox', { name: /수정 요청/ }), { target: { value: '  둘째 날은 더 여유롭게 해 주세요.  ' } })
     fireEvent.click(submit)
 
