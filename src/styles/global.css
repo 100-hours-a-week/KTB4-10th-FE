@@ -890,6 +890,7 @@ button:disabled {
 .map-search-result__badges { display: flex; align-items: center; gap: 3px; }
 .map-search-result__badges span { display: grid; width: 25px; height: 25px; place-items: center; }
 .map-search-result__badges img { width: 20px; height: 20px; object-fit: contain; }
+.map-search-results__notice { margin: 6px 8px 2px; color: #797980; font-size: 11px; line-height: 1.45; }
 .map-search-results__state { margin: 0; padding: 22px 12px; color: #6b6b73; font-size: 12px; text-align: center; }
 .map-search-results__state p { margin: 0 0 10px; }
 .map-search-results__state button { min-height: 34px; padding: 0 13px; border: 1px solid #dedee3; border-radius: 10px; background: #fff; color: #242428; cursor: pointer; font: inherit; font-weight: 700; }

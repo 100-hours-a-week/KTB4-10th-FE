@@ -47,6 +47,47 @@ export type KakaoMarkerClusterer = {
   clear: () => void
 }
 
+export type KakaoAddressSearchAddress = {
+  address_name: string
+  region_1depth_name: string
+  region_2depth_name: string
+  region_3depth_name: string
+  region_3depth_h_name: string
+  h_code: string
+  b_code: string
+  x: string
+  y: string
+}
+
+export type KakaoAddressSearchResult = {
+  address_name: string
+  address_type: 'REGION' | 'ROAD' | 'REGION_ADDR' | 'ROAD_ADDR'
+  x: string
+  y: string
+  address: KakaoAddressSearchAddress | null
+}
+
+export type KakaoGeocoder = {
+  addressSearch: (
+    address: string,
+    callback: (results: KakaoAddressSearchResult[], status: string) => void,
+    options?: { page?: number; size?: number; analyze_type?: string },
+  ) => void
+}
+
+export type KakaoServices = {
+  Geocoder: new () => KakaoGeocoder
+  Status: {
+    OK: string
+    ZERO_RESULT: string
+    ERROR: string
+  }
+  AnalyzeType: {
+    SIMILAR: string
+    EXACT: string
+  }
+}
+
 type KakaoSize = object
 type KakaoPoint = object
 type KakaoMarkerImage = object
@@ -88,6 +129,7 @@ export type KakaoMaps = {
     texts?: (size: number) => string
     styles?: Array<Record<string, string>>
   }) => KakaoMarkerClusterer
+  services?: KakaoServices
   event: {
     addListener: <TArgs extends unknown[]>(
       target: object,
@@ -121,7 +163,7 @@ export function loadKakaoMaps(): Promise<KakaoMaps> {
 
   const loading = new Promise<KakaoMaps>((resolve, reject) => {
     const script = document.createElement('script')
-    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(appKey)}&autoload=false&libraries=clusterer`
+    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(appKey)}&autoload=false&libraries=clusterer,services`
     script.async = true
     script.addEventListener('load', () => {
       if (!window.kakao?.maps) {
