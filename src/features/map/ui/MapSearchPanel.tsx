@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { searchMapContents, type MapSearchContent } from '../api/search.ts'
-import { searchMapRegions, type MapSearchRegion } from '../model/mapSearchRegions.ts'
+import { searchKakaoRegions } from '../api/regionSearch.ts'
+import {
+  mergeMapRegions,
+  searchMapRegions,
+  type MapSearchRegion,
+} from '../model/mapSearchRegions.ts'
 
 type MapSearchPanelProps = {
   onClose: () => void
@@ -28,6 +33,7 @@ export function MapSearchPanel({
   const [contents, setContents] = useState<MapSearchContent[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [hasError, setHasError] = useState(false)
+  const [hasRegionError, setHasRegionError] = useState(false)
 
   useEffect(() => {
     inputRef.current?.focus()
@@ -48,6 +54,7 @@ export function MapSearchPanel({
       setRegions([])
       setContents([])
       setHasError(false)
+      setHasRegionError(false)
       return
     }
 
@@ -55,17 +62,28 @@ export function MapSearchPanel({
     const controller = new AbortController()
     requestControllerRef.current = controller
     setSubmittedQuery(normalizedQuery)
-    setRegions(searchMapRegions(normalizedQuery))
+    const serviceRegions = searchMapRegions(normalizedQuery)
+    setRegions(serviceRegions)
     setContents([])
     setHasError(false)
+    setHasRegionError(false)
     setIsLoading(true)
     try {
-      const result = await searchMapContents(normalizedQuery, controller.signal)
+      const [regionResult, contentResult] = await Promise.allSettled([
+        searchKakaoRegions(normalizedQuery, controller.signal),
+        searchMapContents(normalizedQuery, controller.signal),
+      ])
       if (requestControllerRef.current !== controller) return
-      setContents(result.items)
-    } catch {
-      if (controller.signal.aborted) return
-      setHasError(true)
+      if (regionResult.status === 'fulfilled') {
+        setRegions(mergeMapRegions(serviceRegions, regionResult.value))
+      } else if (!controller.signal.aborted) {
+        setHasRegionError(true)
+      }
+      if (contentResult.status === 'fulfilled') {
+        setContents(contentResult.value.items)
+      } else if (!controller.signal.aborted) {
+        setHasError(true)
+      }
     } finally {
       if (requestControllerRef.current === controller) setIsLoading(false)
     }
@@ -119,8 +137,14 @@ export function MapSearchPanel({
             </div>
           )}
 
+          {hasRegionError && (
+            <p className="map-search-results__notice" role="status">
+              세부 지역 검색을 불러오지 못했어요. 광역 지역과 행사·장소 결과만 표시합니다.
+            </p>
+          )}
+
           {isLoading ? (
-            <p className="map-search-results__state" role="status">행사와 장소를 찾고 있어요</p>
+            <p className="map-search-results__state" role="status">지역과 행사·장소를 찾고 있어요</p>
           ) : hasError ? (
             <div className="map-search-results__state" role="alert">
               <p>검색 결과를 불러오지 못했어요.</p>

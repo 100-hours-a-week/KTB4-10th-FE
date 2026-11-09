@@ -16,6 +16,7 @@ const {
   listAllBooksMock,
   mapCanvasCallbacksMock,
   searchMapContentsMock,
+  searchKakaoRegionsMock,
 } = vi.hoisted(() => ({
   getMapContentsMock: vi.fn(),
   getMapMarkersMock: vi.fn(),
@@ -27,6 +28,7 @@ const {
   listAllBooksMock: vi.fn(),
   mapCanvasCallbacksMock: vi.fn(),
   searchMapContentsMock: vi.fn(),
+  searchKakaoRegionsMock: vi.fn(),
 }))
 
 vi.mock('../api/map.ts', () => ({
@@ -51,6 +53,10 @@ vi.mock('../api/favorites.ts', () => ({
 
 vi.mock('../api/search.ts', () => ({
   searchMapContents: searchMapContentsMock,
+}))
+
+vi.mock('../api/regionSearch.ts', () => ({
+  searchKakaoRegions: searchKakaoRegionsMock,
 }))
 
 vi.mock('../../auth/api/auth.ts', () => ({
@@ -137,6 +143,7 @@ describe('MapPage', () => {
     searchMapContentsMock.mockResolvedValue({
       items: [], page: 1, size: 20, total_items: 0, total_pages: 0,
     })
+    searchKakaoRegionsMock.mockResolvedValue([])
   })
 
   afterEach(() => {
@@ -235,6 +242,69 @@ describe('MapPage', () => {
     expect(screen.getByRole('status', { name: '강원특별자치도 지역으로 이동' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: '강원 지역 선택 해제' })).not.toBeInTheDocument()
     expect(document.querySelector('.map-content-sheet--default')).toBeInTheDocument()
+  })
+
+  it('동명 행정구역을 전체 경로로 구분하고 선택한 지역으로 이동한다', async () => {
+    const user = userEvent.setup()
+    localStorage.setItem('kgb.location-prompt-completed', 'true')
+    searchKakaoRegionsMock.mockResolvedValue([
+      {
+        code: '1114000000', label: '중구', fullName: '서울특별시 중구',
+        latitude: 37.5636, longitude: 126.9976, level: 5,
+      },
+      {
+        code: '2611000000', label: '중구', fullName: '부산광역시 중구',
+        latitude: 35.1063, longitude: 129.0324, level: 5,
+      },
+    ])
+    render(<MemoryRouter><MapPage /></MemoryRouter>)
+
+    await user.click(screen.getByRole('button', { name: '지도 검색 열기' }))
+    await user.type(screen.getByRole('searchbox', { name: '지역, 행사, 장소 검색' }), '중구')
+    await user.keyboard('{Enter}')
+
+    expect(searchKakaoRegionsMock).toHaveBeenCalledWith('중구', expect.any(AbortSignal))
+    expect(await screen.findByRole('button', { name: /서울특별시 중구/ })).toBeInTheDocument()
+    const busan = screen.getByRole('button', { name: /부산광역시 중구/ })
+    await user.click(busan)
+
+    expect(screen.getByLabelText('지도 이동 요청')).toHaveTextContent('35.1063,129.0324,1,5')
+    expect(screen.getByRole('status', { name: '부산광역시 중구 지역으로 이동' }))
+      .toBeInTheDocument()
+  })
+
+  it('세부 지역 검색 실패 시에도 광역 지역과 콘텐츠 결과를 유지한다', async () => {
+    const user = userEvent.setup()
+    localStorage.setItem('kgb.location-prompt-completed', 'true')
+    searchKakaoRegionsMock.mockRejectedValue(new Error('services unavailable'))
+    searchMapContentsMock.mockResolvedValue({
+      items: [{
+        content_id: 'event-search',
+        title: '서울 검색 행사',
+        content_type: 'EVENT',
+        region: { administrative_code: '11', name: '서울특별시' },
+        address: '서울 중구',
+        latitude: 37.5665,
+        longitude: 126.978,
+        thumbnail_url: null,
+        event_period: { start_date: '2026-11-08', end_date: '2026-11-09' },
+        is_favorite: false,
+        is_in_guidebook: false,
+      }],
+      page: 1,
+      size: 20,
+      total_items: 1,
+      total_pages: 1,
+    })
+    render(<MemoryRouter><MapPage /></MemoryRouter>)
+
+    await user.click(screen.getByRole('button', { name: '지도 검색 열기' }))
+    await user.type(screen.getByRole('searchbox', { name: '지역, 행사, 장소 검색' }), '서울')
+    await user.keyboard('{Enter}')
+
+    expect(await screen.findByRole('button', { name: /서울특별시/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /서울 검색 행사/ })).toBeInTheDocument()
+    expect(screen.getByText(/세부 지역 검색을 불러오지 못했어요/)).toBeInTheDocument()
   })
 
   it('첫 진입 시 위치 안내를 표시하고 거절해도 지도를 이용할 수 있다', async () => {
