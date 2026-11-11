@@ -333,7 +333,7 @@ describe('가이드북 화면', () => {
     expect(printLink).toHaveAttribute('href', '/guidebooks/10/print')
     expect(printLink).toHaveAttribute('target', '_blank')
     expect(printLink).toHaveAttribute('rel', 'noopener')
-    expect(printLink.querySelector('img')).toHaveAttribute('src', '/assets/guidebook/downloads.png')
+    expect(printLink.querySelector('img')).toHaveAttribute('src', '/assets/guidebook/download.png')
   })
 
   it('목록 카드에 가이드북 대표 이미지를 표시한다', async () => {
