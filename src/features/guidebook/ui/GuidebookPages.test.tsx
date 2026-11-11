@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { GuidebookCreatePage } from './GuidebookCreatePage.tsx'
 import { GuidebookListPage } from './GuidebookListPage.tsx'
@@ -10,12 +10,14 @@ import { GuidebookRegeneratePage } from './GuidebookRegeneratePage.tsx'
 import { today, dayOffset } from '../model/conditions.ts'
 import type { Job } from '../api/guidebooks.ts'
 
-const { createBook, listBooks, deleteBook, getBook, getViewer, regenerateBook, track, trackEvent, getCreditWallet, getMemberPreferences, getPreferenceOptions, banner, dismiss } = vi.hoisted(() => ({
+const { createBook, listBooks, deleteBook, getBook, getViewer, regenerateBook, track, trackEvent, getCreditWallet, getCurrentMember, getMemberPreferences, getPreferenceOptions, banner, dismiss } = vi.hoisted(() => ({
   createBook: vi.fn(), listBooks: vi.fn(), deleteBook: vi.fn(), getBook: vi.fn(), getViewer: vi.fn(), regenerateBook: vi.fn(), track: vi.fn(), trackEvent: vi.fn(), getCreditWallet: vi.fn(), getMemberPreferences: vi.fn(), getPreferenceOptions: vi.fn(),
+  getCurrentMember: vi.fn(),
   banner: { job: null as Job | null }, dismiss: vi.fn(),
 }))
 vi.mock('../../../shared/lib/analytics.ts', () => ({ trackEvent }))
 vi.mock('../api/credits.ts', () => ({ getCreditWallet }))
+vi.mock('../../auth/api/auth.ts', () => ({ getCurrentMember }))
 vi.mock('../api/guidebooks.ts', () => ({ createBook, listBooks, deleteBook, getBook, getViewer, regenerateBook }))
 vi.mock('../../preference/api/preferences.ts', () => ({ getMemberPreferences, getPreferenceOptions }))
 vi.mock('../model/generation.ts', () => ({
@@ -23,11 +25,25 @@ vi.mock('../model/generation.ts', () => ({
   useGeneration: () => ({ track, job: banner.job, error: '', dismiss, refresh: vi.fn() }),
 }))
 
+function LocationStateOutput() {
+  const location = useLocation()
+  return <output aria-label="현재 위치 상태">{location.pathname}:{JSON.stringify(location.state)}</output>
+}
+
 describe('가이드북 화면', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     banner.job = null
     getCreditWallet.mockResolvedValue({ credit_balance: 3, active_job_id: null, can_generate: true })
+    getCurrentMember.mockResolvedValue({
+      member_id: 1,
+      nickname: '여행자',
+      email: 'traveler@example.com',
+      profile_image_url: null,
+      language_code: 'ko',
+      status: 'ACTIVE',
+      unread_count: 2,
+    })
     getMemberPreferences.mockResolvedValue([{ preference_type: 'THEME', preference_code: 'NATURE' }])
     getPreferenceOptions.mockResolvedValue([{ preference_type: 'THEME', code: 'NATURE', label: '자연', parent_code: null, sort_order: 1 }])
   })
@@ -40,8 +56,8 @@ describe('가이드북 화면', () => {
       <Route path="/guidebooks/generating/:jobId" element={<p>실패 상세 화면</p>} />
     </Routes></MemoryRouter>)
     expect(await screen.findByText('가이드북 생성에 실패했어요')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /실패 내용 확인/ })).toHaveAttribute('href', '/guidebooks/generating/31')
-    fireEvent.click(screen.getByRole('button', { name: '닫기' }))
+    expect(screen.getByRole('link', { name: '가이드북 생성에 실패했어요 상세 확인' })).toHaveAttribute('href', '/guidebooks/generating/31')
+    fireEvent.click(screen.getByRole('button', { name: '생성 실패 안내 닫기' }))
     expect(dismiss).toHaveBeenCalledOnce()
     expect(deleteBook).not.toHaveBeenCalled()
     expect(screen.queryByText('실패 상세 화면')).not.toBeInTheDocument()
@@ -242,15 +258,15 @@ describe('가이드북 화면', () => {
     await waitFor(() => expect(screen.queryByText('다음 여행')).not.toBeInTheDocument())
   })
 
-  it('생성권이 있으면 목록의 생성 버튼으로 가이드북 생성 화면에 이동한다', async () => {
+  it('생성권이 있으면 목록의 생성 카드로 가이드북 생성 화면에 이동한다', async () => {
     listBooks.mockResolvedValue({ items: [], next_cursor: null, has_more: false })
     render(<MemoryRouter initialEntries={['/guidebooks']}><Routes>
       <Route path="/guidebooks" element={<GuidebookListPage />} />
       <Route path="/guidebooks/new" element={<p>가이드북 생성 화면</p>} />
     </Routes></MemoryRouter>)
 
-    expect(await screen.findByRole('status', { name: '잔여 생성권' })).toHaveTextContent('잔여 생성권3개')
-    fireEvent.click(screen.getAllByRole('button', { name: '가이드북 만들기' })[0])
+    expect(await screen.findByRole('button', { name: '새 가이드북 만들기' })).toHaveTextContent('생성권 3개 남음')
+    fireEvent.click(screen.getByRole('button', { name: '새 가이드북 만들기' }))
     expect(await screen.findByText('가이드북 생성 화면')).toBeInTheDocument()
   })
 
@@ -263,17 +279,14 @@ describe('가이드북 화면', () => {
       <Route path="/mypage/coupon" element={<p>쿠폰 등록 화면</p>} />
     </Routes></MemoryRouter>)
 
-    await waitFor(() => expect(screen.getByRole('status', { name: '잔여 생성권' }))
-      .toHaveTextContent('잔여 생성권0개'))
-    const createButtons = screen.getAllByRole('button', { name: '가이드북 만들기' })
-    expect(createButtons).toHaveLength(2)
-
-    fireEvent.click(createButtons[0])
+    const createButton = await screen.findByRole('button', { name: '새 가이드북 만들기' })
+    expect(createButton).toHaveTextContent('생성권 0개 남음')
+    fireEvent.click(createButton)
     expect(await screen.findByRole('dialog')).toHaveTextContent('생성권이 부족해요')
     expect(screen.queryByText('가이드북 생성 화면')).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: '닫기' }))
 
-    fireEvent.click(createButtons[1])
+    fireEvent.click(createButton)
     fireEvent.click(screen.getByRole('button', { name: '쿠폰 등록' }))
     expect(await screen.findByText('쿠폰 등록 화면')).toBeInTheDocument()
   })
@@ -287,8 +300,23 @@ describe('가이드북 화면', () => {
     </Routes></MemoryRouter>)
 
     await waitFor(() => expect(getCreditWallet).toHaveBeenCalled())
-    fireEvent.click(screen.getAllByRole('button', { name: '가이드북 만들기' })[0])
+    expect(screen.getByRole('button', { name: '새 가이드북 만들기' })).toHaveTextContent('생성권 확인 중')
+    fireEvent.click(screen.getByRole('button', { name: '새 가이드북 만들기' }))
     expect(await screen.findByText('가이드북 생성 화면')).toBeInTheDocument()
+  })
+
+  it('헤더 알림 버튼은 공통 미읽음 개수를 표시하고 가이드북 복귀 경로를 전달한다', async () => {
+    listBooks.mockResolvedValue({ items: [], next_cursor: null, has_more: false })
+    render(<MemoryRouter initialEntries={['/guidebooks']}><Routes>
+      <Route path="/guidebooks" element={<GuidebookListPage />} />
+      <Route path="/mypage/notifications" element={<LocationStateOutput />} />
+    </Routes></MemoryRouter>)
+
+    const notificationButton = await screen.findByRole('button', { name: '읽지 않은 알림 2개 확인' })
+    expect(notificationButton.querySelector('img')).toHaveAttribute('src', '/assets/mypage/bell-unread.png')
+    fireEvent.click(notificationButton)
+    expect(await screen.findByRole('status', { name: '현재 위치 상태' }))
+      .toHaveTextContent('/mypage/notifications:{"returnTo":"/guidebooks"}')
   })
 
   it('목록의 PDF 저장 버튼은 인쇄 전용 화면을 새 탭으로 연다', async () => {
