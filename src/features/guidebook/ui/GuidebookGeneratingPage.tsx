@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { useGeneration } from '../model/generation.ts'
 import { BookHeader, State } from './GuidebookLayout.tsx'
 import { GenerationProgressBar } from './GenerationProgressBar.tsx'
@@ -7,12 +7,12 @@ import { GenerationProgressBar } from './GenerationProgressBar.tsx'
 export function GuidebookGeneratingPage() {
   const { jobId } = useParams()
   const id = Number(jobId)
-  const { job, track, error, retry, refresh, busy, dismiss } = useGeneration()
+  const { job, track, error, retry, refresh, busy, dismiss, isDismissed } = useGeneration()
   const navigate = useNavigate()
   const guidebookConfirmDialog = useRef<HTMLDialogElement>(null)
   useEffect(() => {
-    if (Number.isSafeInteger(id) && id > 0 && !job && !error) track({ job_id: id, status: 'PENDING', guidebook_id: null })
-  }, [id, job, track, error])
+    if (Number.isSafeInteger(id) && id > 0 && !job && !error && !isDismissed(id)) track({ job_id: id, status: 'PENDING', guidebook_id: null })
+  }, [id, job, track, error, isDismissed])
   useEffect(() => {
     if (job?.job_id === id && job.status === 'COMPLETED' && job.guidebook_id) navigate(`/guidebooks/${job.guidebook_id}`, { replace: true })
   }, [job, id, navigate])
@@ -40,8 +40,9 @@ export function GuidebookGeneratingPage() {
     if (!guidebookId) return
     guidebookConfirmDialog.current?.close()
     dismiss()
-    navigate(`/guidebooks/${guidebookId}`)
+    navigate(`/guidebooks/${guidebookId}`, { replace: true })
   }
+  if (Number.isSafeInteger(id) && id > 0 && !job && isDismissed(id)) return <Navigate to="/guidebooks" replace />
   return <main className="app-shell book-page">
     <BookHeader title={failed ? '가이드북 생성 실패' : canceled ? '가이드북 생성 취소' : '가이드북 생성 중'} />
     <section className={`book-generation${failed ? ' book-generation--failed' : ''}`} aria-live="polite">

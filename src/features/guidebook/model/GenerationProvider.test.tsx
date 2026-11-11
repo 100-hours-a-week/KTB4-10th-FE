@@ -3,7 +3,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react'
 import { Link, MemoryRouter, useLocation } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { GenerationProvider } from './GenerationProvider.tsx'
-import { jobStorageKey, useGeneration } from './generation.ts'
+import { dismissedJobStorageKey, jobStorageKey, useGeneration } from './generation.ts'
 import { GenerationProgressBar } from '../ui/GenerationProgressBar.tsx'
 
 const {
@@ -77,6 +77,7 @@ describe('전역 생성 작업 SSE', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     localStorage.clear()
+    sessionStorage.clear()
     getCurrentMember.mockResolvedValue({ member_id: 1, status: 'ACTIVE' })
     getJob.mockResolvedValue({
       job_id: 31,
@@ -155,6 +156,7 @@ describe('전역 생성 작업 SSE', () => {
     await act(async () => { fireEvent.click(screen.getByText('추적 해제')) })
     expect(screen.getByTestId('job')).toHaveTextContent('none')
     expect(localStorage.getItem(jobStorageKey(1))).toBeNull()
+    expect(sessionStorage.getItem(dismissedJobStorageKey(1, 31))).toBe('1')
     expect(retryJob).not.toHaveBeenCalled()
     view.unmount()
     await mount()

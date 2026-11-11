@@ -9,7 +9,7 @@ import { trackEvent } from '../../../shared/lib/analytics.ts'
 import { routes } from '../../../shared/config/routes.ts'
 import { getJob, openGenerationStream, parseGenerationEvent, retryJob, type Job } from '../api/guidebooks.ts'
 import { message } from './conditions.ts'
-import { GenerationContext, jobStorageKey } from './generation.ts'
+import { dismissedJobStorageKey, GenerationContext, jobStorageKey } from './generation.ts'
 
 type RestoredGeneration = {
   job: Job
@@ -117,12 +117,20 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
     setJob(next); setError(''); setRevision((value) => value + 1)
   }, [])
   const dismiss = useCallback(() => {
+    const dismissedJobId = trackedJobId.current
     activeStream.current?.close(); activeStream.current = null
     if (member) {
       try { localStorage.removeItem(jobStorageKey(member.member_id)) } catch { /* 상태 해제는 계속 진행합니다. */ }
+      if (dismissedJobId) {
+        try { sessionStorage.setItem(dismissedJobStorageKey(member.member_id, dismissedJobId), '1') } catch { /* 메모리 상태 해제는 계속 진행합니다. */ }
+      }
     }
     trackedJobId.current = null; generationStartedAt.current = null; reportedTerminal.current = null; latestEvent.current = null
     setJob(null); setError('')
+  }, [member])
+  const isDismissed = useCallback((targetJobId: number) => {
+    if (!member) return false
+    try { return sessionStorage.getItem(dismissedJobStorageKey(member.member_id, targetJobId)) === '1' } catch { return false }
   }, [member])
   const refresh = useCallback(() => {
     setError('')
@@ -209,6 +217,6 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
   return <GenerationContext.Provider value={{
     member, checking, sessionFailure, checkSession: () => setSessionRevision((value) => value + 1),
     job, error, busy, track, retry, dismiss,
-    refresh,
+    refresh, isDismissed,
   }}>{children}</GenerationContext.Provider>
 }

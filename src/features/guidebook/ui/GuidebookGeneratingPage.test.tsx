@@ -9,7 +9,10 @@ const { retry, dismiss, refresh, track, generation } = vi.hoisted(() => ({
   dismiss: vi.fn(),
   refresh: vi.fn(),
   track: vi.fn(),
-  generation: { job: { job_id: 29, status: 'FAILED', guidebook_id: null, attempt_count: 1 } as Job },
+  generation: {
+    job: { job_id: 29, status: 'FAILED', guidebook_id: null, attempt_count: 1 } as Job | null,
+    dismissed: false,
+  },
 }))
 
 vi.mock('../model/generation.ts', () => ({
@@ -22,12 +25,14 @@ vi.mock('../model/generation.ts', () => ({
     busy: false,
     dismiss,
     track,
+    isDismissed: () => generation.dismissed,
   }),
 }))
 
 describe('가이드북 생성 상태 화면', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    generation.dismissed = false
     generation.job = { job_id: 29, status: 'FAILED', guidebook_id: null, attempt_count: 1 }
     generation.job.error = { code: 'generation_timeout', message: '서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.', retryable: true }
   })
@@ -65,6 +70,18 @@ describe('가이드북 생성 상태 화면', () => {
 
     expect(screen.getByText('가이드북 문구를 작성하고 있어요.')).toBeInTheDocument()
     expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '4')
+  })
+
+  it('닫은 실패 작업의 과거 생성 URL은 다시 추적하지 않고 목록으로 치환한다', () => {
+    generation.job = null
+    generation.dismissed = true
+    render(<MemoryRouter initialEntries={['/guidebooks/generating/29']}><Routes>
+      <Route path="/guidebooks/generating/:jobId" element={<GuidebookGeneratingPage />} />
+      <Route path="/guidebooks" element={<p>가이드북 목록 화면</p>} />
+    </Routes></MemoryRouter>)
+
+    expect(screen.getByText('가이드북 목록 화면')).toBeInTheDocument()
+    expect(track).not.toHaveBeenCalled()
   })
 
   it('SSE로 받은 checking 단계 문구를 표시한다', () => {
