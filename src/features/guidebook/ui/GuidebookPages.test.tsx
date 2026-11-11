@@ -266,6 +266,8 @@ describe('가이드북 화면', () => {
     </Routes></MemoryRouter>)
 
     expect(await screen.findByRole('button', { name: '새 가이드북 만들기' })).toHaveTextContent('생성권 3개 남음')
+    expect(screen.getByRole('button', { name: '새 가이드북 만들기' }).querySelector('.book-create-card__plus img'))
+      .toHaveAttribute('src', '/assets/map-controls/add.png')
     fireEvent.click(screen.getByRole('button', { name: '새 가이드북 만들기' }))
     expect(await screen.findByText('가이드북 생성 화면')).toBeInTheDocument()
   })

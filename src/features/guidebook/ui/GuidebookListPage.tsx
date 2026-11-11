@@ -221,7 +221,9 @@ export function GuidebookListPage() {
     </PageHeader>
     <div className="book-content">
       <button className="book-create-card" type="button" onClick={openCreate} aria-label="새 가이드북 만들기">
-        <span className="book-create-card__plus" aria-hidden="true">+</span>
+        <span className="book-create-card__plus" aria-hidden="true">
+          <img src="/assets/map-controls/add.png" alt="" />
+        </span>
         <span className="book-create-card__copy">
           <strong>새 가이드북 만들기</strong>
           <small>{creditBalance === null ? '생성권 확인 중' : `생성권 ${creditBalance}개 남음`}</small>
