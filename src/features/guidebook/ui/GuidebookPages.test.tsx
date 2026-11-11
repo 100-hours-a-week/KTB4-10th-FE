@@ -56,7 +56,9 @@ describe('가이드북 화면', () => {
       <Route path="/guidebooks/generating/:jobId" element={<p>실패 상세 화면</p>} />
     </Routes></MemoryRouter>)
     expect(await screen.findByText('가이드북 생성에 실패했어요')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: '가이드북 생성에 실패했어요 상세 확인' })).toHaveAttribute('href', '/guidebooks/generating/31')
+    const statusLink = screen.getByRole('link', { name: '가이드북 생성에 실패했어요 상세 확인' })
+    expect(statusLink).toHaveAttribute('href', '/guidebooks/generating/31')
+    expect(statusLink).toContainElement(screen.getByText('가이드북 생성에 실패했어요'))
     fireEvent.click(screen.getByRole('button', { name: '생성 실패 안내 닫기' }))
     expect(dismiss).toHaveBeenCalledOnce()
     expect(deleteBook).not.toHaveBeenCalled()
