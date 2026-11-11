@@ -55,7 +55,7 @@ export function GuidebookGeneratingPage() {
       ) : <div className="book-spark" aria-hidden="true">!</div>}
       <h2>{failed ? '가이드북을 만들지 못했어요' : canceled ? '생성이 취소되었어요' : '가이드북을 만들고 있어요'}</h2>
       {failed && <p className="book-failure-summary">{canRetry
-        ? `생성권 차감 없이 ${remainingRetries}회 더 시도하거나 실패 사유에 맞게 입력을 수정해 주세요.`
+        ? <><span>생성권 차감 없이 {remainingRetries}회 더 시도하거나</span><span>실패 사유에 맞게 입력을 수정해 주세요.</span></>
         : '실패 사유에 맞게 입력을 수정해 주세요.'}</p>}
       {failed ? (
         <section className="book-failure-reason" role="alert" aria-labelledby="book-failure-reason-title">
