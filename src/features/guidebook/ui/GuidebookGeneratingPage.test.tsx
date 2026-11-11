@@ -89,10 +89,13 @@ describe('가이드북 생성 상태 화면', () => {
     </Routes></MemoryRouter>)
 
     expect(screen.getByRole('heading', { name: '가이드북을 만들지 못했어요' })).toBeInTheDocument()
-    expect(screen.getByText(/서버 오류가 발생했습니다/)).toBeInTheDocument()
+    expect(screen.getByRole('alert', { name: '실패 사유' }))
+      .toHaveTextContent('서버 오류가 발생했습니다.')
     expect(screen.getByText(/다시 시도 가능 횟수/)).toHaveTextContent('다시 시도 가능 횟수 2회')
     expect(screen.queryByRole('list')).not.toBeInTheDocument()
     expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '가이드북 목록으로' }))
+      .toHaveClass('secondary-button')
 
     fireEvent.click(screen.getByRole('button', { name: '다시 시도' }))
     expect(retry).toHaveBeenCalledOnce()
@@ -142,12 +145,19 @@ describe('가이드북 생성 상태 화면', () => {
       <Route path="/guidebooks/generating/:jobId" element={<GuidebookGeneratingPage />} />
     </Routes></MemoryRouter>)
 
-    expect(screen.getByText('수정 요청을 적용할 수 없습니다.')).toBeInTheDocument()
+    expect(screen.getByRole('alert', { name: '실패 사유' }))
+      .toHaveTextContent('수정 요청을 적용할 수 없습니다.')
+    expect(screen.getByRole('complementary', { name: '수정 안내' }))
+      .toHaveTextContent('피드백 내용에 문제가 있어요.')
     expect(screen.queryByRole('button', { name: '다시 시도' })).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: '피드백 수정하기' })).toHaveAttribute(
       'href',
       '/guidebooks/124/regenerate',
     )
+    expect(screen.getByRole('link', { name: '피드백 수정하기' }))
+      .toHaveClass('secondary-button')
+    expect(screen.getByRole('button', { name: '가이드북으로' }))
+      .toHaveClass('secondary-button')
   })
 
   it.each(['조건 수정하기', '피드백 수정하기'])('최초 생성 실패 후 %s에 기존 입력 전체를 전달한다', (action) => {
@@ -184,7 +194,8 @@ describe('가이드북 생성 상태 화면', () => {
       <Route path="/guidebooks/:guidebookId/regenerate" element={<Destination />} />
     </Routes></MemoryRouter>)
     expect(screen.getByRole('link', { name: '조건 수정하기' })).toBeInTheDocument()
-    expect(screen.getByText(/조건 수정은 새 가이드북 생성/)).toBeInTheDocument()
+    expect(screen.getByRole('complementary', { name: '조건 수정 안내' }))
+      .toHaveTextContent('조건 수정은 새 가이드북 생성이에요.')
     expect(screen.queryByRole('button', { name: '다시 시도' })).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('link', { name: '피드백 수정하기' }))
     expect(JSON.parse(screen.getByTestId('draft').textContent!).feedbackDraft)

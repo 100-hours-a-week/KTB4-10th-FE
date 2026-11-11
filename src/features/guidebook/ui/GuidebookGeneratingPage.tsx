@@ -55,20 +55,35 @@ export function GuidebookGeneratingPage() {
         />
       ) : <div className="book-spark" aria-hidden="true">!</div>}
       <h2>{failed ? '가이드북을 만들지 못했어요' : canceled ? '생성이 취소되었어요' : '가이드북을 만들고 있어요'}</h2>
-      <p>{failed ? failureMessage : canceled ? '새 여행 조건으로 다시 시작할 수 있어요.' : job?.progress?.message ?? '취향에 맞는 여행을 한 권에 담고 있어요.\n완성되면 알림으로 알려드릴게요.'}</p>
+      {failed ? (
+        <section className="book-failure-reason" role="alert" aria-labelledby="book-failure-reason-title">
+          <strong id="book-failure-reason-title">실패 사유</strong>
+          <p>{failureMessage}</p>
+        </section>
+      ) : <p>{canceled ? '새 여행 조건으로 다시 시작할 수 있어요.' : job?.progress?.message ?? '취향에 맞는 여행을 한 권에 담고 있어요.\n완성되면 알림으로 알려드릴게요.'}</p>}
       {generating && <GenerationProgressBar job={job} />}
-      {failed && inputError && <p className="book-hint">{feedbackError ? '피드백 내용에 문제가 있어요. 이전 요청을 확인하고 구체적으로 수정해 주세요.' : '입력 조건이나 추천 가능한 장소를 확인해야 해요. 같은 내용으로 다시 시도하기보다 입력을 수정해 주세요.'}</p>}
+      {failed && inputError && <aside className="book-failure-notice" aria-label="수정 안내">
+        <strong>확인해 주세요</strong>
+        <p>{feedbackError ? '피드백 내용에 문제가 있어요. 이전 요청을 확인하고 구체적으로 수정해 주세요.' : '입력 조건이나 추천 가능한 장소를 확인해야 해요. 같은 내용으로 다시 시도하기보다 입력을 수정해 주세요.'}</p>
+      </aside>}
       {generating && <p className="book-generation-background">다른 화면을 이용해도 생성은 계속돼요.</p>}
       {error && <p className="book-error" role="alert">{error}</p>}
       {error && job && <button className="secondary-button" onClick={refresh}>상태 다시 확인</button>}
       {failed && <>{canRetry && <><p className="book-retry-count">다시 시도 가능 횟수 <strong>{remainingRetries}회</strong></p><button className="primary-button" disabled={busy} onClick={() => void retry()}>{busy ? '재시도 요청 중…' : '다시 시도'}</button><p>다시 시도해도 생성권은 차감되지 않아요.</p></>}
-        {job?.initial_request != null && <Link className="book-text-button" to="/guidebooks/new" state={editConditionsState} onClick={dismiss}>조건 수정하기</Link>}
-        {canModifyFeedback && <Link className="book-text-button" to={isRegenerationFailure ? `/guidebooks/${job?.guidebook_id}/regenerate` : '/guidebooks/new'} state={editFeedbackState} onClick={dismiss}>피드백 수정하기</Link>}
+        {(job?.initial_request != null || canModifyFeedback) && <div className="book-failure-actions">
+          {job?.initial_request != null && <Link className="secondary-button book-button" to="/guidebooks/new" state={editConditionsState} onClick={dismiss}>조건 수정하기</Link>}
+          {canModifyFeedback && <Link className="secondary-button book-button" to={isRegenerationFailure ? `/guidebooks/${job?.guidebook_id}/regenerate` : '/guidebooks/new'} state={editFeedbackState} onClick={dismiss}>피드백 수정하기</Link>}
+        </div>}
         {job?.initial_request == null && !canModifyFeedback && <><p className="book-hint">이전 입력을 확인하지 못했어요. 입력을 다시 불러와 주세요.</p><button className="secondary-button" onClick={refresh}>입력 다시 불러오기</button></>}
-        {isRegenerationFailure && job?.initial_request != null && <p className="book-hint">조건 수정은 새 가이드북 생성이에요. 기존 가이드북의 수정 요청만 바꾸려면 피드백을 수정해 주세요.</p>}
+        {isRegenerationFailure && job?.initial_request != null && <aside className="book-failure-notice" aria-label="조건 수정 안내">
+          <strong>조건을 수정하기 전에 확인해 주세요</strong>
+          <p>조건 수정은 새 가이드북 생성이에요. 기존 가이드북의 수정 요청만 바꾸려면 피드백을 수정해 주세요.</p>
+        </aside>}
       </>}
       {canceled && <Link className="primary-button book-button" to="/guidebooks/new" onClick={dismiss}>새 가이드북 만들기</Link>}
-      {isRegenerationFailure ? <button className="book-text-button" onClick={() => guidebookConfirmDialog.current?.showModal()}>가이드북으로</button> : <Link className="book-text-button" to="/guidebooks">가이드북 목록으로</Link>}
+      {isRegenerationFailure
+        ? <button className="secondary-button book-failure-exit" onClick={() => guidebookConfirmDialog.current?.showModal()}>가이드북으로</button>
+        : <Link className={failed ? 'secondary-button book-button book-failure-exit' : 'book-text-button'} to="/guidebooks">가이드북 목록으로</Link>}
     </section>
     <dialog ref={guidebookConfirmDialog} className="book-dialog">
       <h2>현재 가이드북으로 확정할까요?</h2>
