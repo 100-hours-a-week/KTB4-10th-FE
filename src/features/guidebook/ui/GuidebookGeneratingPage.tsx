@@ -54,6 +54,9 @@ export function GuidebookGeneratingPage() {
         />
       ) : <div className="book-spark" aria-hidden="true">!</div>}
       <h2>{failed ? '가이드북을 만들지 못했어요' : canceled ? '생성이 취소되었어요' : '가이드북을 만들고 있어요'}</h2>
+      {failed && <p className="book-failure-summary">{canRetry
+        ? `생성권 차감 없이 ${remainingRetries}회 더 시도하거나 실패 사유에 맞게 입력을 수정해 주세요.`
+        : '실패 사유에 맞게 입력을 수정해 주세요.'}</p>}
       {failed ? (
         <section className="book-failure-reason" role="alert" aria-labelledby="book-failure-reason-title">
           <strong id="book-failure-reason-title">실패 사유</strong>
@@ -68,7 +71,7 @@ export function GuidebookGeneratingPage() {
       {generating && <p className="book-generation-background">다른 화면을 이용해도 생성은 계속돼요.</p>}
       {error && <p className="book-error" role="alert">{error}</p>}
       {error && job && <button className="secondary-button" onClick={refresh}>상태 다시 확인</button>}
-      {failed && <>{canRetry && <><button className="primary-button book-retry-button" disabled={busy} onClick={() => void retry()}>{busy ? '재시도 요청 중…' : '다시 시도'}</button><p className="book-retry-count">다시 시도 가능 횟수 <strong>{remainingRetries}회</strong></p><p className="book-retry-note">다시 시도해도 생성권은 차감되지 않아요.</p></>}
+      {failed && <>{canRetry && <button className="primary-button book-retry-button" disabled={busy} onClick={() => void retry()}>{busy ? '재시도 요청 중…' : '다시 시도'}</button>}
         {(job?.initial_request != null || canModifyFeedback) && <div className="book-failure-actions">
           {job?.initial_request != null && !isRegenerationFailure && <Link className="secondary-button book-button" to="/guidebooks/new" state={editInitialState} onClick={dismiss}>수정하기</Link>}
           {job?.initial_request != null && isRegenerationFailure && <Link className="secondary-button book-button" to="/guidebooks/new" state={editConditionsState} onClick={dismiss}>조건 수정하기</Link>}

@@ -128,10 +128,11 @@
 .book-generation .book-generation__indicator { width: 42px; height: 42px; margin-bottom: 30px; }
 .book-generation .book-generation-background { margin: 18px 0 4px; color: #92929b; font-size: 11px; }
 .book-generation .book-error { color: #b42318; }
+.book-failure-summary { width: min(100%, 380px); margin: 0 auto !important; color: #73737d; font-size: 12px !important; line-height: 1.65 !important; }
 .book-failure-reason { width: min(100%, 380px); padding: 17px 18px; margin: 24px auto 0; border: 1px solid #ebcecc; border-radius: 12px; background: #fff5f4; color: #8b302c; text-align: left; }
 .book-failure-reason strong { display: block; margin-bottom: 6px; font-size: 13px; }
 .book-failure-reason p { margin: 0; overflow-wrap: anywhere; color: #765654; font-size: 13px; line-height: 1.7; }
-.book-failure-notice { width: min(100%, 380px); padding: 15px 16px; margin: 18px auto 0; border: 1px solid #dedee3; border-radius: 12px; background: #f8f8fa; color: #4f4f58; text-align: left; }
+.book-failure-notice { width: min(100%, 320px); padding: 15px 16px; margin: 18px auto 0; border: 1px solid #dedee3; border-radius: 12px; background: #f8f8fa; color: #4f4f58; text-align: left; }
 .book-failure-notice strong { display: block; margin-bottom: 5px; font-size: 12px; }
 .book-failure-notice p { margin: 0; color: #73737d; font-size: 12px; line-height: 1.7; }
 .book-failure-actions { display: grid; width: min(100%, 320px); gap: 10px; margin: 32px auto 0; }
@@ -151,9 +152,6 @@
   .book-progress-fill { transition: none; }
 }
 .book-retry-button { width: min(100%, 320px); margin-top: 32px; }
-.book-retry-count { margin: 8px 0 0; color: #73737d; font-size: 11px !important; line-height: 1.5 !important; }
-.book-retry-count strong { color: #242428; }
-.book-retry-note { margin: 1px 0 0; color: #92929b !important; font-size: 10px !important; line-height: 1.5 !important; }
 .book-generation .secondary-button { padding: 0 18px; }
 .book-result { padding: 36px 22px calc(34px + env(safe-area-inset-bottom)); }
 .book-result > h2 { margin: 0; font-size: 24px; letter-spacing: -.04em; }

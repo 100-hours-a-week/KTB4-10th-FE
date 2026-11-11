@@ -89,9 +89,10 @@ describe('가이드북 생성 상태 화면', () => {
     </Routes></MemoryRouter>)
 
     expect(screen.getByRole('heading', { name: '가이드북을 만들지 못했어요' })).toBeInTheDocument()
+    expect(screen.getByText('생성권 차감 없이 2회 더 시도하거나 실패 사유에 맞게 입력을 수정해 주세요.'))
+      .toBeInTheDocument()
     expect(screen.getByRole('alert', { name: '실패 사유' }))
       .toHaveTextContent('서버 오류가 발생했습니다.')
-    expect(screen.getByText(/다시 시도 가능 횟수/)).toHaveTextContent('다시 시도 가능 횟수 2회')
     expect(screen.queryByRole('list')).not.toBeInTheDocument()
     expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: '가이드북 목록' }))
