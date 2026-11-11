@@ -233,7 +233,7 @@ export function GuidebookListPage() {
       {job && job.status !== 'COMPLETED' && <div className={`book-job${job.status === 'FAILED' ? ' book-job--dismissible' : ''}`}>
         <Link className="book-job-link" to={`/guidebooks/generating/${job.job_id}`} aria-label={`${isRunning(job) ? '가이드북을 만들고 있어요' : job.status === 'FAILED' ? '가이드북 생성에 실패했어요' : '생성이 취소되었어요'} 상세 확인`}>
           <strong className="book-job-message">{isRunning(job) ? '가이드북을 만들고 있어요' : job.status === 'FAILED' ? '가이드북 생성에 실패했어요' : '생성이 취소되었어요'}</strong>
-          <img src="/assets/guidebook/down-arrow.png" alt="" aria-hidden="true" />
+          {job.status !== 'FAILED' && <img src="/assets/guidebook/down-arrow.png" alt="" aria-hidden="true" />}
         </Link>
         {job.status === 'FAILED' && <button className="book-job-dismiss" type="button" onClick={dismiss} aria-label="생성 실패 안내 닫기">×</button>}
       </div>}

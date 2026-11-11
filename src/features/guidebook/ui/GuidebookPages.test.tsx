@@ -59,6 +59,7 @@ describe('가이드북 화면', () => {
     const statusLink = screen.getByRole('link', { name: '가이드북 생성에 실패했어요 상세 확인' })
     expect(statusLink).toHaveAttribute('href', '/guidebooks/generating/31')
     expect(statusLink).toContainElement(screen.getByText('가이드북 생성에 실패했어요'))
+    expect(statusLink.querySelector('img')).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: '생성 실패 안내 닫기' }))
     expect(dismiss).toHaveBeenCalledOnce()
     expect(deleteBook).not.toHaveBeenCalled()
