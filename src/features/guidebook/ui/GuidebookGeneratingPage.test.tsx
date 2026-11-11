@@ -162,6 +162,8 @@ describe('가이드북 생성 상태 화면', () => {
       .toHaveClass('secondary-button')
     expect(screen.getByRole('button', { name: '가이드북으로' }))
       .toHaveClass('secondary-button')
+    expect(screen.getByRole('button', { name: '가이드북 확정', hidden: true }))
+      .toHaveClass('primary-button')
   })
 
   it('최초 생성 실패는 수정하기 하나로 기존 입력 전체를 복원한다', () => {

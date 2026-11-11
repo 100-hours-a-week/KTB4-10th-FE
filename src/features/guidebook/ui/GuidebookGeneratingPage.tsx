@@ -91,7 +91,7 @@ export function GuidebookGeneratingPage() {
     <dialog ref={guidebookConfirmDialog} className="book-dialog">
       <h2>현재 가이드북으로 확정할까요?</h2>
       <p>수정 요청은 반영되지 않고,<br />현재 가이드북을 그대로 사용하게 돼요.</p>
-      <div className="book-dialog-actions"><button className="secondary-button" onClick={() => guidebookConfirmDialog.current?.close()}>계속 수정</button><button className="primary-button" onClick={confirmGuidebook}>가이드북으로</button></div>
+      <div className="book-dialog-actions"><button className="secondary-button" onClick={() => guidebookConfirmDialog.current?.close()}>계속 수정</button><button className="primary-button" onClick={confirmGuidebook}>가이드북 확정</button></div>
     </dialog>
   </main>
 }

@@ -161,6 +161,30 @@ describe('전역 생성 작업 SSE', () => {
     expect(screen.getByTestId('job')).toHaveTextContent('none')
   })
 
+  it('실패 추적 해제 후 늦게 도착한 상세 응답으로 작업을 복원하지 않는다', async () => {
+    let resolveJob: ((value: unknown) => void) | undefined
+    getJob.mockReturnValue(new Promise((resolve) => { resolveJob = resolve }))
+    await mount()
+    await act(async () => { fireEvent.click(screen.getByText('생성 접수')) })
+    act(() => stream.dispatchEvent(generationEvent('FAILED', 1, { guidebook_id: 10 })))
+    expect(screen.getByTestId('job')).toHaveTextContent('FAILED')
+
+    await act(async () => { fireEvent.click(screen.getByText('추적 해제')) })
+    expect(screen.getByTestId('job')).toHaveTextContent('none')
+
+    await act(async () => {
+      resolveJob?.({
+        job_id: 31,
+        job_type: 'REGENERATION',
+        status: 'FAILED',
+        guidebook_id: 10,
+        error: { code: 'generation_failed', message: '늦게 도착한 실패 응답', retryable: false },
+      })
+    })
+    expect(screen.getByTestId('job')).toHaveTextContent('none')
+    expect(localStorage.getItem(jobStorageKey(1))).toBeNull()
+  })
+
   it('연결 오류를 안내하고 사용자가 새 연결을 열 수 있다', async () => {
     await mount()
     await act(async () => { fireEvent.click(screen.getByText('생성 접수')) })

@@ -131,6 +131,7 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
     const controller = new AbortController()
     const stream = openGenerationStream(jobId)
     const handleStatus = (raw: Event) => {
+      if (trackedJobId.current !== jobId) return
       const event = parseGenerationEvent((raw as MessageEvent<string>).data)
       if (!event || event.job_id !== jobId) return
       const attempt = attemptFromRequestId(event.request_id) ?? 0
@@ -165,7 +166,7 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
         stream.close()
         if (next.status === 'FAILED') {
           void getJob(jobId, controller.signal).then((terminal) => {
-            if (!controller.signal.aborted) setJob(terminal)
+            if (!controller.signal.aborted && trackedJobId.current === jobId) setJob(terminal)
           }).catch(() => undefined)
         }
       }
