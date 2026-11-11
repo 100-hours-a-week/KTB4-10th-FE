@@ -256,7 +256,7 @@ export function GuidebookListPage() {
           rel="noopener"
           aria-label={`${book.title} PDF 저장`}
         >
-          <img src="/assets/guidebook/paper.png" alt="" aria-hidden="true" />
+          <img src="/assets/guidebook/downloads.png" alt="" aria-hidden="true" />
         </a>
         <button className="book-delete" onClick={() => { setDeleteError(''); setTarget(book) }} aria-label={`${book.title} 삭제`}>
           <img src="/assets/guidebook/bin.png" alt="" aria-hidden="true" />
