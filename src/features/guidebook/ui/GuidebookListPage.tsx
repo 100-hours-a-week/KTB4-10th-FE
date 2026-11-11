@@ -9,6 +9,11 @@ import { PageHeader } from '../../../shared/ui/PageHeader.tsx'
 import { getCreditWallet } from '../api/credits.ts'
 import { Toast } from '../../../shared/ui/Toast.tsx'
 import { routes } from '../../../shared/config/routes.ts'
+import { getCurrentMember } from '../../auth/api/auth.ts'
+import {
+  NOTIFICATIONS_UPDATED_EVENT,
+  type NotificationsUpdatedDetail,
+} from '../../notification/model/events.ts'
 
 const HIGHLIGHT_DURATION_MS = 600
 const SCROLL_END_FALLBACK_MS = 800
@@ -38,6 +43,7 @@ export function GuidebookListPage() {
   const failedCursor = useRef<string | undefined>(undefined)
   const completedId = job?.status === 'COMPLETED' ? job.guidebook_id : null
   const [creditBalance, setCreditBalance] = useState<number | null>(null)
+  const [unreadCount, setUnreadCount] = useState(0)
   const cardElements = useRef(new Map<number, HTMLLIElement>())
   const automaticCursors = useRef(new Set<string>())
   const automaticTarget = useRef(0)
@@ -56,6 +62,25 @@ export function GuidebookListPage() {
       .catch(() => { if (!controller.signal.aborted) setCreditBalance(null) })
     return () => controller.abort()
   }, [completedId])
+
+  useEffect(() => {
+    let active = true
+    void getCurrentMember()
+      .then((member) => { if (active) setUnreadCount(member.unread_count) })
+      .catch(() => undefined)
+
+    const handleNotificationsUpdated = (event: Event) => {
+      const { unreadCount: nextUnreadCount } = (
+        event as CustomEvent<NotificationsUpdatedDetail>
+      ).detail
+      setUnreadCount(nextUnreadCount)
+    }
+    window.addEventListener(NOTIFICATIONS_UPDATED_EVENT, handleNotificationsUpdated)
+    return () => {
+      active = false
+      window.removeEventListener(NOTIFICATIONS_UPDATED_EVENT, handleNotificationsUpdated)
+    }
+  }, [])
 
   useEffect(() => {
     request.current?.abort()
@@ -177,20 +202,44 @@ export function GuidebookListPage() {
   }
 
   return <main className="app-shell book-page book-list-page">
-    <PageHeader title="가이드북" leading={<span className="book-credit-balance" role="status" aria-label="잔여 생성권">잔여 생성권<br /><strong>{creditBalance === null ? '—' : `${creditBalance}개`}</strong></span>}>
-      <button className="book-create-link" type="button" onClick={openCreate} aria-label="가이드북 만들기">생성</button>
+    <PageHeader title="가이드북">
+      <button
+        className="app-page-header__notification"
+        type="button"
+        aria-label={unreadCount > 0 ? `읽지 않은 알림 ${unreadCount}개 확인` : '알림 확인'}
+        onClick={() => navigate(routes.notifications, { state: { returnTo: routes.guidebooks } })}
+      >
+        <img
+          src={unreadCount > 0
+            ? '/assets/mypage/bell-unread.png'
+            : '/assets/mypage/bell-empty.png'}
+          alt=""
+          aria-hidden="true"
+        />
+        {unreadCount > 0 && <span>{unreadCount}</span>}
+      </button>
     </PageHeader>
     <div className="book-content">
-      {job && job.status !== 'COMPLETED' && <div className="book-job">
-        <Link className="book-job-link" to={`/guidebooks/generating/${job.job_id}`}>
-          <strong>{isRunning(job) ? '가이드북을 만들고 있어요' : job.status === 'FAILED' ? '가이드북 생성에 실패했어요' : '생성이 취소되었어요'}</strong>
-          <span>{job.status === 'FAILED' ? '실패 내용 확인' : '진행 상황 확인'} ›</span>
+      <button className="book-create-card" type="button" onClick={openCreate} aria-label="새 가이드북 만들기">
+        <span className="book-create-card__plus" aria-hidden="true">
+          <img src="/assets/map-controls/add.png" alt="" />
+        </span>
+        <span className="book-create-card__copy">
+          <strong>새 가이드북 만들기</strong>
+          <small>{creditBalance === null ? '생성권 확인 중' : `생성권 ${creditBalance}개 남음`}</small>
+        </span>
+        <img className="book-create-card__arrow" src="/assets/guidebook/down-arrow.png" alt="" aria-hidden="true" />
+      </button>
+      {job && job.status !== 'COMPLETED' && <div className={`book-job${job.status === 'FAILED' ? ' book-job--dismissible' : ''}`}>
+        <Link className="book-job-link" to={`/guidebooks/generating/${job.job_id}`} aria-label={`${isRunning(job) ? '가이드북을 만들고 있어요' : job.status === 'FAILED' ? '가이드북 생성에 실패했어요' : '생성이 취소되었어요'} 상세 확인`}>
+          <strong className="book-job-message">{isRunning(job) ? '가이드북을 만들고 있어요' : job.status === 'FAILED' ? '가이드북 생성에 실패했어요' : '생성이 취소되었어요'}</strong>
+          {job.status !== 'FAILED' && <img src="/assets/guidebook/down-arrow.png" alt="" aria-hidden="true" />}
         </Link>
-        {job.status === 'FAILED' && <button className="book-job-dismiss" type="button" onClick={dismiss}>닫기</button>}
+        {job.status === 'FAILED' && <button className="book-job-dismiss" type="button" onClick={dismiss} aria-label="생성 실패 안내 닫기">×</button>}
       </div>}
       {jobError && <State error onRetry={job ? refresh : undefined}>{jobError}</State>}
       {error && <State error onRetry={() => failedCursor.current ? void loadMore() : setRevision((value) => value + 1)}>{error}</State>}
-      {data?.items.length === 0 && !loading && !error && <div className="book-empty"><BookCover /><h2>아직 가이드북이 없어요</h2><p>여행할 곳을 고르고<br />나만의 여행을 만들어 보세요.</p><button className="primary-button book-button" type="button" onClick={openCreate}>가이드북 만들기</button></div>}
+      {data?.items.length === 0 && !loading && !error && <div className="book-empty"><BookCover /><h2>아직 가이드북이 없어요</h2><p>여행할 곳을 고르고<br />나만의 여행을 만들어 보세요.</p></div>}
       <ul className="book-list">{data?.items.map((book) => <li
         className={`book-card${highlightedGuidebookId === book.guidebook_id ? ' book-card--highlighted' : ''}`}
         key={book.guidebook_id}
@@ -207,7 +256,7 @@ export function GuidebookListPage() {
           rel="noopener"
           aria-label={`${book.title} PDF 저장`}
         >
-          <img src="/assets/guidebook/paper.png" alt="" aria-hidden="true" />
+          <img src="/assets/guidebook/download.png" alt="" aria-hidden="true" />
         </a>
         <button className="book-delete" onClick={() => { setDeleteError(''); setTarget(book) }} aria-label={`${book.title} 삭제`}>
           <img src="/assets/guidebook/bin.png" alt="" aria-hidden="true" />

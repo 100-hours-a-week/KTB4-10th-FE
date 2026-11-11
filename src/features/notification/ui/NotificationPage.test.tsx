@@ -162,6 +162,24 @@ describe('NotificationPage', () => {
       .toHaveTextContent('?region_code=11&month=2026-10')
   })
 
+  it('가이드북 목록에서 진입하면 뒤로가기 버튼으로 가이드북 목록에 복귀한다', async () => {
+    const user = userEvent.setup()
+    render(
+      <MemoryRouter initialEntries={[{
+        pathname: '/mypage/notifications',
+        state: { returnTo: '/guidebooks' },
+      }]}>
+        <Routes>
+          <Route path="/mypage/notifications" element={<NotificationPage />} />
+          <Route path="/guidebooks" element={<h1>가이드북 목록</h1>} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    await user.click(screen.getByRole('button', { name: '이전 화면으로 돌아가기' }))
+    expect(await screen.findByRole('heading', { name: '가이드북 목록' })).toBeInTheDocument()
+  })
+
   it('알림이 없으면 이미지와 빈 상태 문구를 표시한다', async () => {
     getNotificationsMock.mockResolvedValue(response([]))
     renderPage()

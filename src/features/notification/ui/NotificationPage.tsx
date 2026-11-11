@@ -25,7 +25,7 @@ type NotificationLocationState = {
 
 function notificationReturnTo(state: unknown): string {
   const returnTo = (state as NotificationLocationState | null)?.returnTo
-  if (returnTo === routes.myPage || returnTo === routes.information) return returnTo
+  if (returnTo === routes.myPage || returnTo === routes.information || returnTo === routes.guidebooks) return returnTo
   if (returnTo?.startsWith(`${routes.information}?`)) return returnTo
   return routes.myPage
 }
