@@ -120,6 +120,7 @@
 .book-inline-button { padding: 0; border: 0; background: none; color: inherit; font: inherit; text-decoration: underline; cursor: pointer; }
 .book-text-button { display: block; padding: 14px; margin: 0 auto; border: 0; background: none; color: #73737d; font-size: 12px; text-align: center; text-decoration: none; cursor: pointer; }
 .book-generation { min-height: calc(100dvh - 72px); padding: clamp(72px, 14dvh, 132px) 26px 30px; text-align: center; }
+.book-generation--failed { padding-top: clamp(40px, 7dvh, 68px); padding-bottom: calc(52px + env(safe-area-inset-bottom)); }
 .book-spark { display: grid; place-items: center; width: 88px; height: 88px; margin: 0 auto 30px; border: 1px solid #ededf0; border-radius: 24px; background: #fff; font-size: 35px; color: #777781; }
 .book-generation-animation { display: block; width: min(300px, 100%); height: auto; aspect-ratio: 3 / 2; margin: 0 auto 22px; }
 .book-generation h2 { font-size: 19px; margin: 0 0 12px; letter-spacing: -.03em; }
@@ -127,6 +128,18 @@
 .book-generation .book-generation__indicator { width: 42px; height: 42px; margin-bottom: 30px; }
 .book-generation .book-generation-background { margin: 18px 0 4px; color: #92929b; font-size: 11px; }
 .book-generation .book-error { color: #b42318; }
+.book-failure-summary { width: min(100%, 380px); margin: 0 auto !important; color: #73737d; font-size: 12px !important; line-height: 1.65 !important; text-align: center; }
+.book-failure-summary span { display: block; }
+.book-failure-reason { width: min(100%, 380px); padding: 17px 18px; margin: 24px auto 0; border: 1px solid #ebcecc; border-radius: 12px; background: #fff5f4; color: #8b302c; text-align: left; }
+.book-failure-reason strong { display: block; margin-bottom: 6px; font-size: 13px; }
+.book-failure-reason p { margin: 0; overflow-wrap: anywhere; color: #765654; font-size: 13px; line-height: 1.7; }
+.book-failure-notice { width: min(100%, 320px); padding: 15px 16px; margin: 18px auto 0; border: 1px solid #dedee3; border-radius: 12px; background: #f8f8fa; color: #4f4f58; text-align: left; }
+.book-failure-notice strong { display: block; margin-bottom: 5px; font-size: 12px; }
+.book-failure-notice p { margin: 0; color: #73737d; font-size: 12px; line-height: 1.7; }
+.book-failure-actions { display: grid; width: min(100%, 320px); gap: 10px; margin: 32px auto 0; }
+.book-failure-actions .book-button,
+.book-failure-exit { width: min(100%, 320px); min-height: 46px; margin: 0 auto; }
+.book-failure-exit { display: flex; justify-content: center; align-items: center; margin-top: 14px; text-decoration: none; }
 .book-progress { max-width: 380px; margin: 28px auto 22px; text-align: left; }
 .book-progress-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; font-size: 12px; font-weight: 600; color: #242428; }
 .book-progress-heading > :last-child { color: #81818a; font-size: 11px; font-weight: 400; }
@@ -139,8 +152,7 @@
 @media (prefers-reduced-motion: reduce) {
   .book-progress-fill { transition: none; }
 }
-.book-retry-count { margin: 24px 0 14px; color: #61616b; }
-.book-retry-count strong { color: #242428; }
+.book-retry-button { width: min(100%, 320px); margin-top: 32px; }
 .book-generation .secondary-button { padding: 0 18px; }
 .book-result { padding: 36px 22px calc(34px + env(safe-area-inset-bottom)); }
 .book-result > h2 { margin: 0; font-size: 24px; letter-spacing: -.04em; }

@@ -9,7 +9,10 @@ const { retry, dismiss, refresh, track, generation } = vi.hoisted(() => ({
   dismiss: vi.fn(),
   refresh: vi.fn(),
   track: vi.fn(),
-  generation: { job: { job_id: 29, status: 'FAILED', guidebook_id: null, attempt_count: 1 } as Job },
+  generation: {
+    job: { job_id: 29, status: 'FAILED', guidebook_id: null, attempt_count: 1 } as Job | null,
+    dismissed: false,
+  },
 }))
 
 vi.mock('../model/generation.ts', () => ({
@@ -22,12 +25,18 @@ vi.mock('../model/generation.ts', () => ({
     busy: false,
     dismiss,
     track,
+    isDismissed: () => generation.dismissed,
   }),
 }))
 
 describe('가이드북 생성 상태 화면', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    generation.dismissed = false
+    dismiss.mockImplementation(() => {
+      generation.job = null
+      generation.dismissed = true
+    })
     generation.job = { job_id: 29, status: 'FAILED', guidebook_id: null, attempt_count: 1 }
     generation.job.error = { code: 'generation_timeout', message: '서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.', retryable: true }
   })
@@ -67,6 +76,18 @@ describe('가이드북 생성 상태 화면', () => {
     expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '4')
   })
 
+  it('닫은 실패 작업의 과거 생성 URL은 다시 추적하지 않고 목록으로 치환한다', () => {
+    generation.job = null
+    generation.dismissed = true
+    render(<MemoryRouter initialEntries={['/guidebooks/generating/29']}><Routes>
+      <Route path="/guidebooks/generating/:jobId" element={<GuidebookGeneratingPage />} />
+      <Route path="/guidebooks" element={<p>가이드북 목록 화면</p>} />
+    </Routes></MemoryRouter>)
+
+    expect(screen.getByText('가이드북 목록 화면')).toBeInTheDocument()
+    expect(track).not.toHaveBeenCalled()
+  })
+
   it('SSE로 받은 checking 단계 문구를 표시한다', () => {
     generation.job = {
       job_id: 29,
@@ -89,11 +110,18 @@ describe('가이드북 생성 상태 화면', () => {
     </Routes></MemoryRouter>)
 
     expect(screen.getByRole('heading', { name: '가이드북을 만들지 못했어요' })).toBeInTheDocument()
-    expect(screen.getByText(/서버 오류가 발생했습니다/)).toBeInTheDocument()
-    expect(screen.getByText(/다시 시도 가능 횟수/)).toHaveTextContent('다시 시도 가능 횟수 2회')
+    expect(screen.getByText('생성권 차감 없이 2회 더 시도하거나')).toBeInTheDocument()
+    expect(screen.getByText('실패 사유에 맞게 입력을 수정해 주세요.')).toBeInTheDocument()
+    expect(screen.getByRole('alert', { name: '실패 사유' }))
+      .toHaveTextContent('서버 오류가 발생했습니다.')
     expect(screen.queryByRole('list')).not.toBeInTheDocument()
     expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '가이드북 목록' }))
+      .toHaveClass('secondary-button')
 
+    expect(screen.getByRole('button', { name: '다시 시도' })).toHaveClass('book-retry-button')
+    expect(screen.getByRole('button', { name: '다시 시도' }).closest('section'))
+      .toHaveClass('book-generation--failed')
     fireEvent.click(screen.getByRole('button', { name: '다시 시도' }))
     expect(retry).toHaveBeenCalledOnce()
   })
@@ -140,17 +168,31 @@ describe('가이드북 생성 상태 화면', () => {
     }
     render(<MemoryRouter initialEntries={['/guidebooks/generating/29']}><Routes>
       <Route path="/guidebooks/generating/:jobId" element={<GuidebookGeneratingPage />} />
+      <Route path="/guidebooks/:guidebookId" element={<p>확정된 가이드북</p>} />
     </Routes></MemoryRouter>)
 
-    expect(screen.getByText('수정 요청을 적용할 수 없습니다.')).toBeInTheDocument()
+    expect(screen.getByRole('alert', { name: '실패 사유' }))
+      .toHaveTextContent('수정 요청을 적용할 수 없습니다.')
+    expect(screen.getByRole('complementary', { name: '수정 안내' }))
+      .toHaveTextContent('피드백 내용에 문제가 있어요.')
     expect(screen.queryByRole('button', { name: '다시 시도' })).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: '피드백 수정하기' })).toHaveAttribute(
       'href',
       '/guidebooks/124/regenerate',
     )
+    expect(screen.getByRole('link', { name: '피드백 수정하기' }))
+      .toHaveClass('secondary-button')
+    expect(screen.getByRole('button', { name: '가이드북으로' }))
+      .toHaveClass('secondary-button')
+    expect(screen.getByRole('button', { name: '가이드북 확정', hidden: true }))
+      .toHaveClass('primary-button')
+    fireEvent.click(screen.getByRole('button', { name: '가이드북으로' }))
+    fireEvent.click(screen.getByRole('button', { name: '가이드북 확정' }))
+    expect(dismiss).toHaveBeenCalledOnce()
+    expect(screen.getByText('확정된 가이드북')).toBeInTheDocument()
   })
 
-  it.each(['조건 수정하기', '피드백 수정하기'])('최초 생성 실패 후 %s에 기존 입력 전체를 전달한다', (action) => {
+  it('최초 생성 실패는 수정하기 하나로 기존 입력 전체를 복원한다', () => {
     const initial = { province: '서울특별시', city: '중구', start_date: '2026-11-21',
       end_date: '2026-11-22', companion: 'COUPLE' as const, people_count: 2, user_request: '첫날 오후 시작' }
     generation.job = { job_id: 29, job_type: 'INITIAL', status: 'FAILED', guidebook_id: null,
@@ -164,10 +206,12 @@ describe('가이드북 생성 상태 화면', () => {
     </Routes></MemoryRouter>)
     expect(screen.getByText(/피드백 내용에 문제가 있어요/)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: '다시 시도' })).not.toBeInTheDocument()
-    fireEvent.click(screen.getByRole('link', { name: action }))
+    expect(screen.queryByRole('link', { name: '조건 수정하기' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: '피드백 수정하기' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('link', { name: '수정하기' }))
     const state = JSON.parse(screen.getByTestId('draft').textContent!)
     expect(state.guidebookDraft).toEqual(initial)
-    expect(state.editFeedback === true).toBe(action === '피드백 수정하기')
+    expect(state.editFeedback).toBe(true)
   })
 
   it('재생성의 입력 거절도 조건 수정과 피드백 복원을 제공한다', () => {
@@ -184,10 +228,32 @@ describe('가이드북 생성 상태 화면', () => {
       <Route path="/guidebooks/:guidebookId/regenerate" element={<Destination />} />
     </Routes></MemoryRouter>)
     expect(screen.getByRole('link', { name: '조건 수정하기' })).toBeInTheDocument()
-    expect(screen.getByText(/조건 수정은 새 가이드북 생성/)).toBeInTheDocument()
+    expect(screen.getByRole('complementary', { name: '조건 수정 안내' }))
+      .toHaveTextContent('조건 수정은 새 가이드북 생성이에요.')
     expect(screen.queryByRole('button', { name: '다시 시도' })).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('link', { name: '피드백 수정하기' }))
     expect(JSON.parse(screen.getByTestId('draft').textContent!).feedbackDraft)
       .toEqual({ guidebookId: 124, feedback: '둘째 날 여유롭게' })
+  })
+
+  it('재생성 실패의 조건 수정은 추적 해제 후에도 새 생성 화면으로 이동한다', () => {
+    const initial = { province: '서울특별시', city: '중구', start_date: '2026-11-21',
+      end_date: '2026-11-22', companion: 'COUPLE' as const, people_count: 2, user_request: '첫날 오후 시작' }
+    generation.job = { job_id: 29, job_type: 'REGENERATION', status: 'FAILED', guidebook_id: 124,
+      submitted_feedback: '둘째 날 여유롭게', initial_request: initial,
+      error: { code: 'invalid_request', message: '생성 입력을 확인해 주세요.', retryable: false } }
+    function Destination() {
+      return <pre data-testid="condition-draft">{JSON.stringify(useLocation().state)}</pre>
+    }
+    render(<MemoryRouter initialEntries={['/guidebooks/generating/29']}><Routes>
+      <Route path="/guidebooks/generating/:jobId" element={<GuidebookGeneratingPage />} />
+      <Route path="/guidebooks/new" element={<Destination />} />
+    </Routes></MemoryRouter>)
+
+    fireEvent.click(screen.getByRole('link', { name: '조건 수정하기' }))
+    const state = JSON.parse(screen.getByTestId('condition-draft').textContent!)
+    expect(state.guidebookDraft).toEqual(initial)
+    expect(state.fromRegenerationFailure).toBe(true)
+    expect(dismiss).toHaveBeenCalledOnce()
   })
 })

@@ -4,6 +4,7 @@ import type { SessionFailure } from '../../auth/model/sessionFailure.ts'
 import type { Job } from '../api/guidebooks.ts'
 
 export const jobStorageKey = (memberId: number) => `kgb.guidebook.job.${memberId}`
+export const dismissedJobStorageKey = (memberId: number, jobId: number) => `kgb.guidebook.dismissed.${memberId}.${jobId}`
 export const isRunning = (job: Job | null) => job?.status === 'PENDING' || job?.status === 'PROCESSING'
 export const GenerationContext = createContext<{
   member: CurrentMember | null
@@ -17,6 +18,7 @@ export const GenerationContext = createContext<{
   retry: () => Promise<void>
   refresh: () => void
   dismiss: () => void
+  isDismissed: (jobId: number) => boolean
 } | null>(null)
 
 export function useGeneration() {

@@ -32,7 +32,7 @@ describe('가이드북 화면', () => {
     getPreferenceOptions.mockResolvedValue([{ preference_type: 'THEME', code: 'NATURE', label: '자연', parent_code: null, sort_order: 1 }])
   })
 
-  it('실패 배너의 취소하기는 상세 이동이나 서버 삭제 없이 추적 해제만 요청한다', async () => {
+  it('실패 배너의 닫기는 상세 이동이나 서버 삭제 없이 추적 해제만 요청한다', async () => {
     banner.job = { job_id: 31, status: 'FAILED', guidebook_id: null }
     listBooks.mockResolvedValue({ items: [], next_cursor: null, has_more: false })
     render(<MemoryRouter initialEntries={['/guidebooks']}><Routes>
@@ -41,7 +41,7 @@ describe('가이드북 화면', () => {
     </Routes></MemoryRouter>)
     expect(await screen.findByText('가이드북 생성에 실패했어요')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /실패 내용 확인/ })).toHaveAttribute('href', '/guidebooks/generating/31')
-    fireEvent.click(screen.getByRole('button', { name: '취소하기' }))
+    fireEvent.click(screen.getByRole('button', { name: '닫기' }))
     expect(dismiss).toHaveBeenCalledOnce()
     expect(deleteBook).not.toHaveBeenCalled()
     expect(screen.queryByText('실패 상세 화면')).not.toBeInTheDocument()

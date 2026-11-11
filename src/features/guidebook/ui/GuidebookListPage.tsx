@@ -186,7 +186,7 @@ export function GuidebookListPage() {
           <strong>{isRunning(job) ? '가이드북을 만들고 있어요' : job.status === 'FAILED' ? '가이드북 생성에 실패했어요' : '생성이 취소되었어요'}</strong>
           <span>{job.status === 'FAILED' ? '실패 내용 확인' : '진행 상황 확인'} ›</span>
         </Link>
-        {job.status === 'FAILED' && <button className="book-job-dismiss" type="button" onClick={dismiss}>취소하기</button>}
+        {job.status === 'FAILED' && <button className="book-job-dismiss" type="button" onClick={dismiss}>닫기</button>}
       </div>}
       {jobError && <State error onRetry={job ? refresh : undefined}>{jobError}</State>}
       {error && <State error onRetry={() => failedCursor.current ? void loadMore() : setRevision((value) => value + 1)}>{error}</State>}

@@ -9,7 +9,7 @@ import { trackEvent } from '../../../shared/lib/analytics.ts'
 import { routes } from '../../../shared/config/routes.ts'
 import { getJob, openGenerationStream, parseGenerationEvent, retryJob, type Job } from '../api/guidebooks.ts'
 import { message } from './conditions.ts'
-import { GenerationContext, jobStorageKey } from './generation.ts'
+import { dismissedJobStorageKey, GenerationContext, jobStorageKey } from './generation.ts'
 
 type RestoredGeneration = {
   job: Job
@@ -59,6 +59,7 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
   const generationStartedAt = useRef<number | null>(null)
   const reportedTerminal = useRef<string | null>(null)
   const latestEvent = useRef<{ jobId: number; attempt: number; sequence: number; status: Job['status'] } | null>(null)
+  const activeStream = useRef<EventSource | null>(null)
   const { pathname } = useLocation()
   const enabled = pathname !== routes.home && pathname !== routes.about && !pathname.startsWith('/auth') &&
     (pathname !== '/preferences' || member?.status === 'ACTIVE')
@@ -116,9 +117,21 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
     setJob(next); setError(''); setRevision((value) => value + 1)
   }, [])
   const dismiss = useCallback(() => {
+    const dismissedJobId = trackedJobId.current
+    activeStream.current?.close(); activeStream.current = null
+    if (member) {
+      try { localStorage.removeItem(jobStorageKey(member.member_id)) } catch { /* 상태 해제는 계속 진행합니다. */ }
+      if (dismissedJobId) {
+        try { sessionStorage.setItem(dismissedJobStorageKey(member.member_id, dismissedJobId), '1') } catch { /* 메모리 상태 해제는 계속 진행합니다. */ }
+      }
+    }
     trackedJobId.current = null; generationStartedAt.current = null; reportedTerminal.current = null; latestEvent.current = null
     setJob(null); setError('')
-  }, [])
+  }, [member])
+  const isDismissed = useCallback((targetJobId: number) => {
+    if (!member) return false
+    try { return sessionStorage.getItem(dismissedJobStorageKey(member.member_id, targetJobId)) === '1' } catch { return false }
+  }, [member])
   const refresh = useCallback(() => {
     setError('')
     setRevision((value) => value + 1)
@@ -130,7 +143,9 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
     if (!jobId || !enabled || memberStatus !== 'ACTIVE') return
     const controller = new AbortController()
     const stream = openGenerationStream(jobId)
+    activeStream.current = stream
     const handleStatus = (raw: Event) => {
+      if (trackedJobId.current !== jobId) return
       const event = parseGenerationEvent((raw as MessageEvent<string>).data)
       if (!event || event.job_id !== jobId) return
       const attempt = attemptFromRequestId(event.request_id) ?? 0
@@ -162,10 +177,11 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
         error: null,
       })); setError('')
       if (isTerminalStatus(next.status)) {
+        if (activeStream.current === stream) activeStream.current = null
         stream.close()
         if (next.status === 'FAILED') {
           void getJob(jobId, controller.signal).then((terminal) => {
-            if (!controller.signal.aborted) setJob(terminal)
+            if (!controller.signal.aborted && trackedJobId.current === jobId) setJob(terminal)
           }).catch(() => undefined)
         }
       }
@@ -177,6 +193,7 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
       controller.abort()
       stream.removeEventListener('generation-status', handleStatus)
       stream.removeEventListener('error', handleError)
+      if (activeStream.current === stream) activeStream.current = null
       stream.close()
     }
   }, [jobId, enabled, memberStatus, revision])
@@ -200,6 +217,6 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
   return <GenerationContext.Provider value={{
     member, checking, sessionFailure, checkSession: () => setSessionRevision((value) => value + 1),
     job, error, busy, track, retry, dismiss,
-    refresh,
+    refresh, isDismissed,
   }}>{children}</GenerationContext.Provider>
 }
