@@ -147,6 +147,7 @@ describe('가이드북 생성 상태 화면', () => {
     }
     render(<MemoryRouter initialEntries={['/guidebooks/generating/29']}><Routes>
       <Route path="/guidebooks/generating/:jobId" element={<GuidebookGeneratingPage />} />
+      <Route path="/guidebooks/:guidebookId" element={<p>확정된 가이드북</p>} />
     </Routes></MemoryRouter>)
 
     expect(screen.getByRole('alert', { name: '실패 사유' }))
@@ -164,6 +165,10 @@ describe('가이드북 생성 상태 화면', () => {
       .toHaveClass('secondary-button')
     expect(screen.getByRole('button', { name: '가이드북 확정', hidden: true }))
       .toHaveClass('primary-button')
+    fireEvent.click(screen.getByRole('button', { name: '가이드북으로' }))
+    fireEvent.click(screen.getByRole('button', { name: '가이드북 확정' }))
+    expect(dismiss).toHaveBeenCalledOnce()
+    expect(screen.getByText('확정된 가이드북')).toBeInTheDocument()
   })
 
   it('최초 생성 실패는 수정하기 하나로 기존 입력 전체를 복원한다', () => {
