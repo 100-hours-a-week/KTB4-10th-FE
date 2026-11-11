@@ -149,7 +149,7 @@
 @media (prefers-reduced-motion: reduce) {
   .book-progress-fill { transition: none; }
 }
-.book-retry-count { margin: 24px 0 14px; color: #61616b; }
+.book-retry-count { margin: 10px 0 4px; color: #61616b; }
 .book-retry-count strong { color: #242428; }
 .book-generation .secondary-button { padding: 0 18px; }
 .book-result { padding: 36px 22px calc(34px + env(safe-area-inset-bottom)); }

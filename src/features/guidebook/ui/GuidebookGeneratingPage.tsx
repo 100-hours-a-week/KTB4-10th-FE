@@ -32,9 +32,8 @@ export function GuidebookGeneratingPage() {
   const isRegenerationFailure = failed && job?.job_type === 'REGENERATION' && job.guidebook_id !== null
   const failureMessage = job?.error?.message ?? '서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.'
   const editConditionsState = { guidebookDraft: job?.initial_request, fromRegenerationFailure: isRegenerationFailure }
-  const editFeedbackState = isRegenerationFailure
-    ? { feedbackDraft: { guidebookId: job?.guidebook_id, feedback: job?.submitted_feedback }, returnTo: `/guidebooks/${job?.guidebook_id}` }
-    : { ...editConditionsState, editFeedback: true }
+  const editInitialState = { ...editConditionsState, editFeedback: feedbackError }
+  const editFeedbackState = { feedbackDraft: { guidebookId: job?.guidebook_id, feedback: job?.submitted_feedback }, returnTo: `/guidebooks/${job?.guidebook_id}` }
   const generating = !failed && !canceled && job?.status !== 'COMPLETED'
   function confirmGuidebook() {
     const guidebookId = job?.guidebook_id
@@ -69,10 +68,11 @@ export function GuidebookGeneratingPage() {
       {generating && <p className="book-generation-background">다른 화면을 이용해도 생성은 계속돼요.</p>}
       {error && <p className="book-error" role="alert">{error}</p>}
       {error && job && <button className="secondary-button" onClick={refresh}>상태 다시 확인</button>}
-      {failed && <>{canRetry && <><p className="book-retry-count">다시 시도 가능 횟수 <strong>{remainingRetries}회</strong></p><button className="primary-button" disabled={busy} onClick={() => void retry()}>{busy ? '재시도 요청 중…' : '다시 시도'}</button><p>다시 시도해도 생성권은 차감되지 않아요.</p></>}
+      {failed && <>{canRetry && <><button className="primary-button" disabled={busy} onClick={() => void retry()}>{busy ? '재시도 요청 중…' : '다시 시도'}</button><p className="book-retry-count">다시 시도 가능 횟수 <strong>{remainingRetries}회</strong></p><p>다시 시도해도 생성권은 차감되지 않아요.</p></>}
         {(job?.initial_request != null || canModifyFeedback) && <div className="book-failure-actions">
-          {job?.initial_request != null && <Link className="secondary-button book-button" to="/guidebooks/new" state={editConditionsState} onClick={dismiss}>조건 수정하기</Link>}
-          {canModifyFeedback && <Link className="secondary-button book-button" to={isRegenerationFailure ? `/guidebooks/${job?.guidebook_id}/regenerate` : '/guidebooks/new'} state={editFeedbackState} onClick={dismiss}>피드백 수정하기</Link>}
+          {job?.initial_request != null && !isRegenerationFailure && <Link className="secondary-button book-button" to="/guidebooks/new" state={editInitialState} onClick={dismiss}>수정하기</Link>}
+          {job?.initial_request != null && isRegenerationFailure && <Link className="secondary-button book-button" to="/guidebooks/new" state={editConditionsState} onClick={dismiss}>조건 수정하기</Link>}
+          {canModifyFeedback && isRegenerationFailure && <Link className="secondary-button book-button" to={`/guidebooks/${job?.guidebook_id}/regenerate`} state={editFeedbackState} onClick={dismiss}>피드백 수정하기</Link>}
         </div>}
         {job?.initial_request == null && !canModifyFeedback && <><p className="book-hint">이전 입력을 확인하지 못했어요. 입력을 다시 불러와 주세요.</p><button className="secondary-button" onClick={refresh}>입력 다시 불러오기</button></>}
         {isRegenerationFailure && job?.initial_request != null && <aside className="book-failure-notice" aria-label="조건 수정 안내">
@@ -83,7 +83,7 @@ export function GuidebookGeneratingPage() {
       {canceled && <Link className="primary-button book-button" to="/guidebooks/new" onClick={dismiss}>새 가이드북 만들기</Link>}
       {isRegenerationFailure
         ? <button className="secondary-button book-failure-exit" onClick={() => guidebookConfirmDialog.current?.showModal()}>가이드북으로</button>
-        : <Link className={failed ? 'secondary-button book-button book-failure-exit' : 'book-text-button'} to="/guidebooks">가이드북 목록으로</Link>}
+        : <Link className={failed ? 'secondary-button book-button book-failure-exit' : 'book-text-button'} to="/guidebooks">{failed ? '가이드북 목록' : '가이드북 목록으로'}</Link>}
     </section>
     <dialog ref={guidebookConfirmDialog} className="book-dialog">
       <h2>현재 가이드북으로 확정할까요?</h2>

@@ -94,7 +94,7 @@ describe('가이드북 생성 상태 화면', () => {
     expect(screen.getByText(/다시 시도 가능 횟수/)).toHaveTextContent('다시 시도 가능 횟수 2회')
     expect(screen.queryByRole('list')).not.toBeInTheDocument()
     expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
-    expect(screen.getByRole('link', { name: '가이드북 목록으로' }))
+    expect(screen.getByRole('link', { name: '가이드북 목록' }))
       .toHaveClass('secondary-button')
 
     fireEvent.click(screen.getByRole('button', { name: '다시 시도' }))
@@ -160,7 +160,7 @@ describe('가이드북 생성 상태 화면', () => {
       .toHaveClass('secondary-button')
   })
 
-  it.each(['조건 수정하기', '피드백 수정하기'])('최초 생성 실패 후 %s에 기존 입력 전체를 전달한다', (action) => {
+  it('최초 생성 실패는 수정하기 하나로 기존 입력 전체를 복원한다', () => {
     const initial = { province: '서울특별시', city: '중구', start_date: '2026-11-21',
       end_date: '2026-11-22', companion: 'COUPLE' as const, people_count: 2, user_request: '첫날 오후 시작' }
     generation.job = { job_id: 29, job_type: 'INITIAL', status: 'FAILED', guidebook_id: null,
@@ -174,10 +174,12 @@ describe('가이드북 생성 상태 화면', () => {
     </Routes></MemoryRouter>)
     expect(screen.getByText(/피드백 내용에 문제가 있어요/)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: '다시 시도' })).not.toBeInTheDocument()
-    fireEvent.click(screen.getByRole('link', { name: action }))
+    expect(screen.queryByRole('link', { name: '조건 수정하기' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: '피드백 수정하기' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('link', { name: '수정하기' }))
     const state = JSON.parse(screen.getByTestId('draft').textContent!)
     expect(state.guidebookDraft).toEqual(initial)
-    expect(state.editFeedback === true).toBe(action === '피드백 수정하기')
+    expect(state.editFeedback).toBe(true)
   })
 
   it('재생성의 입력 거절도 조건 수정과 피드백 복원을 제공한다', () => {
