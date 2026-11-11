@@ -33,6 +33,10 @@ describe('가이드북 생성 상태 화면', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     generation.dismissed = false
+    dismiss.mockImplementation(() => {
+      generation.job = null
+      generation.dismissed = true
+    })
     generation.job = { job_id: 29, status: 'FAILED', guidebook_id: null, attempt_count: 1 }
     generation.job.error = { code: 'generation_timeout', message: '서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.', retryable: true }
   })
@@ -230,5 +234,26 @@ describe('가이드북 생성 상태 화면', () => {
     fireEvent.click(screen.getByRole('link', { name: '피드백 수정하기' }))
     expect(JSON.parse(screen.getByTestId('draft').textContent!).feedbackDraft)
       .toEqual({ guidebookId: 124, feedback: '둘째 날 여유롭게' })
+  })
+
+  it('재생성 실패의 조건 수정은 추적 해제 후에도 새 생성 화면으로 이동한다', () => {
+    const initial = { province: '서울특별시', city: '중구', start_date: '2026-11-21',
+      end_date: '2026-11-22', companion: 'COUPLE' as const, people_count: 2, user_request: '첫날 오후 시작' }
+    generation.job = { job_id: 29, job_type: 'REGENERATION', status: 'FAILED', guidebook_id: 124,
+      submitted_feedback: '둘째 날 여유롭게', initial_request: initial,
+      error: { code: 'invalid_request', message: '생성 입력을 확인해 주세요.', retryable: false } }
+    function Destination() {
+      return <pre data-testid="condition-draft">{JSON.stringify(useLocation().state)}</pre>
+    }
+    render(<MemoryRouter initialEntries={['/guidebooks/generating/29']}><Routes>
+      <Route path="/guidebooks/generating/:jobId" element={<GuidebookGeneratingPage />} />
+      <Route path="/guidebooks/new" element={<Destination />} />
+    </Routes></MemoryRouter>)
+
+    fireEvent.click(screen.getByRole('link', { name: '조건 수정하기' }))
+    const state = JSON.parse(screen.getByTestId('condition-draft').textContent!)
+    expect(state.guidebookDraft).toEqual(initial)
+    expect(state.fromRegenerationFailure).toBe(true)
+    expect(dismiss).toHaveBeenCalledOnce()
   })
 })

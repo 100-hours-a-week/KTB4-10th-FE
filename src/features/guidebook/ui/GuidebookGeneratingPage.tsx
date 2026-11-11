@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { useGeneration } from '../model/generation.ts'
 import { BookHeader, State } from './GuidebookLayout.tsx'
@@ -10,6 +10,7 @@ export function GuidebookGeneratingPage() {
   const { job, track, error, retry, refresh, busy, dismiss, isDismissed } = useGeneration()
   const navigate = useNavigate()
   const guidebookConfirmDialog = useRef<HTMLDialogElement>(null)
+  const [leavingFailure, setLeavingFailure] = useState(false)
   useEffect(() => {
     if (Number.isSafeInteger(id) && id > 0 && !job && !error && !isDismissed(id)) track({ job_id: id, status: 'PENDING', guidebook_id: null })
   }, [id, job, track, error, isDismissed])
@@ -39,10 +40,15 @@ export function GuidebookGeneratingPage() {
     const guidebookId = job?.guidebook_id
     if (!guidebookId) return
     guidebookConfirmDialog.current?.close()
+    setLeavingFailure(true)
     dismiss()
     navigate(`/guidebooks/${guidebookId}`, { replace: true })
   }
-  if (Number.isSafeInteger(id) && id > 0 && !job && isDismissed(id)) return <Navigate to="/guidebooks" replace />
+  function dismissBeforeNavigation() {
+    setLeavingFailure(true)
+    dismiss()
+  }
+  if (Number.isSafeInteger(id) && id > 0 && !job && isDismissed(id) && !leavingFailure) return <Navigate to="/guidebooks" replace />
   return <main className="app-shell book-page">
     <BookHeader title={failed ? '가이드북 생성 실패' : canceled ? '가이드북 생성 취소' : '가이드북 생성 중'} />
     <section className={`book-generation${failed ? ' book-generation--failed' : ''}`} aria-live="polite">
@@ -74,9 +80,9 @@ export function GuidebookGeneratingPage() {
       {error && job && <button className="secondary-button" onClick={refresh}>상태 다시 확인</button>}
       {failed && <>{canRetry && <button className="primary-button book-retry-button" disabled={busy} onClick={() => void retry()}>{busy ? '재시도 요청 중…' : '다시 시도'}</button>}
         {(job?.initial_request != null || canModifyFeedback) && <div className="book-failure-actions">
-          {job?.initial_request != null && !isRegenerationFailure && <Link className="secondary-button book-button" to="/guidebooks/new" state={editInitialState} onClick={dismiss}>수정하기</Link>}
-          {job?.initial_request != null && isRegenerationFailure && <Link className="secondary-button book-button" to="/guidebooks/new" state={editConditionsState} onClick={dismiss}>조건 수정하기</Link>}
-          {canModifyFeedback && isRegenerationFailure && <Link className="secondary-button book-button" to={`/guidebooks/${job?.guidebook_id}/regenerate`} state={editFeedbackState} onClick={dismiss}>피드백 수정하기</Link>}
+          {job?.initial_request != null && !isRegenerationFailure && <Link className="secondary-button book-button" to="/guidebooks/new" state={editInitialState} onClick={dismissBeforeNavigation}>수정하기</Link>}
+          {job?.initial_request != null && isRegenerationFailure && <Link className="secondary-button book-button" to="/guidebooks/new" state={editConditionsState} onClick={dismissBeforeNavigation}>조건 수정하기</Link>}
+          {canModifyFeedback && isRegenerationFailure && <Link className="secondary-button book-button" to={`/guidebooks/${job?.guidebook_id}/regenerate`} state={editFeedbackState} onClick={dismissBeforeNavigation}>피드백 수정하기</Link>}
         </div>}
         {job?.initial_request == null && !canModifyFeedback && <><p className="book-hint">이전 입력을 확인하지 못했어요. 입력을 다시 불러와 주세요.</p><button className="secondary-button" onClick={refresh}>입력 다시 불러오기</button></>}
         {isRegenerationFailure && job?.initial_request != null && <aside className="book-failure-notice" aria-label="조건 수정 안내">
