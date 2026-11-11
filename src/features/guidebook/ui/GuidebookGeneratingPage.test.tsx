@@ -97,6 +97,9 @@ describe('가이드북 생성 상태 화면', () => {
     expect(screen.getByRole('link', { name: '가이드북 목록' }))
       .toHaveClass('secondary-button')
 
+    expect(screen.getByRole('button', { name: '다시 시도' })).toHaveClass('book-retry-button')
+    expect(screen.getByRole('button', { name: '다시 시도' }).closest('section'))
+      .toHaveClass('book-generation--failed')
     fireEvent.click(screen.getByRole('button', { name: '다시 시도' }))
     expect(retry).toHaveBeenCalledOnce()
   })
