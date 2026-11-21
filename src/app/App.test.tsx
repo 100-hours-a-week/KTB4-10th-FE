@@ -103,7 +103,9 @@ describe('App', () => {
     ).not.toBeInTheDocument()
     expect(screen.getByLabelText('KGB 임시 로고')).toBeInTheDocument()
     expect(getMemberPreferencesMock).not.toHaveBeenCalled()
-    await user.click(screen.getByRole('button', { name: '카카오로 로그인' }))
+    const loginButton = screen.getByRole('button', { name: '카카오 로그인' })
+    expect(loginButton.querySelector('img')).toHaveAttribute('src', '/assets/kakao-login-symbol.svg')
+    await user.click(loginButton)
     expect(
       screen.getByRole('heading', { name: '로그인 정보를 확인하고 있어요' }),
     ).toBeInTheDocument()
@@ -256,7 +258,7 @@ describe('App', () => {
       </MemoryRouter>,
     )
 
-    expect(await screen.findByRole('button', { name: '카카오로 로그인' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: '카카오 로그인' })).toBeInTheDocument()
     expect(screen.getByRole('status', {
       name: '다시 로그인해 주세요.',
     })).toBeInTheDocument()
@@ -275,7 +277,7 @@ describe('App', () => {
     )
 
     expect(await screen.findByRole('alert')).toHaveTextContent('로그인 상태를 확인하지 못했어요')
-    expect(screen.queryByRole('button', { name: '카카오로 로그인' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '카카오 로그인' })).not.toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: '다시 시도' }))
 

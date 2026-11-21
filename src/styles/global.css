@@ -136,6 +136,33 @@ button:disabled {
   padding: 0 24px calc(env(safe-area-inset-bottom) + 96px);
 }
 
+.kakao-login-button {
+  display: flex;
+  width: 100%;
+  min-height: 54px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 12px;
+  background: #fee500;
+  color: rgb(0 0 0 / 85%);
+  cursor: pointer;
+  font: 600 15px/1.2 system-ui, sans-serif;
+}
+
+.kakao-login-button img {
+  width: 16px;
+  height: auto;
+  flex: none;
+}
+
+.kakao-login-button:focus-visible {
+  outline: 2px solid #141417;
+  outline-offset: 3px;
+}
+
 .primary-button {
   width: 100%;
   min-height: 54px;
