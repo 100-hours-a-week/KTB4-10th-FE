@@ -38,7 +38,10 @@ export function LoginPage() {
         <div className="brand-mark auth-brand-position" aria-label="KGB 임시 로고">KGB</div>
       </section>
       <section className="login-actions">
-        <button className="primary-button" type="button" onClick={handleKakaoLogin}>카카오로 로그인</button>
+        <button className="kakao-login-button" type="button" onClick={handleKakaoLogin}>
+          <img src="/assets/kakao-login-symbol.svg" alt="" />
+          카카오 로그인
+        </button>
         <p className="policy-consent">
           로그인하면 <button type="button" onClick={() => setPolicyType('terms')}>이용약관</button>과{' '}
           <button type="button" onClick={() => setPolicyType('privacy')}>개인정보 처리방침</button>에 동의합니다.
